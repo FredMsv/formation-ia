@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Niveau 1 · Démystifier l’IA générative</title>
+<meta name="robots" content="noindex">
+<title>Espace formateur · Formation IA</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>tailwind.config = { corePlugins: { preflight: false } };</script>
 <style>
@@ -263,26 +264,10 @@ textarea.field{font-family:var(--mono);font-size:13px;min-height:190px;resize:ve
 <body>
 <header class="topbar">
   <div class="wrap topbar-in">
-    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Niveau 1 sur 4 · Démystifier l’IA générative</small></span></div>
-    <div class="gp" id="gp" role="progressbar" aria-label="Progression" aria-valuemin="0" aria-valuemax="100">
-      <div class="gp-top"><span id="gp-label"></span><strong class="num" id="gp-pct"></strong></div>
-      <div class="gp-bar" id="gp-bar"></div>
-    </div>
-    <div class="player" id="player"></div>
-    <button class="btn-top" data-action="ask-reset">Réinitialiser</button>
+    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Espace formateur</small></span></div>
   </div>
 </header>
 <main id="app" class="wrap"></main>
-<div id="overlay" class="overlay" hidden style="display:none">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="m-title">
-    <h2 id="m-title" class="h2">Réinitialiser ?</h2>
-    <p class="muted mt-2" id="m-text">La progression de ce niveau sera effacée de cet appareil.</p>
-    <div class="flex flex-wrap gap-3 mt-6 justify-end">
-      <button class="btn btn-ghost" data-action="cancel-reset" id="m-cancel">Annuler</button>
-      <button class="btn btn-danger" data-action="confirm-reset">Tout effacer</button>
-    </div>
-  </div>
-</div>
 <div id="toast-host" aria-live="polite"></div>
 <script>
 /* =====================================================================
@@ -309,10 +294,10 @@ const CODE_SECRET = "Lendys_AI2026";
 // Code formateur : ouvre n'importe quel niveau, pour les tests et le support. À garder confidentiel.
 const CODE_FORMATEUR = "Lendys_FormateurAI2026";
 
-// Numéro du niveau contenu dans ce fichier (ne pas modifier).
-const LEVEL = 1;
-const STORAGE_KEY = "formation-ia-parcours-B";
-const VERSION_LABEL = "B - fichier niveau 1";
+// Lien de votre Google Sheet de résultats (bouton « Ouvrir le tableau de bord »). Facultatif.
+const DASHBOARD_URL = "https://docs.google.com/spreadsheets/d/1S52PhvxFnaAFzeoWvoybTruQdamwzl0L_ZvcJHFHvPU/edit";
+const STORAGE_KEY = "formation-ia-espace-formateur-etat";
+const VERSION_LABEL = "Page formateur";
 
 /* =====================================================================
    NOYAU COMMUN : outils, état, suivi webhook, personnages, composants
@@ -582,390 +567,144 @@ const MODS = {};
 const COURSE = {};
 
 /* =====================================================================
-   NIVEAU 1 — DÉMYSTIFIER L'IA GÉNÉRATIVE (quiz, 10 situations)
-   ===================================================================== */
-const L1Q = [
-  { mod: 'Module 1', who: 'claire', tag: 'Tokenisation',
-    scenario: 'Claire saisit le mot « surassurance » dans l’assistant IA. Elle se demande ce que le modèle « voit » réellement.',
-    q: 'Comment le modèle traite-t-il ce mot ?',
-    opts: [
-      { t: 'Comme un mot entier dont il connaît la définition juridique.', fb: 'Non. Le modèle ne manipule pas des définitions mais des morceaux de texte numérotés. Il n’a pas de dictionnaire de sens.' },
-      { t: 'Il le découpe en 3 tokens (« sur », « assur », « ance »), chacun converti en numéro.', ok: true, fb: 'Exact. C’est la tokenisation : le texte devient une suite de blocs, chacun identifié par un numéro (4812, 27305, 1096 dans l’exemple du support). Le modèle ne calcule que sur ces numéros.' },
-      { t: 'Lettre par lettre, soit 12 caractères analysés un à un.', fb: 'Non. Le découpage se fait en sous-mots fréquents, pas en lettres. Un token vaut en moyenne un peu moins d’un mot en français.' },
-      { t: 'Il cherche le mot dans une base de connaissances de la banque.', fb: 'Non. Un LLM seul ne consulte aucune base. Le brancher sur vos documents, c’est le RAG (niveau 3).' } ],
-    concept: 'Un LLM découpe le texte en tokens, leur attribue un numéro, puis boucle : lire le contexte, calculer la probabilité de chaque token, en choisir un, l’ajouter, recommencer.' },
-
-  { mod: 'Module 1', who: null, tag: 'Prédiction du mot suivant',
-    scenario: 'Le modèle complète la phrase : « Le taux d’usure applicable ce trimestre est fixé par la Banque de … » et écrit « France ».',
-    q: 'Pourquoi écrit-il « France » ?',
-    opts: [
-      { t: 'Il a vérifié l’information sur le site de la Banque de France.', fb: 'Non. Il n’a rien vérifié : il n’a pas accès au web par défaut. Il a seulement calculé une suite probable.' },
-      { t: 'Parce qu’il comprend le droit bancaire français.', fb: 'Non. Il ne comprend pas : il reproduit des régularités statistiques apprises sur d’énormes volumes de textes.' },
-      { t: 'C’est le token le plus probable dans ce contexte (environ 94 %, contre 3 % pour « détail »).', ok: true, fb: 'Exact. Le modèle attribue une probabilité à chaque suite possible : « France » domine, « réserve » ou « bananes » sont quasi nuls. Il choisit, ajoute, puis recalcule pour le mot suivant.' },
-      { t: 'C’est la seule réponse possible, le modèle est déterministe.', fb: 'Non. D’autres tokens avaient une probabilité non nulle. Selon la température, le choix peut varier.' } ],
-    concept: 'Le clavier de votre téléphone qui propose le mot suivant fait la même chose, en beaucoup plus simple. Un LLM est un jeu statistique géant.' },
-
-  { mod: 'Module 1', who: 'thomas', tag: 'Illusion de compréhension',
-    scenario: 'Thomas lit la réponse d’apaisement générée pour un sociétaire furieux. Il est bluffé : « L’IA a vraiment compris sa détresse. »',
-    q: 'Que lui répondez-vous ?',
-    opts: [
-      { t: 'Oui, les modèles récents ont une forme d’empathie.', fb: 'Non. Le ton empathique est la suite statistiquement la plus probable après un message de colère. Il n’y a ni ressenti ni compréhension.' },
-      { t: 'Le modèle a prédit la suite la plus probable. Aucune empathie, aucune compréhension : il faut juger le fond, pas le ton.', ok: true, fb: 'Exact. Un LLM a une seule fonction : prédire le prochain token, en boucle. Un texte bien tourné n’est pas une garantie de justesse.' },
-      { t: 'Seulement si la température est réglée haut.', fb: 'Non. La température règle la part de hasard, pas une capacité à comprendre.' },
-      { t: 'Cela dépend de la langue utilisée par le sociétaire.', fb: 'Non. Quelle que soit la langue, le mécanisme reste la prédiction du token suivant.' } ],
-    concept: 'L’illusion de compréhension est le premier piège : plus le texte est fluide, plus on lui prête une intelligence qu’il n’a pas.' },
-
-  { mod: 'Module 1', who: 'sophie', tag: 'Température',
-    scenario: 'Sophie prépare un courrier contractuel de résiliation. Elle veut une formulation sobre, identique d’un dossier à l’autre.',
-    q: 'Quel réglage choisir ?',
-    opts: [
-      { t: 'Une température basse.', ok: true, fb: 'Exact. Température basse = choix des tokens les plus probables = réponses sobres et reproductibles. C’est le réglage des écrits contractuels.' },
-      { t: 'Une température haute pour un style plus riche.', fb: 'Non. Plus de variété, c’est aussi plus d’invention. À proscrire pour un courrier qui engage l’établissement.' },
-      { t: 'Le réglage n’a aucune influence sur le texte.', fb: 'Si. La température règle directement le degré de hasard dans le choix de chaque token.' },
-      { t: 'La température maximale, puis une relecture attentive.', fb: 'Non. On règle selon l’enjeu dès le départ ; la relecture reste indispensable dans tous les cas.' } ],
-    concept: 'Régler selon l’enjeu : basse pour la rigueur (courrier contractuel), haute pour la créativité (idées de campagne).' },
-
-  { mod: 'Module 1', who: 'emilie', tag: 'Température',
-    scenario: 'Émilie, responsable innovation, veut vingt idées d’accroches pour une campagne sur l’épargne des jeunes actifs.',
-    q: 'Quel réglage est le plus adapté ?',
-    opts: [
-      { t: 'Température 0, pour des idées fiables.', fb: 'Non. À température nulle, le modèle reprend toujours les suites les plus probables : des idées convenues et répétitives.' },
-      { t: 'Peu importe, les idées seront relues.', fb: 'La relecture est nécessaire, mais le réglage conditionne la diversité des propositions reçues.' },
-      { t: 'Une température plus haute : plus de variété, en sachant qu’elle augmente aussi l’invention.', ok: true, fb: 'Exact. Pour de l’idéation, on accepte plus de hasard. Chaque accroche retenue sera ensuite vérifiée (promesses, conformité).' },
-      { t: 'Température haute, et publication directe des meilleures idées.', fb: 'Non. L’IA propose, vous décidez : aucune accroche ne part sans validation humaine et conformité.' } ],
-    concept: 'La température est un curseur entre sobriété et variété. Il n’y a pas de bon réglage universel, seulement un réglage adapté à l’usage.' },
-
-  { mod: 'Module 1', who: 'julien', tag: 'Hallucination',
-    scenario: 'Pour motiver un refus, l’IA de Julien cite avec aplomb un article du Code des assurances et un arrêt de la Cour de cassation, numéros et dates compris.',
-    q: 'Quel est le bon réflexe ?',
-    opts: [
-      { t: 'Faire confiance : une référence aussi précise est forcément exacte.', fb: 'Non. La précision de la forme ne prouve rien : le modèle peut citer un article ou un arrêt qui n’existe pas, avec aplomb.' },
-      { t: 'Demander à l’IA si elle est bien sûre d’elle.', fb: 'Insuffisant. Le modèle peut confirmer sa propre invention avec la même assurance.' },
-      { t: 'Vérifier chaque référence dans la source officielle avant tout usage.', ok: true, fb: 'Exact. Plausible n’est pas exact. Tout fait sensible (article, arrêt, chiffre, date) se vérifie à la source.' },
-      { t: 'Augmenter la température pour obtenir d’autres références.', fb: 'Contre-productif : plus de hasard, donc plus d’invention.' } ],
-    concept: 'Une hallucination est un texte plausible mais faux. Les références précises sont les plus exposées : leur forme est facile à imiter, leur contenu impossible à deviner.' },
-
-  { mod: 'Module 1 · Fil rouge', who: 'jb', tag: 'Fond vs forme',
-    scenario: 'M. Laurent conteste un refus d’indemnisation. L’IA rédige en 3 secondes une réponse impeccable, au ton parfait.',
-    q: 'Quel est le vrai risque ?',
-    opts: [
-      { t: 'Le texte est trop long pour un sociétaire mécontent.', fb: 'La longueur se règle. Le risque majeur est ailleurs.' },
-      { t: 'Le sociétaire devinera que la réponse vient d’une IA.', fb: 'La transparence compte (module 6), mais le risque principal ici est l’exactitude du fond.' },
-      { t: 'Aucun : le modèle connaît les contrats de l’établissement.', fb: 'Non. Un LLM brut ne connaît pas vos contrats : il n’a jamais lu la clause en cause.' },
-      { t: 'La clause d’exclusion du contrat n’a jamais été lue par l’outil : le ton est juste, le fond peut être faux.', ok: true, fb: 'Exact. C’est le fil rouge du support. Qui a vérifié le contrat, protégé les données et signé la réponse ? Pas l’IA.' } ],
-    concept: 'Comme l’IA devine plutôt qu’elle ne sait, on lui donne un cadre (prompt), on contrôle ce qu’on lui confie (données) et on lui fournit les bons documents (RAG).' },
-
-  { mod: 'Module 3', who: 'julien', tag: 'Outil non homologué',
-    scenario: 'Vendredi, 17 h 30. Julien veut coller un rapport de sinistre de douze pages dans un outil d’IA grand public gratuit pour gagner du temps.',
-    q: 'Que doit-il faire ?',
-    opts: [
-      { t: 'Le coller, en retirant simplement le nom du sociétaire.', fb: 'Non. Retirer le nom ne suffit pas (voir la règle du feutre noir), et l’outil n’est de toute façon pas homologué.' },
-      { t: 'Renoncer : zéro donnée professionnelle sur un outil non homologué. Ce qui est collé peut quitter le périmètre et servir à réentraîner le modèle.', ok: true, fb: 'Exact. Coller un dossier dans un outil public, c’est afficher le dossier du sociétaire dans la vitrine de l’agence. On passe par l’environnement fermé validé par la DSI.' },
-      { t: 'Le coller en navigation privée : rien n’est conservé.', fb: 'Non. La navigation privée n’efface que l’historique local. Les données partent bien chez l’éditeur du service.' },
-      { t: 'Le coller : un outil gratuit ne conserve jamais les données.', fb: 'Non. Un outil gratuit se paie souvent en données ; tout dépend du service et de ses réglages.' } ],
-    concept: 'Outil public : les données quittent le périmètre et peuvent alimenter l’apprentissage du modèle. Environnement d’entreprise fermé : contrat de confidentialité, données ni conservées ni réutilisées.' },
-
-  { mod: 'Module 3', who: null, tag: 'Pseudonymisation vs anonymisation',
-    scenario: 'Un collègue prépare ce contexte : « M. X, 52 ans, chirurgien-dentiste à Saint-Brieuc, en arrêt longue durée, encours de 450 000 €. »',
-    q: 'Ce texte est-il anonymisé ?',
-    opts: [
-      { t: 'Oui, le nom a été remplacé.', fb: 'Non. Remplacer le nom par une initiale, c’est de la pseudonymisation : la personne reste réidentifiable par recoupement.' },
-      { t: 'Oui, si l’outil utilisé est sécurisé.', fb: 'Non. La sécurité de l’outil ne change pas la nature de la donnée : elle reste personnelle.' },
-      { t: 'Non : un seul individu correspond. C’est une donnée personnelle (RGPD, secret bancaire), et l’arrêt de travail touche à la santé.', ok: true, fb: 'Exact. Règle du feutre noir : noms, localisation fine, dates de naissance, numéros de contrat, IBAN, montants uniques. Et une pathologie est une donnée de santé (RGPD, art. 9).' },
-      { t: 'Non, mais il suffit de retirer l’âge.', fb: 'Insuffisant. Profession, ville, situation et montant suffisent encore à identifier la personne.' } ],
-    concept: 'Pseudonymisation : réidentification possible, le RGPD s’applique. Anonymisation : tous les marqueurs d’individualité sont supprimés, la personne n’est plus identifiable.' },
-
-  { mod: 'Module 4', who: 'camille', tag: 'Zones rouges',
-    scenario: 'Camille veut faire résumer par l’IA interne sécurisée son analyse de mouvements atypiques, préalable à une déclaration de soupçon.',
-    q: 'Peut-elle le faire ?',
-    opts: [
-      { t: 'Oui, l’outil interne est sécurisé et hébergé en Europe.', fb: 'Non. « C’est sécurisé, nous sommes en famille » est le piège psychologique : un outil validé n’autorise pas tout.' },
-      { t: 'Oui, à condition d’anonymiser le client.', fb: 'Non. Tracfin est une zone rouge absolue : même anonymisée, l’analyse ne passe pas par l’IA.' },
-      { t: 'Oui, si elle efface l’historique juste après.', fb: 'Non. Le risque de fuite (tipping-off) existe dès la saisie, surtout avec des historiques partagés.' },
-      { t: 'Non : zone rouge Tracfin. Même sur l’outil interne, ces données se traitent à la main, par les canaux sécurisés.', ok: true, fb: 'Exact. Il est interdit de laisser fuiter qu’un client est examiné (CMF, L.561-18 et suivants). Même règle pour le secret médical et l’information privilégiée.' } ],
-    concept: 'Trois zones rouges absolues, même sur l’outil interne : secret médical et santé, secret Tracfin, marchés et clés techniques (information privilégiée, mots de passe, clés d’API).' },
-];
-
-let S1 = null;
-MODS[1] = {
-  start() { S1 = { i: 0, picks: [], perm: L1Q.map(q => shuffle(q.opts.map((_, k) => k))), recorded: false }; },
-  view() {
-    const s = S1;
-    if (s.i >= L1Q.length) return L1Result();
-    const q = L1Q[s.i], p = s.picks[s.i], answered = p !== undefined;
-    const dots = L1Q.map((qq, k) => {
-      const c = k < s.i || (k === s.i && answered) ? (qq.opts[s.picks[k]].ok ? 'y' : 'n') : (k === s.i ? 'cur' : '');
-      return `<span class="qdot ${c}"></span>`;
-    }).join('');
-    const opts = s.perm[s.i].map((k, pos) => {
-      const o = q.opts[k]; let c = 'opt';
-      if (answered) { if (k === p) c += o.ok ? ' ok' : ' bad'; else if (o.ok) c += ' ok-reveal'; else c += ' fade'; }
-      return `<button class="${c}" data-action="l1-pick" data-k="${k}" ${answered ? 'disabled' : ''}><span class="key">${'ABCD'[pos]}</span><span class="opt-body">${o.t}</span></button>`;
-    }).join('');
-    const chosen = answered ? q.opts[p] : null;
-    const good = q.opts.find(o => o.ok);
-    const fb = answered ? `
-      <div class="fb ${chosen.ok ? 'fb-ok' : 'fb-bad'} mt-5" role="status">
-        <div class="fb-head">${chosen.ok ? '✓ Bonne réponse' : '✗ Ce n’est pas la bonne réponse'}</div>
-        <p>${chosen.fb}</p>
-        ${chosen.ok ? '' : `<p class="mt-2"><b>Bonne réponse :</b> ${good.t}</p><p class="mt-1 small">${good.fb}</p>`}
-      </div>
-      <div class="callout mt-4"><span class="eyebrow">À retenir · ${q.mod}</span><p>${q.concept}</p></div>
-      <div class="flex justify-end mt-6"><button class="btn btn-primary" data-action="l1-next">${s.i < L1Q.length - 1 ? 'Question suivante' : 'Voir mon résultat'}</button></div>` : '';
-    const score = s.picks.filter((pk, k) => L1Q[k].opts[pk].ok).length;
-    return `${LevelHeader(1)}
-    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] items-start">
-      <section class="panel min-w-0">
-        <div class="flex items-center justify-between gap-3 flex-wrap"><p class="eyebrow">Situation ${s.i + 1} sur ${L1Q.length} · ${q.mod}</p><div class="qdots" aria-hidden="true">${dots}</div></div>
-        <div class="card mt-4">
-          ${q.who ? `<div class="mb-3">${person(q.who, 48)}</div>` : ''}
-          <p>${q.scenario}</p>
-        </div>
-        <h2 class="h3 mt-5">${q.q}</h2>
-        <div class="grid gap-2 mt-3">${opts}</div>
-        ${fb}
-      </section>
-      <aside class="card sticky-col min-w-0">
-        <p class="eyebrow">Règle du niveau</p>
-        <p class="mt-1 small">Dix situations. Il faut au moins <b>9 bonnes réponses</b> (90 %) pour valider. Chaque réponse est expliquée.</p>
-        <hr class="divider my-4">
-        <p class="eyebrow grey">Bonnes réponses</p>
-        <p class="num mt-1" style="font-size:30px;font-weight:700">${score}<span class="muted" style="font-size:18px"> / ${L1Q.length}</span></p>
-        <hr class="divider my-4">
-        <p class="eyebrow grey">Notions</p>
-        <div class="tagrow mt-2">${LEVEL_META[1].tags.map(t => `<span class="tag" style="background:var(--white)">${t}</span>`).join('')}</div>
-      </aside>
-    </div>`;
-  },
-  handle(a, d) {
-    if (a === 'l1-pick') { if (S1.picks[S1.i] === undefined) { S1.picks[S1.i] = +d.k; render(false); } return true; }
-    if (a === 'l1-next') { S1.i++; render(true); return true; }
-    return false;
-  },
-};
-function L1Result() {
-  const s = S1;
-  const good = s.picks.filter((p, k) => L1Q[k].opts[p].ok).length;
-  const pct = Math.round(good / L1Q.length * 100), passed = pct >= SEUIL;
-  if (!s.recorded) { s.recorded = true; finishAttempt(1, pct, passed, L1Q.filter((q, k) => !q.opts[s.picks[k]].ok).map(q => q.tag)); }
-  const extra = `<p class="eyebrow grey">Détail de vos réponses</p>
-    <div class="mt-2">${L1Q.map((q, k) => {
-      const ok = q.opts[s.picks[k]].ok;
-      return `<div class="review"><span class="mark ${ok ? 'y' : 'n'}">${ok ? '✓' : '✗'}</span><div class="min-w-0"><b>${q.tag}</b> <span class="muted">· ${q.mod}</span>${ok ? '' : `<p class="mt-1">${q.concept}</p>`}</div></div>`;
-    }).join('')}</div>`;
-  return `${LevelHeader(1)}${ResultCard({ n: 1, pct, passed,
-    headline: passed ? `${good} sur 10 : vous savez ce que fait vraiment un LLM` : `${good} sur 10 : il en faut au moins 9`,
-    text: passed ? 'Tokens, probabilités, température, hallucinations, zones rouges : vous avez les bases pour conseiller un métier sans surpromettre.'
-                 : 'Relisez les notions signalées en rouge, puis rejouez le niveau. Ces fondations conditionnent tous les niveaux suivants.',
-    extra })}`;
-}
-
-COURSE[1] = {
-  title: 'Démystifier l’IA générative : l’essentiel',
-  banner: '<b>Un LLM a une seule fonction : prédire le prochain token, en boucle.</b> Aucune empathie, aucune compréhension : un jeu statistique géant. À nous d’encadrer chaque étape.',
-  cards: [
-    { h: 'Le mot devient des tokens', t: '« surassurance » devient « sur », « assur », « ance » : trois blocs, trois numéros. Le modèle ne calcule que sur ces numéros.', src: 'Module 1' },
-    { h: 'Lire, calculer, choisir, ajouter', t: '« …fixé par la Banque de » : France 94 %, détail 3 %, bananes quasi nul. Le modèle choisit, ajoute, recalcule.', src: 'Module 1' },
-    { h: 'Température', t: 'Basse : réponses sobres et reproductibles (courrier contractuel). Haute : plus de variété, et plus d’invention (idées de campagne).', src: 'Module 1' },
-    { h: 'Hallucination', t: 'Plausible n’est pas exact. Le modèle peut citer un article ou un arrêt qui n’existe pas, avec aplomb. Vérifier chaque fait sensible.', src: 'Module 1' },
-    { h: 'Où partent vos mots ?', t: 'Zéro donnée professionnelle sur un outil personnel non homologué. L’environnement d’entreprise fermé ne conserve ni ne réutilise les données.', src: 'Module 3' },
-    { h: 'Zones rouges absolues', t: 'Secret médical et santé, secret Tracfin, marchés et clés techniques : même sur l’outil interne, l’IA reste éteinte.', src: 'Module 4' },
-  ],
-  callouts: [
-    { e: 'Trois règles d’or', t: 'Vérifier chaque fait sensible. Régler selon l’enjeu. Décider soi-même : l’IA propose.' },
-    { e: 'Règle du feutre noir', t: '« M. X » n’anonymise rien. Retirer noms, localisation fine, dates de naissance, numéros de contrat et de sinistre, IBAN, montants uniques.' },
-  ],
-};
-
-/* =====================================================================
-   VERSION B — FICHIER D'UN SEUL NIVEAU, DÉVERROUILLÉ PAR CODE
+   PAGE FORMATEUR (index.html) — activer le groupe de la session
    ===================================================================== */
 const app = $('#app');
-let view = 'gate';
-function isFinalLevel(n) { return n === 4; }
+function onProgress() {}
+function isFinalLevel() { return false; }
+const ADMIN_KEY = 'formation-ia-espace-formateur';
+let unlocked = false;
+try { unlocked = sessionStorage.getItem(ADMIN_KEY) === '1'; } catch (e) {}
+let draft = '', activeGroup = null, lastCheck = null, checking = false, pollTimer = null, statusMsg = '', statusKind = '';
 
-/* ---------- Codes de passage (liés au prénom et au nom) ---------- */
-const normName = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
-function hash4(src) {
-  let h = 2166136261;
-  for (const ch of src) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
-  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let out = '';
-  for (let i = 0; i < 4; i++) { out += A[h % 32]; h = Math.floor(h / 32); }
-  return out;
-}
-const unlockCode = (prenom, nom, lvl) => `NIV${lvl}-${hash4(`${normName(prenom)}|${normName(nom)}|${lvl}|${CODE_SECRET}`)}`;
-const certCode = (prenom, nom) => `CERT-${hash4(`${normName(prenom)}|${normName(nom)}|certif|${CODE_SECRET}`)}`;
-const cleanCode = s => String(s || '').toUpperCase().replace(/\s+/g, '');
+const levelUrl = n => { const u = new URL(`niveau-${n}.html`, window.location.href); u.search = ''; u.hash = ''; return u.href; };
+function todayTagInit() { return todayTag(); }
+const todayTag = () => { const d = new Date(); const p = x => String(x).padStart(2, '0'); return `Groupe-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`; };
+draft = todayTag();
+const configured = () => CONFIG_SHEET_ID && CONFIG_SHEET_ID !== 'ID_A_REMPLACER' && WEBHOOK_URL && WEBHOOK_URL !== 'URL_A_REMPLACER';
 
-function onProgress() {
-  const L = state.levels[LEVEL];
-  $('#gp-label').textContent = `Niveau ${LEVEL} sur 4 · ${L.passed ? 'validé' : 'en cours'}`;
-  $('#gp-pct').textContent = `${L.best} %`;
-  $('#gp').setAttribute('aria-valuenow', L.best);
-  $('#gp-bar').innerHTML = [1, 2, 3, 4].map(n => {
-    const w = n < LEVEL ? 100 : n === LEVEL ? (L.passed ? 100 : L.best) : 0;
-    return `<span class="seg ${n < LEVEL || (n === LEVEL && L.passed) ? 'ok' : ''}" title="Niveau ${n}"><i style="width:${w}%"></i></span>`;
-  }).join('');
-  const ses = currentSession();
-  $('#player').innerHTML = (state.player.prenom && state.gates[LEVEL] ? `<span class="muted">Joueur :</span> <b>${esc(playerName())}</b>` : '') + (ses ? ` <span class="pill">Session ${esc(ses)}</span>` : '');
+function render() {
+  if (!unlocked) { app.innerHTML = GateView(); const f = $('#a-code'); if (f) f.focus(); return; }
+  app.innerHTML = MainView();
 }
-function go(v) {
-  playToken++;
-  if (v === 'level' && state.gates[LEVEL]) {
-    // Vérifie le groupe actif juste avant de lancer une partie.
-    syncGroup().then(reset => route(reset ? 'gate' : 'level'));
-    return;
-  }
-  route(v);
-}
-function route(v) {
-  if (!state.gates[LEVEL]) v = 'gate';
-  else if (v === 'summary' && !state.levels[LEVEL].passed) v = 'level';
-  view = v;
-  if (v === 'level') { MODS[LEVEL].start(); sendStart(LEVEL); }
-  render(true);
-}
-function render(top) {
-  const y = window.scrollY;
-  if (view === 'gate') app.innerHTML = GateView();
-  else if (view === 'summary') app.innerHTML = SummaryView();
-  else app.innerHTML = MODS[LEVEL].view();
-  onProgress();
-  if (top) { window.scrollTo(0, 0); const h = app.querySelector('h1'); if (h) h.focus({ preventScroll: true }); }
-  else window.scrollTo(0, y);
-}
-
 function GateView() {
-  const M = LEVEL_META[LEVEL];
-  const needCode = LEVEL > 1;
-  return `<section class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_420px] items-start mt-10">
+  return `<section class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_400px] items-start mt-10">
     <div class="min-w-0">
-      <p class="eyebrow">Formation IA · Niveau ${LEVEL} sur 4 · ${M.short}</p>
-      <h1 tabindex="-1" class="title mt-2">${M.title}</h1>
-      <p class="lead mt-3">${M.intro}</p>
-      <div class="flex flex-wrap gap-2 mt-4"><span class="pill">${M.format}</span><span class="pill pill-o">Validation : ${M.rule}</span><span class="pill">${M.src}</span></div>
-      ${needCode ? `<div class="callout mt-6"><span class="eyebrow">Accès protégé</span><p>Ce niveau s’ouvre avec le code affiché à la fin du niveau ${LEVEL - 1}, dans le résumé de cours. Le code est personnel : saisissez vos prénom et nom exactement comme au niveau précédent (majuscules et accents ne comptent pas).</p></div>`
-                 : '<div class="banner mt-6">Chaque niveau exige 90 % de réussite. À la fin, votre résumé de cours affiche le code qui ouvre le niveau suivant.</div>'}
+      <p class="eyebrow">Formation IA · Espace formateur</p>
+      <h1 tabindex="-1" class="title mt-2">Piloter la session</h1>
+      <p class="lead mt-3">Activez le groupe du jour : tous les niveaux étiquettent leurs résultats avec ce groupe, et les postes de la salle repartent de zéro pour les nouveaux apprenants.</p>
     </div>
-    <div class="panel min-w-0" id="gate-form">
-      <h2 class="h2">${needCode ? 'Déverrouiller le niveau' : 'Qui joue ?'}</h2>
-      <p class="small muted mt-1">Votre nom figure dans le suivi de la formation.</p>
-      <div class="grid gap-4 mt-5">
-        <div><label class="lbl" for="f-prenom">Prénom</label><input class="field" id="f-prenom" autocomplete="given-name" maxlength="40" value="${esc(state.player.prenom)}"></div>
-        <div><label class="lbl" for="f-nom">Nom</label><input class="field" id="f-nom" autocomplete="family-name" maxlength="40" value="${esc(state.player.nom)}"></div>
-        ${needCode ? `<div><label class="lbl" for="f-code">Code du niveau ${LEVEL}</label><input class="field mono" id="f-code" placeholder="NIV${LEVEL}-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="80"></div>` : ''}
-        <p class="form-err" id="f-err" hidden></p>
-        <button class="btn btn-primary" type="button" data-action="gate-submit">${needCode ? 'Déverrouiller' : 'Commencer le niveau 1'}</button>
-      </div>
+    <div class="panel min-w-0" id="admin-gate">
+      <label class="lbl" for="a-code">Code formateur</label>
+      <input class="field mono" id="a-code" type="password" autocomplete="off" maxlength="80">
+      <p class="form-err mt-2" id="a-err" hidden>Code formateur incorrect.</p>
+      <button class="btn btn-primary w-full mt-4" type="button" data-action="admin-login">Entrer</button>
     </div>
   </section>`;
 }
-function SummaryView() {
-  const p = state.player.prenom, n = state.player.nom;
-  let tail;
-  if (LEVEL < 4) {
-    const code = unlockCode(p, n, LEVEL + 1);
-    tail = `<section class="panel mt-8">
-      <div class="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-center">
-        <div class="min-w-0">
-          <p class="eyebrow">Accès au niveau ${LEVEL + 1}</p>
-          <h2 class="h2 mt-1">${LEVEL_META[LEVEL + 1].title}</h2>
-          <p class="mt-2">Ouvrez le fichier <b class="mono">niveau-${LEVEL + 1}.html</b>, puis saisissez vos prénom, nom et ce code. Il est personnel : il ne fonctionne qu’avec votre nom.</p>
-        </div>
-        <div class="code-box"><p class="eyebrow grey">Votre code</p><p class="code-val mt-2" id="code-val">${code}</p>
-          <button class="btn btn-ghost mt-3" data-action="copy-code" data-code="${code}">Copier le code</button></div>
+function MainView() {
+  const groupHtml = checking && activeGroup === null ? '<span class="muted">Lecture en cours…</span>'
+    : activeGroup ? `<span class="code-val" style="font-size:clamp(24px,4vw,34px)">${esc(activeGroup)}</span>`
+    : '<span class="muted">Aucun groupe lisible</span>';
+  const when = lastCheck ? lastCheck.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
+  return `<section class="mt-8">
+    <p class="eyebrow">Formation IA · Espace formateur</p>
+    <h1 tabindex="-1" class="title mt-1">Piloter la session</h1>
+  </section>
+  ${configured() ? '' : `<div class="callout mt-5"><span class="eyebrow">Configuration incomplète</span><p>Renseignez <code class="mono">WEBHOOK_URL</code> et <code class="mono">CONFIG_SHEET_ID</code> en haut du script de cette page, puis rechargez-la.</p></div>`}
+  <section class="grid gap-5 md:grid-cols-2 mt-6">
+    <div class="code-box" style="text-align:left">
+      <p class="eyebrow grey">Groupe actif</p>
+      <p class="mt-2" id="active-group">${groupHtml}</p>
+      <div class="flex flex-wrap items-center gap-3 mt-4">
+        <button class="btn btn-ghost" type="button" data-action="admin-refresh" ${checking ? 'disabled' : ''}>${checking ? 'Lecture…' : 'Actualiser'}</button>
+        ${when ? `<span class="xs muted">Vérifié à ${when}</span>` : ''}
       </div>
-    </section>`;
-  } else {
-    const cc = certCode(p, n);
-    const date = (() => { try { return new Date(state.completedAt || Date.now()).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return ''; } })();
-    tail = `<section class="cert mt-8">
-      <div class="relative flex flex-wrap items-start justify-between gap-6">
-        <div class="min-w-0" style="flex:1 1 320px">
-          <p class="eyebrow grey">Formation IA · Parcours terminé</p>
-          <p class="mt-4 muted">Certifie que</p>
-          <p class="mt-1" style="font-size:26px;font-weight:700">${esc(playerName())}</p>
-          <p class="mt-3 muted">a validé les quatre niveaux et obtient le titre de</p>
-          <p class="cert-title mt-1">Concepteur IA certifié</p>
-          <p class="small muted mt-5">Délivré le ${date} · Code de vérification <span class="mono">${cc}</span></p>
-        </div>
-        <div class="seal"><div><b>${state.levels[4].best}</b><span>score niveau 4</span></div></div>
-      </div>
-      <div class="relative mt-8"><p class="eyebrow">Compétences acquises</p>
-        <div class="mt-2">${[1, 2, 3, 4].map(k => `<div class="cert-skill"><span><b>Niveau ${k}</b> · ${LEVEL_META[k].title}</span><em>${k < 4 ? 'validé' : state.levels[4].best + ' %'}</em><small>${SKILLS[k]}</small></div>`).join('')}</div>
-      </div>
-      <div class="relative flex flex-wrap gap-3 mt-6"><button class="btn btn-primary" data-action="copy-cert">Copier mon résultat</button></div>
-    </section>`;
-  }
-  return `<nav class="mt-6"><button class="link" data-action="back">← Revenir au niveau</button></nav>
-    ${CourseSummary(LEVEL)}
-    ${tail}
-    <textarea id="share-fallback" class="field mt-4" readonly hidden aria-label="Texte à copier"></textarea>`;
-}
-function copyText(txt, okMsg) {
-  const fallback = () => { const t = $('#share-fallback'); t.value = txt; t.hidden = false; t.focus(); t.select(); toast('Texte sélectionné', 'Copiez-le avec Ctrl+C ou ⌘+C.'); };
-  try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(() => toast(okMsg, '')).catch(fallback); else fallback(); } catch (e) { fallback(); }
+    </div>
+    <div class="panel min-w-0" id="activate-form">
+      <h2 class="h2">Activer un nouveau groupe</h2>
+      <p class="small muted mt-1">À faire avant que les apprenants ouvrent le niveau 1. Lettres, chiffres et tirets, sans espace.</p>
+      <label class="lbl mt-4" for="a-group">Nom du groupe</label>
+      <input class="field mono" id="a-group" maxlength="60" value="${esc(draft)}" autocomplete="off" spellcheck="false">
+      <button class="btn btn-primary w-full mt-4" type="button" data-action="admin-activate" ${configured() && !pollTimer ? '' : 'disabled'}>Activer ce groupe</button>
+      ${statusMsg ? `<p class="mt-3 small" style="font-weight:700;color:var(${statusKind === 'ok' ? '--ok' : statusKind === 'bad' ? '--bad' : '--ink-2'})" role="status">${statusMsg}</p>` : ''}
+    </div>
+  </section>
+  <section class="panel mt-5">
+    <h2 class="h2">Ce qui se passe à l’activation</h2>
+    <ul class="mt-3 grid gap-2 small">
+      <li>• Make inscrit le nouveau groupe dans la feuille Config ; la page le confirme dès qu’il est lisible, en général sous 15 secondes.</li>
+      <li>• Chaque poste qui ouvre ensuite un niveau lit ce groupe. Si le poste servait à un autre groupe, il est remis à zéro et redemande prénom et nom.</li>
+      <li>• Les résultats déjà envoyés restent dans la feuille, rattachés à leur ancien groupe.</li>
+    </ul>
+  </section>
+  <section class="panel mt-5">
+    <h2 class="h2">Liens des niveaux</h2>
+    <p class="small muted mt-1">Ces liens ne changent jamais : ce sont ceux du support apprenant.</p>
+    <div class="mt-3">${[1, 2, 3, 4].map(n => `<div class="review" style="align-items:center;flex-wrap:wrap"><span class="num-circle sm">${n}</span><div class="min-w-0" style="flex:1 1 240px"><b>${LEVEL_META[n].title}</b><p class="mono xs muted" style="word-break:break-all">${esc(levelUrl(n))}</p></div><button class="btn btn-ghost" type="button" data-action="admin-copy" data-n="${n}">Copier</button></div>`).join('')}</div>
+    ${DASHBOARD_URL && DASHBOARD_URL !== 'LIEN_A_REMPLACER' ? `<a class="btn btn-ok mt-5" href="${esc(DASHBOARD_URL)}" target="_blank" rel="noopener">Ouvrir le tableau de bord</a>` : ''}
+  </section>
+  <textarea id="share-fallback" class="field mt-4" readonly hidden aria-label="Texte à copier"></textarea>`;
 }
 
-/* ---------- Réinitialisation (ce niveau uniquement) ---------- */
-function openModal() { const o = $('#overlay'); o.hidden = false; o.style.display = ''; $('#m-cancel').focus(); }
-function closeModal() { const o = $('#overlay'); o.hidden = true; o.style.display = 'none'; }
+async function refreshGroup() {
+  checking = true; render();
+  const g = await fetchActiveGroup();
+  activeGroup = g; lastCheck = new Date(); checking = false;
+  if (!g && configured() && !statusMsg) { statusMsg = 'La feuille Config n’est pas lisible : vérifiez son partage (« Tous les utilisateurs disposant du lien », lecteur) et son identifiant.'; statusKind = 'bad'; }
+  render();
+}
+function activate() {
+  const input = $('#a-group');
+  const g = cleanGroup(input.value).replace(/\s+/g, '-');
+  if (!g) { statusMsg = 'Saisissez un nom de groupe.'; statusKind = 'bad'; render(); return; }
+  postWebhook({
+    horodatage: new Date().toISOString(), evenement: 'groupe activé', session: g, version: 'Page formateur',
+    prenom: '', nom: '', joueur: 'Formateur', niveau: '', titre_niveau: '', niveau_valide: '', score: '',
+    seuil: String(SEUIL), tentative: '', erreurs_tentative: '', erreurs_frequentes: '',
+  });
+  statusMsg = `Activation de « ${g} » envoyée. Attente de la confirmation de Make…`; statusKind = '';
+  let tries = 0;
+  const tick = async () => {
+    tries++;
+    const cur = await fetchActiveGroup();
+    activeGroup = cur; lastCheck = new Date();
+    if (cur === g) { clearTimeout(pollTimer); pollTimer = null; statusMsg = `Groupe « ${g} » actif. Vous pouvez envoyer le niveau 1.`; statusKind = 'ok'; toast('Groupe activé', g); render(); return; }
+    if (tries >= 12) { pollTimer = null; statusMsg = `Make n’a pas confirmé après 40 secondes. Vérifiez que le scénario est sur ON et que l’aiguillage « groupe activé » écrit bien dans la feuille Config, puis cliquez sur Actualiser.`; statusKind = 'bad'; render(); return; }
+    render(); pollTimer = setTimeout(tick, 3500);
+  };
+  pollTimer = setTimeout(tick, 2500);
+  render();
+}
+function copy(n) {
+  const txt = levelUrl(n);
+  const fallback = () => { const t = $('#share-fallback'); t.value = txt; t.hidden = false; t.focus(); t.select(); toast('Lien sélectionné', 'Copiez-le avec Ctrl+C ou ⌘+C.'); };
+  try { navigator.clipboard.writeText(txt).then(() => toast('Lien copié', `Niveau ${n}`)).catch(fallback); } catch (e) { fallback(); }
+}
+function login() {
+  const ok = cleanCode($('#a-code').value) === cleanCode(CODE_FORMATEUR);
+  if (!ok) { $('#a-err').hidden = false; $('#a-code').classList.add('err'); return; }
+  unlocked = true; try { sessionStorage.setItem(ADMIN_KEY, '1'); } catch (e) {}
+  render(); refreshGroup();
+}
+const cleanCode = s => String(s || '').toUpperCase().replace(/\s+/g, '');
 
 document.addEventListener('click', e => {
-  const b = e.target.closest('[data-action]');
-  if (!b || b.disabled) return;
-  const a = b.dataset.action, d = b.dataset;
-  if (view === 'level' && MODS[LEVEL].handle(a, d, b)) return;
-  switch (a) {
-    case 'retry': case 'back': go('level'); break;
-    case 'summary': go('summary'); break;
-    case 'gate-submit': submitGate(); break;
-    case 'copy-code': copyText(d.code, 'Code copié'); break;
-    case 'copy-cert': copyText(`Formation IA : ${playerName()}, Concepteur IA certifié. Score niveau 4 : ${state.levels[4].best} %. Code de vérification ${certCode(state.player.prenom, state.player.nom)}.`, 'Résultat copié'); break;
-    case 'ask-reset': openModal(); break;
-    case 'cancel-reset': closeModal(); break;
-    case 'confirm-reset': {
-      state.levels[LEVEL] = lvState(); delete state.gates[LEVEL];
-      if (LEVEL === 4) state.completedAt = null;
-      saveState(); closeModal(); toast('Niveau réinitialisé', LEVEL > 1 ? 'Saisissez à nouveau votre code pour rejouer.' : 'Saisissez à nouveau votre nom pour rejouer.'); go('gate'); break;
-    }
-  }
+  const b = e.target.closest('[data-action]'); if (!b || b.disabled) return;
+  const a = b.dataset.action;
+  if (a === 'admin-login') login();
+  if (a === 'admin-refresh') { statusMsg = ''; refreshGroup(); }
+  if (a === 'admin-activate') activate();
+  if (a === 'admin-copy') copy(+b.dataset.n);
 });
-function submitGate() {
-  const p = $('#f-prenom').value.trim(), n = $('#f-nom').value.trim();
-  const err = $('#f-err');
-  $('#f-prenom').classList.toggle('err', !p); $('#f-nom').classList.toggle('err', !n);
-  if (!p || !n) { err.textContent = 'Renseignez votre prénom et votre nom.'; err.hidden = false; return; }
-  if (LEVEL > 1) {
-    const typed = cleanCode($('#f-code').value);
-    const ok = typed === cleanCode(unlockCode(p, n, LEVEL)) || typed === cleanCode(CODE_FORMATEUR);
-    $('#f-code').classList.toggle('err', !ok);
-    if (!ok) {
-      // Code valide pour ce joueur, mais d'un autre niveau : refusé avec un message explicite.
-      const other = [2, 3, 4].find(k => k !== LEVEL && typed === cleanCode(unlockCode(p, n, k)));
-      if (!typed) err.textContent = `Saisissez le code affiché à la fin du niveau ${LEVEL - 1}.`;
-      else if (other) err.textContent = `Ce code ouvre le niveau ${other}, pas le niveau ${LEVEL}. Le niveau ${LEVEL} s’ouvre uniquement avec le code obtenu en validant le niveau ${LEVEL - 1}.`;
-      else err.textContent = `Code incorrect pour ${p} ${n}. Vérifiez le code affiché à la fin du niveau ${LEVEL - 1} et l’orthographe de votre nom.`;
-      err.hidden = false; return;
-    }
-  }
-  const changed = normName(p + n) !== normName(state.player.prenom + state.player.nom);
-  state.player = { prenom: p, nom: n };
-  if (changed) { state.levels = { 1: lvState(), 2: lvState(), 3: lvState(), 4: lvState() }; state.gates = {}; state.completedAt = null; }
-  state.gates[LEVEL] = true; saveState();
-  go(state.levels[LEVEL].passed ? 'summary' : 'level');
-}
-document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.closest && e.target.closest('#gate-form')) { e.preventDefault(); submitGate(); } });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#overlay').hidden) closeModal(); });
-$('#overlay').addEventListener('click', e => { if (e.target.id === 'overlay') closeModal(); });
-
-// Au retour sur l'onglet (poste partagé), vérifie si le formateur a changé de groupe.
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState !== 'visible' || view === 'level') return;
-  syncGroup().then(reset => { if (reset) route('gate'); });
+document.addEventListener('input', e => { if (e.target.id === 'a-group') draft = e.target.value; });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || !e.target.closest) return;
+  if (e.target.closest('#admin-gate')) { e.preventDefault(); login(); }
+  if (e.target.closest('#activate-form') && !pollTimer && configured()) { e.preventDefault(); activate(); }
 });
-app.innerHTML = loadingView();
-syncGroup().then(() => route(state.gates[LEVEL] ? (state.levels[LEVEL].passed ? 'summary' : 'level') : 'gate'));
+render();
+if (unlocked) refreshGroup();
 
 </script>
 </body>
