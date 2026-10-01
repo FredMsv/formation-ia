@@ -268,6 +268,7 @@ textarea.field{font-family:var(--mono);font-size:13px;min-height:190px;resize:ve
       <div class="gp-top"><span id="gp-label"></span><strong class="num" id="gp-pct"></strong></div>
       <div class="gp-bar" id="gp-bar"></div>
     </div>
+    <span class="pill num" id="chrono" hidden aria-live="off"></span>
     <div class="player" id="player"></div>
     <button class="btn-top" data-action="ask-reset">Réinitialiser</button>
   </div>
@@ -289,9 +290,9 @@ textarea.field{font-family:var(--mono);font-size:13px;min-height:190px;resize:ve
    CONFIGURATION — À MODIFIER
    ===================================================================== */
 // URL du webhook (Make, Zapier…). Le jeu envoie une ligne quand un niveau est
-// commencé et une ligne quand il est terminé. Champs : horodatage, evenement, session,
+// commencé, une ligne quand il est terminé et une ligne s'il est abandonné. Champs : horodatage, evenement, session,
 // version, prenom, nom, joueur, niveau, titre_niveau, niveau_valide, score, seuil,
-// tentative, erreurs_tentative, erreurs_frequentes, email, duree_secondes,
+// tentative, erreurs_tentative, erreurs_frequentes, email, duree_secondes, avancement,
 // puis envoyer_fiche, fiche_sujet, fiche_html (pour l'e-mail, à ne pas mettre dans la feuille).
 // La session vient du lien envoyé aux apprenants : niveau-1.html?session=Groupe-A
 const WEBHOOK_URL = "https://hook.eu2.make.com/nfuswd0gqqz4kv7vrs2lid42tnilpf4v";
@@ -419,6 +420,7 @@ function applyGroup(fromSheet) {
   const target = readSessionFromLink() || fromSheet || '';
   if (!target) return false;
   if (state.session && state.session !== target) {
+    [1, 2, 3, 4].forEach(n => { if (state.levels[n].inProgress) sendAbandon(n, 'changement de groupe', true); });
     state = freshState(); state.session = target; saveState();
     toast(`Nouveau groupe : ${target}`, 'Ce poste a été remis à zéro. Saisissez votre prénom et votre nom.');
     return true;
@@ -453,18 +455,74 @@ function basePayload(n, evenement) {
 }
 const levelStart = {};
 // Envoyé à l'ouverture d'un niveau (et à chaque nouvelle tentative).
+let chrono = { n: null, start: 0, end: 0 };
 function sendStart(n) {
+  // Une tentative précédente restée ouverte (page fermée sans signal) est d'abord déclarée abandonnée.
+  if (state.levels[n].inProgress) sendAbandon(n, 'page fermée ou rechargée en cours de partie', true);
   levelStart[n] = Date.now();
+  chrono = { n, start: levelStart[n], end: 0 };
+  state.levels[n].inProgress = { start: levelStart[n] };
+  saveState();
+  updateChrono();
   postWebhook(Object.assign(basePayload(n, 'niveau commencé'), {
     niveau_valide: '', score: '', seuil: String(SEUIL),
     tentative: String(state.levels[n].attempts + 1),
     erreurs_tentative: '', erreurs_frequentes: topErrors(n) || 'aucune',
-    email: normEmail(state.player.email), duree_secondes: '',
+    email: normEmail(state.player.email), duree_secondes: '', avancement: '',
     envoyer_fiche: 'non', fiche_sujet: '', fiche_html: '',
   }));
 }
+/* Abandon : réinitialisation, page fermée ou rechargée, retour au parcours, changement de groupe.
+   Une tentative abandonnée après au moins une réponse compte comme une tentative. */
+function sendAbandon(n, raison, sansDetail) {
+  const L = state.levels[n], ip = L.inProgress;
+  if (!ip) return;
+  // sansDetail : la partie n'est plus à l'écran ; on reprend l'avancement mémorisé à la fermeture de la page.
+  let prog = ip.snapshot || { answered: 0, txt: 'avancement inconnu' };
+  if (!sansDetail && MODS[n] && MODS[n].progress) { try { prog = MODS[n].progress(); } catch (e) {} }
+  if (prog.answered > 0) L.attempts += 1;
+  const fin = sansDetail && ip.snapshot ? ip.snapshot.at : Date.now();
+  const duree = Math.round((fin - ip.start) / 1000);
+  delete L.inProgress;
+  saveState();
+  if (chrono.n === n) chrono = { n: null, start: 0, end: 0 };
+  postWebhook(Object.assign(basePayload(n, 'niveau abandonné'), {
+    niveau_valide: '', score: '', seuil: String(SEUIL),
+    tentative: String(prog.answered > 0 ? L.attempts : L.attempts + 1),
+    erreurs_tentative: '', erreurs_frequentes: topErrors(n) || 'aucune',
+    email: normEmail(state.player.email), duree_secondes: String(duree),
+    avancement: `${raison} · ${prog.txt}`,
+    envoyer_fiche: 'non', fiche_sujet: '', fiche_html: '',
+  }));
+}
+/* Fermeture ou rechargement de la page en pleine partie : un envoi réseau à ce moment-là n'est pas fiable.
+   On mémorise l'avancement sur le poste ; l'abandon est envoyé à la prochaine ouverture d'un niveau
+   (rechargement, apprenant suivant, changement de groupe). */
+window.addEventListener('pagehide', () => {
+  let changed = false;
+  [1, 2, 3, 4].forEach(n => {
+    const ip = state.levels[n] && state.levels[n].inProgress;
+    if (!ip) return;
+    let prog = { answered: 0, txt: 'avancement inconnu' };
+    if (MODS[n] && MODS[n].progress) { try { prog = MODS[n].progress(); } catch (e) {} }
+    ip.snapshot = Object.assign(prog, { at: Date.now() }); changed = true;
+  });
+  if (changed) saveState();
+});
+/* Chronomètre affiché dans le bandeau pendant la partie. */
+const fmtDur = s => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+function updateChrono() {
+  const el = document.getElementById('chrono'); if (!el) return;
+  const show = !!chrono.n && typeof inLevelView === 'function' && inLevelView();
+  el.hidden = !show; if (!show) return;
+  const s = Math.max(0, Math.round(((chrono.end || Date.now()) - chrono.start) / 1000));
+  el.textContent = `${chrono.end ? 'Durée' : 'Temps'} ${fmtDur(s)}`;
+  el.classList.toggle('pill-ok', !!chrono.end);
+}
+setInterval(updateChrono, 1000);
 // Envoyé à la fin d'un niveau, qu'il soit validé ou non. Contient la fiche de score à envoyer par e-mail.
 function sendTracking(n, pct, passed, errs) {
+  if (chrono.n === n) chrono.end = Date.now();
   const duree = levelStart[n] ? Math.round((Date.now() - levelStart[n]) / 1000) : '';
   const envoyer = ENVOI_FICHE === 'toujours' || (ENVOI_FICHE === 'validation' && passed);
   const fiche = envoyer ? buildFiche(n, pct, passed, duree) : { sujet: '', html: '' };
@@ -477,6 +535,7 @@ function sendTracking(n, pct, passed, errs) {
     erreurs_frequentes: topErrors(n) || 'aucune',
     email: normEmail(state.player.email),
     duree_secondes: String(duree),
+    avancement: 'terminé',
     envoyer_fiche: envoyer && state.player.email ? 'oui' : 'non',
     fiche_sujet: fiche.sujet,
     fiche_html: fiche.html,
@@ -537,6 +596,7 @@ function buildFiche(n, pct, passed, duree) {
 }
 function finishAttempt(n, pct, passed, errs) {
   const L = state.levels[n];
+  delete L.inProgress;
   L.attempts += 1;
   L.best = Math.max(L.best, pct);
   errs.forEach(t => { L.errors[t] = (L.errors[t] || 0) + 1; });
@@ -740,6 +800,11 @@ const L2_BRICKS = [
 
 let S2 = null;
 MODS[2] = {
+  progress() {
+    const s = S2, b = Object.keys(s.bricks).length;
+    const etape = s.redDone ? 3 : s.diagDone ? 2 : 1;
+    return { answered: s.diag.size + s.red.size + b, txt: `étape ${etape} sur 3 (diagnostic ${s.diagDone ? 'validé' : 'en cours'}, feutre noir ${s.redDone ? 'validé' : 'non validé'}, ${b} ingrédient${b > 1 ? 's' : ''} sur 5)` };
+  },
   details() {
     const s = S2;
     return [
@@ -915,6 +980,7 @@ COURSE[2] = {
    ===================================================================== */
 const app = $('#app');
 let view = 'gate';
+function inLevelView() { return view === 'level'; }
 function isFinalLevel(n) { return n === 4; }
 
 /* ---------- Codes de passage (liés à l'adresse e-mail) ---------- */
@@ -970,7 +1036,7 @@ function render(top) {
   if (view === 'gate') app.innerHTML = GateView();
   else if (view === 'summary') app.innerHTML = SummaryView();
   else app.innerHTML = MODS[LEVEL].view();
-  onProgress();
+  onProgress(); updateChrono();
   if (top) { window.scrollTo(0, 0); const h = app.querySelector('h1'); if (h) h.focus({ preventScroll: true }); }
   else window.scrollTo(0, y);
 }
@@ -1066,7 +1132,10 @@ document.addEventListener('click', e => {
     case 'ask-reset': openModal(); break;
     case 'cancel-reset': closeModal(); break;
     case 'confirm-reset': {
-      state.levels[LEVEL] = lvState(); delete state.gates[LEVEL];
+      if (state.levels[LEVEL].inProgress) sendAbandon(LEVEL, 'réinitialisation par l’apprenant');
+      // Le compteur de tentatives et l'historique des erreurs sont conservés : une réinitialisation ne doit pas effacer les essais.
+      { const old = state.levels[LEVEL]; state.levels[LEVEL] = Object.assign(lvState(), { attempts: old.attempts, errors: old.errors }); }
+      delete state.gates[LEVEL];
       if (LEVEL === 4) state.completedAt = null;
       saveState(); closeModal(); toast('Niveau réinitialisé', LEVEL > 1 ? 'Saisissez à nouveau votre code pour rejouer.' : 'Saisissez à nouveau votre nom pour rejouer.'); go('gate'); break;
     }
