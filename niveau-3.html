@@ -289,9 +289,10 @@ textarea.field{font-family:var(--mono);font-size:13px;min-height:190px;resize:ve
    CONFIGURATION — À MODIFIER
    ===================================================================== */
 // URL du webhook (Make, Zapier…). Le jeu envoie une ligne quand un niveau est
-// commencé et une ligne quand il est terminé, avec ces 15 champs :
-// horodatage, evenement, session, version, prenom, nom, joueur, niveau, titre_niveau,
-// niveau_valide, score, seuil, tentative, erreurs_tentative, erreurs_frequentes.
+// commencé et une ligne quand il est terminé. Champs : horodatage, evenement, session,
+// version, prenom, nom, joueur, niveau, titre_niveau, niveau_valide, score, seuil,
+// tentative, erreurs_tentative, erreurs_frequentes, email, duree_secondes,
+// puis envoyer_fiche, fiche_sujet, fiche_html (pour l'e-mail, à ne pas mettre dans la feuille).
 // La session vient du lien envoyé aux apprenants : niveau-1.html?session=Groupe-A
 const WEBHOOK_URL = "https://hook.eu2.make.com/nfuswd0gqqz4kv7vrs2lid42tnilpf4v";
 
@@ -301,6 +302,13 @@ const CONFIG_SHEET_ID = "1-v3PQq4ukj73AeewDwqHIKomZx3ESaBKMBarJJq83nc";
 
 // Seuil de validation d'un niveau, en pourcentage.
 const SEUIL = 90;
+
+// Seules les adresses de ce domaine peuvent jouer. Mettez "" pour accepter toute adresse (tests externes).
+const DOMAINE_EMAIL = "lendys.fr";
+
+// Envoi de la fiche de score par e-mail : "validation" (niveau validé uniquement),
+// "toujours" (chaque niveau terminé, validé ou non) ou "jamais".
+const ENVOI_FICHE = "validation";
 
 // Sel des codes de passage : il doit être IDENTIQUE dans les 4 fichiers de la version B.
 // Changez-le avant diffusion pour que vos codes ne soient pas devinables.
@@ -346,7 +354,7 @@ const SKILLS = {
 
 /* ---------- État et sauvegarde ---------- */
 const lvState = () => ({ best: 0, passed: false, attempts: 0, errors: {} });
-function freshState() { return { player: { prenom: '', nom: '' }, levels: { 1: lvState(), 2: lvState(), 3: lvState(), 4: lvState() }, gates: {}, completedAt: null, session: '' }; }
+function freshState() { return { player: { prenom: '', nom: '', email: '' }, levels: { 1: lvState(), 2: lvState(), 3: lvState(), 4: lvState() }, gates: {}, completedAt: null, session: '' }; }
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -365,6 +373,15 @@ function loadState() {
 function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {} }
 let state = loadState();
 const playerName = () => `${state.player.prenom} ${state.player.nom}`.trim();
+const normEmail = s => String(s || '').trim().toLowerCase();
+// Renvoie un message d'erreur, ou '' si l'adresse est acceptée.
+function emailError(e) {
+  const v = normEmail(e);
+  if (!v) return 'Renseignez votre adresse e-mail professionnelle.';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'Cette adresse e-mail n’est pas valide.';
+  if (DOMAINE_EMAIL && !v.endsWith('@' + DOMAINE_EMAIL.toLowerCase())) return `Ce jeu est réservé aux adresses @${DOMAINE_EMAIL}. Utilisez votre adresse professionnelle.`;
+  return '';
+}
 
 /* ---------- Suivi administrateur (webhook Make / Zapier) ---------- */
 function topErrors(n, k = 3) {
@@ -415,7 +432,9 @@ function postWebhook(payload) {
   if (!WEBHOOK_URL || WEBHOOK_URL === 'URL_A_REMPLACER') { console.info('[Suivi] WEBHOOK_URL non configurée. Données qui auraient été envoyées :', payload); return; }
   try {
     // Format formulaire + mode no-cors : accepté par Make et Zapier sans pré-requête CORS.
-    fetch(WEBHOOK_URL, { method: 'POST', mode: 'no-cors', keepalive: true, body: new URLSearchParams(payload) })
+    const body = new URLSearchParams(payload);
+    // keepalive est limité à 64 Ko : on ne l'active que pour les petits envois.
+    fetch(WEBHOOK_URL, { method: 'POST', mode: 'no-cors', keepalive: body.toString().length < 60000, body })
       .catch(err => console.warn('[Suivi] Envoi impossible :', err));
   } catch (err) { console.warn('[Suivi] Envoi impossible :', err); }
 }
@@ -432,16 +451,23 @@ function basePayload(n, evenement) {
     titre_niveau: LEVEL_META[n].title,
   };
 }
+const levelStart = {};
 // Envoyé à l'ouverture d'un niveau (et à chaque nouvelle tentative).
 function sendStart(n) {
+  levelStart[n] = Date.now();
   postWebhook(Object.assign(basePayload(n, 'niveau commencé'), {
     niveau_valide: '', score: '', seuil: String(SEUIL),
     tentative: String(state.levels[n].attempts + 1),
     erreurs_tentative: '', erreurs_frequentes: topErrors(n) || 'aucune',
+    email: normEmail(state.player.email), duree_secondes: '',
+    envoyer_fiche: 'non', fiche_sujet: '', fiche_html: '',
   }));
 }
-// Envoyé à la fin d'un niveau, qu'il soit validé ou non.
+// Envoyé à la fin d'un niveau, qu'il soit validé ou non. Contient la fiche de score à envoyer par e-mail.
 function sendTracking(n, pct, passed, errs) {
+  const duree = levelStart[n] ? Math.round((Date.now() - levelStart[n]) / 1000) : '';
+  const envoyer = ENVOI_FICHE === 'toujours' || (ENVOI_FICHE === 'validation' && passed);
+  const fiche = envoyer ? buildFiche(n, pct, passed, duree) : { sujet: '', html: '' };
   postWebhook(Object.assign(basePayload(n, 'niveau terminé'), {
     niveau_valide: passed ? 'oui' : 'non',
     score: String(pct),
@@ -449,7 +475,65 @@ function sendTracking(n, pct, passed, errs) {
     tentative: String(state.levels[n].attempts),
     erreurs_tentative: errs.length ? errs.join(' ; ') : 'aucune',
     erreurs_frequentes: topErrors(n) || 'aucune',
+    email: normEmail(state.player.email),
+    duree_secondes: String(duree),
+    envoyer_fiche: envoyer && state.player.email ? 'oui' : 'non',
+    fiche_sujet: fiche.sujet,
+    fiche_html: fiche.html,
   }));
+}
+
+/* ---------- Fiche de score envoyée par e-mail (HTML compatible messageries) ---------- */
+function buildFiche(n, pct, passed, duree) {
+  const M = LEVEL_META[n], L = state.levels[n];
+  const C = { or: '#EA6827', ord: '#C4501A', ink: '#333333', mut: '#666666', card: '#F3F3F3', peach: '#FDEEE3', ok: '#2C7A4B', oks: '#E3F2E8', bad: '#B3261E', bads: '#FBE5E3', line: '#E2E2E2' };
+  const F = "font-family:Calibri,'Segoe UI',Arial,sans-serif;";
+  const date = (() => { try { return new Date().toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Europe/Paris' }); } catch (e) { return new Date().toISOString(); } })();
+  const dureeTxt = duree === '' ? '' : `${Math.floor(duree / 60)} min ${String(duree % 60).padStart(2, '0')} s`;
+  const sections = MODS[n] && MODS[n].details ? MODS[n].details() : [];
+  const nbItems = sections.reduce((a, s) => a + s.items.length, 0);
+  const nbOk = sections.reduce((a, s) => a + s.items.filter(i => i.ok).length, 0);
+  const row = (k, v) => `<tr><td style="padding:3px 12px 3px 0;color:${C.mut};font-size:13px;white-space:nowrap">${k}</td><td style="padding:3px 0;font-size:14px;color:${C.ink}">${v}</td></tr>`;
+  const item = it => `<tr>
+    <td style="padding:10px 10px 10px 0;border-top:1px solid ${C.line};vertical-align:top;width:26px"><span style="display:inline-block;width:22px;height:22px;line-height:22px;border-radius:11px;text-align:center;color:#ffffff;font-weight:bold;font-size:13px;background:${it.ok ? C.ok : C.bad}">${it.ok ? '&#10003;' : '&#10007;'}</span></td>
+    <td style="padding:10px 0;border-top:1px solid ${C.line};font-size:14px;line-height:1.5;color:${C.ink}">
+      <b>${esc(it.label)}</b><br>
+      ${it.given ? `<span style="color:${C.mut}">Votre réponse :</span> ${esc(it.given)}<br>` : ''}
+      ${!it.ok && it.expected ? `<span style="color:${C.ok};font-weight:bold">Réponse attendue :</span> ${esc(it.expected)}<br>` : ''}
+      ${it.why ? `<span style="color:${C.mut}">Explication :</span> ${esc(it.why)}` : ''}
+    </td></tr>`;
+  const parcours = [1, 2, 3, 4].filter(k => state.levels[k].attempts > 0).map(k =>
+    `<tr><td style="padding:4px 12px 4px 0;font-size:14px;color:${C.ink}">Niveau ${k} · ${esc(LEVEL_META[k].title)}</td><td style="padding:4px 0;font-size:14px;font-weight:bold;color:${state.levels[k].passed ? C.ok : C.bad};text-align:right">${state.levels[k].best} %${state.levels[k].passed ? ' · validé' : ''}</td></tr>`).join('');
+  const extra = typeof ficheExtra === 'function' ? ficheExtra(n, passed) : '';
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"></head><body style="margin:0;padding:0;background:#ffffff">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;${F}"><tr><td align="center" style="padding:24px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;${F}">
+  <tr><td style="padding:0 0 16px 0;border-bottom:3px solid ${C.or}">
+    <span style="display:inline-block;width:34px;height:34px;line-height:34px;border-radius:17px;background:${C.or};color:#ffffff;font-weight:bold;text-align:center;font-size:14px">IA</span>
+    <span style="font-size:16px;font-weight:bold;color:${C.ink};vertical-align:middle;padding-left:8px">Formation IA · Fiche de score</span>
+  </td></tr>
+  <tr><td style="padding:20px 0 6px 0">
+    <p style="margin:0;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:${C.ord};font-weight:bold">Niveau ${n} sur 4 · ${esc(M.short)}</p>
+    <p style="margin:4px 0 0 0;font-size:24px;color:${C.ink}">${esc(M.title)}</p>
+  </td></tr>
+  <tr><td style="padding:12px 0">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${passed ? C.oks : C.bads};border-radius:6px"><tr>
+      <td style="padding:16px 20px;width:140px"><span style="font-size:40px;font-weight:bold;color:${passed ? C.ok : C.bad}">${pct}</span><span style="font-size:18px;color:${passed ? C.ok : C.bad}">/100</span></td>
+      <td style="padding:16px 20px 16px 0;font-size:15px;color:${C.ink}"><b style="color:${passed ? C.ok : C.bad}">${passed ? 'Niveau validé' : 'Niveau non validé'}</b><br>Seuil de validation : ${SEUIL}/100<br>${nbOk} élément${nbOk > 1 ? 's' : ''} juste${nbOk > 1 ? 's' : ''} sur ${nbItems}</td>
+    </tr></table>
+  </td></tr>
+  <tr><td style="padding:4px 0 12px 0"><table role="presentation" cellpadding="0" cellspacing="0">
+    ${row('Apprenant', `<b>${esc(playerName())}</b>`)}${row('E-mail', esc(normEmail(state.player.email)))}${row('Groupe', esc(currentSession() || 'non renseigné'))}${row('Date', esc(date))}${row('Tentative', String(L.attempts))}${dureeTxt ? row('Durée', dureeTxt) : ''}
+  </table></td></tr>
+  ${extra}
+  ${sections.map(s => `<tr><td style="padding:18px 0 4px 0"><p style="margin:0;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:${C.ord};font-weight:bold">${esc(s.title)}</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:6px">${s.items.map(item).join('')}</table></td></tr>`).join('')}
+  ${parcours ? `<tr><td style="padding:22px 0 4px 0"><p style="margin:0;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:${C.ord};font-weight:bold">Votre parcours sur ce poste</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:6px;background:${C.card};border-radius:6px;padding:8px 12px">${parcours}</table></td></tr>` : ''}
+  <tr><td style="padding:24px 0 0 0;font-size:12px;color:${C.mut};border-top:1px solid ${C.line}">Fiche générée automatiquement par le jeu de la Formation IA. Les explications reprennent le support de formation ; les références juridiques sont indicatives et à confirmer avec votre conformité.</td></tr>
+</table></td></tr></table></body></html>`;
+  const sujet = `Formation IA · Niveau ${n} ${passed ? 'validé' : 'non validé'} · ${pct}/100`;
+  return { sujet, html };
 }
 function finishAttempt(n, pct, passed, errs) {
   const L = state.levels[n];
@@ -619,6 +703,14 @@ const stepById = id => STEPS3.find(x => x.id === id);
 
 let S3 = null;
 MODS[3] = {
+  details() {
+    const s = S3, out = [];
+    if (s.incident) out.push({ title: 'Simulation', items: [{ label: s.incident.label, ok: false, given: '', expected: '', why: s.incident.why }] });
+    out.push({ title: 'Ordre du pipeline', items: STEPS3.map((st, i) => ({ label: `Étape ${i + 1}`, ok: s.order[i] === st.id, given: stepById(s.order[i]).name, expected: st.name, why: st.desc })) });
+    out.push({ title: 'Choix de conception', items: L3_CH.map(g => { const k = s.pick[g.id];
+      return { label: `${g.label} : ${g.q}`, ok: k === g.good, given: g.opts[k].t, expected: g.opts[g.good].t, why: k === g.good ? g.opts[k].fb : `${g.opts[k].fb} ${g.opts[g.good].fb}` }; }) });
+    return out;
+  },
   start() {
     let order = shuffle(STEPS3.map(x => x.id));
     while (order.join() === STEPS3.map(x => x.id).join()) order = shuffle(order);
@@ -771,6 +863,9 @@ function L3Score() {
 function L3Result() {
   const s = S3, r = s.result, sc = L3Score();
   const passed = !r.fail && sc.pct >= SEUIL;
+  const incident = { order: 'Pipeline interrompu', leak: 'Fuite de données', version: 'Mauvais millésime', halluc: 'Hallucination' };
+  const failWhy = { order: 'Une étape a été lancée avant celle dont elle dépend.', leak: 'La réponse a exposé une donnée de santé d’un autre sociétaire : le filtre des droits doit s’appliquer avant la génération.', version: 'La réponse s’appuie sur un texte qui ne s’applique pas à ce contrat (grenier poussiéreux).', halluc: 'Le modèle a comblé les manques avec une règle inventée.' };
+  s.incident = r.fail ? { label: `Incident : ${incident[r.fail]}`, why: failWhy[r.fail] } : null;
   if (!s.recorded) {
     s.recorded = true;
     const errs = [];
@@ -780,7 +875,6 @@ function L3Result() {
     if (r.fail === 'halluc') errs.push('Hallucination');
     finishAttempt(3, sc.pct, passed, [...new Set(errs)]);
   }
-  const incident = { order: 'Pipeline interrompu', leak: 'Fuite de données', version: 'Mauvais millésime', halluc: 'Hallucination' };
   const failText = {
     order: 'Le pipeline s’est interrompu : une étape a été lancée avant celle dont elle dépend.',
     leak: 'La réponse a exposé une donnée de santé d’un autre sociétaire. Le filtre des droits doit s’appliquer avant la génération.',
@@ -824,7 +918,7 @@ const app = $('#app');
 let view = 'gate';
 function isFinalLevel(n) { return n === 4; }
 
-/* ---------- Codes de passage (liés au prénom et au nom) ---------- */
+/* ---------- Codes de passage (liés à l'adresse e-mail) ---------- */
 const normName = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
 function hash4(src) {
   let h = 2166136261;
@@ -833,8 +927,15 @@ function hash4(src) {
   for (let i = 0; i < 4; i++) { out += A[h % 32]; h = Math.floor(h / 32); }
   return out;
 }
-const unlockCode = (prenom, nom, lvl) => `NIV${lvl}-${hash4(`${normName(prenom)}|${normName(nom)}|${lvl}|${CODE_SECRET}`)}`;
-const certCode = (prenom, nom) => `CERT-${hash4(`${normName(prenom)}|${normName(nom)}|certif|${CODE_SECRET}`)}`;
+const unlockCode = (email, lvl) => `NIV${lvl}-${hash4(`${normEmail(email)}|${lvl}|${CODE_SECRET}`)}`;
+const certCode = email => `CERT-${hash4(`${normEmail(email)}|certif|${CODE_SECRET}`)}`;
+// Ajoute à la fiche e-mail le code du niveau suivant (ou le code de certificat).
+function ficheExtra(n, passed) {
+  if (!passed) return '';
+  const code = n < 4 ? unlockCode(state.player.email, n + 1) : certCode(state.player.email);
+  const label = n < 4 ? `Votre code pour ouvrir le niveau ${n + 1}` : 'Code de vérification de votre certificat « Concepteur IA certifié »';
+  return `<tr><td style="padding:8px 0 4px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FDEEE3;border:2px dashed #EA6827;border-radius:8px"><tr><td style="padding:14px 18px;font-family:Calibri,'Segoe UI',Arial,sans-serif"><span style="font-size:13px;color:#666666">${label}</span><br><span style="font-family:Consolas,'Courier New',monospace;font-size:26px;font-weight:bold;letter-spacing:2px;color:#C4501A">${code}</span></td></tr></table></td></tr>`;
+}
 const cleanCode = s => String(s || '').toUpperCase().replace(/\s+/g, '');
 
 function onProgress() {
@@ -884,15 +985,16 @@ function GateView() {
       <h1 tabindex="-1" class="title mt-2">${M.title}</h1>
       <p class="lead mt-3">${M.intro}</p>
       <div class="flex flex-wrap gap-2 mt-4"><span class="pill">${M.format}</span><span class="pill pill-o">Validation : ${M.rule}</span><span class="pill">${M.src}</span></div>
-      ${needCode ? `<div class="callout mt-6"><span class="eyebrow">Accès protégé</span><p>Ce niveau s’ouvre avec le code affiché à la fin du niveau ${LEVEL - 1}, dans le résumé de cours. Le code est personnel : saisissez vos prénom et nom exactement comme au niveau précédent (majuscules et accents ne comptent pas).</p></div>`
+      ${needCode ? `<div class="callout mt-6"><span class="eyebrow">Accès protégé</span><p>Ce niveau s’ouvre avec le code affiché à la fin du niveau ${LEVEL - 1}, dans le résumé de cours. Il vous a aussi été envoyé par e-mail. Le code est personnel : saisissez la même adresse e-mail qu’au niveau précédent.</p></div>`
                  : '<div class="banner mt-6">Chaque niveau exige 90 % de réussite. À la fin, votre résumé de cours affiche le code qui ouvre le niveau suivant.</div>'}
     </div>
     <div class="panel min-w-0" id="gate-form">
       <h2 class="h2">${needCode ? 'Déverrouiller le niveau' : 'Qui joue ?'}</h2>
-      <p class="small muted mt-1">Votre nom figure dans le suivi de la formation.</p>
+      <p class="small muted mt-1">Votre nom et votre adresse figurent dans le suivi de la formation.</p>
       <div class="grid gap-4 mt-5">
         <div><label class="lbl" for="f-prenom">Prénom</label><input class="field" id="f-prenom" autocomplete="given-name" maxlength="40" value="${esc(state.player.prenom)}"></div>
         <div><label class="lbl" for="f-nom">Nom</label><input class="field" id="f-nom" autocomplete="family-name" maxlength="40" value="${esc(state.player.nom)}"></div>
+        <div><label class="lbl" for="f-email">Adresse e-mail professionnelle</label><input class="field" id="f-email" type="email" autocomplete="email" maxlength="80" spellcheck="false" placeholder="prenom.nom@${esc(DOMAINE_EMAIL || 'entreprise.fr')}" value="${esc(state.player.email)}"><p class="xs muted mt-1">${ENVOI_FICHE === 'jamais' ? 'Elle identifie votre parcours.' : 'Votre fiche de score détaillée y sera envoyée.'}</p></div>
         ${needCode ? `<div><label class="lbl" for="f-code">Code du niveau ${LEVEL}</label><input class="field mono" id="f-code" placeholder="NIV${LEVEL}-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="80"></div>` : ''}
         <p class="form-err" id="f-err" hidden></p>
         <button class="btn btn-primary" type="button" data-action="gate-submit">${needCode ? 'Déverrouiller' : 'Commencer le niveau 1'}</button>
@@ -901,23 +1003,23 @@ function GateView() {
   </section>`;
 }
 function SummaryView() {
-  const p = state.player.prenom, n = state.player.nom;
+  const em = state.player.email;
   let tail;
   if (LEVEL < 4) {
-    const code = unlockCode(p, n, LEVEL + 1);
+    const code = unlockCode(em, LEVEL + 1);
     tail = `<section class="panel mt-8">
       <div class="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-center">
         <div class="min-w-0">
           <p class="eyebrow">Accès au niveau ${LEVEL + 1}</p>
           <h2 class="h2 mt-1">${LEVEL_META[LEVEL + 1].title}</h2>
-          <p class="mt-2">Ouvrez le fichier <b class="mono">niveau-${LEVEL + 1}.html</b>, puis saisissez vos prénom, nom et ce code. Il est personnel : il ne fonctionne qu’avec votre nom.</p>
+          <p class="mt-2">Ouvrez le fichier <b class="mono">niveau-${LEVEL + 1}.html</b>, puis saisissez vos prénom, nom, adresse e-mail et ce code. Il est personnel : il ne fonctionne qu’avec votre adresse.${ENVOI_FICHE === 'jamais' ? '' : ' Vous le retrouverez aussi dans l’e-mail de votre fiche de score.'}</p>
         </div>
         <div class="code-box"><p class="eyebrow grey">Votre code</p><p class="code-val mt-2" id="code-val">${code}</p>
           <button class="btn btn-ghost mt-3" data-action="copy-code" data-code="${code}">Copier le code</button></div>
       </div>
     </section>`;
   } else {
-    const cc = certCode(p, n);
+    const cc = certCode(em);
     const date = (() => { try { return new Date(state.completedAt || Date.now()).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return ''; } })();
     tail = `<section class="cert mt-8">
       <div class="relative flex flex-wrap items-start justify-between gap-6">
@@ -961,7 +1063,7 @@ document.addEventListener('click', e => {
     case 'summary': go('summary'); break;
     case 'gate-submit': submitGate(); break;
     case 'copy-code': copyText(d.code, 'Code copié'); break;
-    case 'copy-cert': copyText(`Formation IA : ${playerName()}, Concepteur IA certifié. Score niveau 4 : ${state.levels[4].best} %. Code de vérification ${certCode(state.player.prenom, state.player.nom)}.`, 'Résultat copié'); break;
+    case 'copy-cert': copyText(`Formation IA : ${playerName()}, Concepteur IA certifié. Score niveau 4 : ${state.levels[4].best} %. Code de vérification ${certCode(state.player.email)}.`, 'Résultat copié'); break;
     case 'ask-reset': openModal(); break;
     case 'cancel-reset': closeModal(); break;
     case 'confirm-reset': {
@@ -972,25 +1074,28 @@ document.addEventListener('click', e => {
   }
 });
 function submitGate() {
-  const p = $('#f-prenom').value.trim(), n = $('#f-nom').value.trim();
+  const p = $('#f-prenom').value.trim(), n = $('#f-nom').value.trim(), em = normEmail($('#f-email').value);
   const err = $('#f-err');
   $('#f-prenom').classList.toggle('err', !p); $('#f-nom').classList.toggle('err', !n);
   if (!p || !n) { err.textContent = 'Renseignez votre prénom et votre nom.'; err.hidden = false; return; }
+  const emErr = emailError(em);
+  $('#f-email').classList.toggle('err', !!emErr);
+  if (emErr) { err.textContent = emErr; err.hidden = false; return; }
   if (LEVEL > 1) {
     const typed = cleanCode($('#f-code').value);
-    const ok = typed === cleanCode(unlockCode(p, n, LEVEL)) || typed === cleanCode(CODE_FORMATEUR);
+    const ok = typed === cleanCode(unlockCode(em, LEVEL)) || typed === cleanCode(CODE_FORMATEUR);
     $('#f-code').classList.toggle('err', !ok);
     if (!ok) {
       // Code valide pour ce joueur, mais d'un autre niveau : refusé avec un message explicite.
-      const other = [2, 3, 4].find(k => k !== LEVEL && typed === cleanCode(unlockCode(p, n, k)));
+      const other = [2, 3, 4].find(k => k !== LEVEL && typed === cleanCode(unlockCode(em, k)));
       if (!typed) err.textContent = `Saisissez le code affiché à la fin du niveau ${LEVEL - 1}.`;
       else if (other) err.textContent = `Ce code ouvre le niveau ${other}, pas le niveau ${LEVEL}. Le niveau ${LEVEL} s’ouvre uniquement avec le code obtenu en validant le niveau ${LEVEL - 1}.`;
-      else err.textContent = `Code incorrect pour ${p} ${n}. Vérifiez le code affiché à la fin du niveau ${LEVEL - 1} et l’orthographe de votre nom.`;
+      else err.textContent = `Code incorrect pour ${em}. Vérifiez le code reçu à la fin du niveau ${LEVEL - 1} et votre adresse e-mail.`;
       err.hidden = false; return;
     }
   }
-  const changed = normName(p + n) !== normName(state.player.prenom + state.player.nom);
-  state.player = { prenom: p, nom: n };
+  const changed = em !== normEmail(state.player.email);
+  state.player = { prenom: p, nom: n, email: em };
   if (changed) { state.levels = { 1: lvState(), 2: lvState(), 3: lvState(), 4: lvState() }; state.gates = {}; state.completedAt = null; }
   state.gates[LEVEL] = true; saveState();
   go(state.levels[LEVEL].passed ? 'summary' : 'level');
