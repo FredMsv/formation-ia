@@ -168,7 +168,12 @@ main.wrap{padding-block:8px 72px}
 .chip.done{background:var(--ok-soft);color:var(--ok)}
 .chip.fail{background:var(--bad-soft);color:var(--bad);border-color:var(--bad)}
 .arrow{color:var(--muted);font-size:12px}
-.order-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:6px;background:var(--card)}
+.order-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:6px;background:var(--card);border:1px solid transparent;transition:box-shadow .15s,background .15s}
+.order-row.draggable{cursor:grab;user-select:none;-webkit-user-select:none}
+.order-row.draggable:hover{border-color:#D6D6D6}
+.order-row.dragging{cursor:grabbing;background:var(--peach);border-color:var(--orange);box-shadow:0 10px 24px rgba(0,0,0,.15);position:relative;z-index:2}
+.grip{flex:none;width:30px;height:40px;display:grid;place-items:center;color:var(--muted);font-size:18px;letter-spacing:-3px;touch-action:none;border-radius:6px}
+.order-row.draggable:hover .grip{color:var(--orange-deep)}
 .order-row .num-circle{background:var(--white);color:var(--ink);border:1px solid var(--line)}
 .order-row.good .num-circle{background:var(--ok);color:#fff;border-color:var(--ok)}
 .order-row.wrong .num-circle{background:var(--bad);color:#fff;border-color:var(--bad)}
@@ -293,7 +298,7 @@ textarea.field{font-family:var(--mono);font-size:13px;min-height:190px;resize:ve
 // commencé, une ligne quand il est terminé et une ligne s'il est abandonné. Champs : horodatage, evenement, session,
 // version, prenom, nom, joueur, niveau, titre_niveau, niveau_valide, score, seuil,
 // tentative, erreurs_tentative, erreurs_frequentes, email, duree_secondes, avancement,
-// puis envoyer_fiche, fiche_sujet, fiche_html (pour l'e-mail, à ne pas mettre dans la feuille).
+// puis envoyer_fiche, fiche_sujet, fiche_html, fiche_taille (pour l'e-mail, à ne pas mettre dans la feuille).
 // La session vient du lien envoyé aux apprenants : niveau-1.html?session=Groupe-A
 const WEBHOOK_URL = "https://hook.eu2.make.com/nfuswd0gqqz4kv7vrs2lid42tnilpf4v";
 
@@ -469,7 +474,7 @@ function sendStart(n) {
     tentative: String(state.levels[n].attempts + 1),
     erreurs_tentative: '', erreurs_frequentes: topErrors(n) || 'aucune',
     email: normEmail(state.player.email), duree_secondes: '', avancement: '',
-    envoyer_fiche: 'non', fiche_sujet: '', fiche_html: '',
+    envoyer_fiche: 'non', fiche_sujet: '', fiche_html: '', fiche_taille: '0',
   }));
 }
 /* Abandon : réinitialisation, page fermée ou rechargée, retour au parcours, changement de groupe.
@@ -492,7 +497,7 @@ function sendAbandon(n, raison, sansDetail) {
     erreurs_tentative: '', erreurs_frequentes: topErrors(n) || 'aucune',
     email: normEmail(state.player.email), duree_secondes: String(duree),
     avancement: `${raison} · ${prog.txt}`,
-    envoyer_fiche: 'non', fiche_sujet: '', fiche_html: '',
+    envoyer_fiche: 'non', fiche_sujet: '', fiche_html: '', fiche_taille: '0',
   }));
 }
 /* Fermeture ou rechargement de la page en pleine partie : un envoi réseau à ce moment-là n'est pas fiable.
@@ -539,6 +544,7 @@ function sendTracking(n, pct, passed, errs) {
     envoyer_fiche: envoyer && state.player.email ? 'oui' : 'non',
     fiche_sujet: fiche.sujet,
     fiche_html: fiche.html,
+    fiche_taille: String(fiche.html.length),
   }));
 }
 
@@ -564,7 +570,8 @@ function buildFiche(n, pct, passed, duree) {
   const parcours = [1, 2, 3, 4].filter(k => state.levels[k].attempts > 0).map(k =>
     `<tr><td style="padding:4px 12px 4px 0;font-size:14px;color:${C.ink}">Niveau ${k} · ${esc(LEVEL_META[k].title)}</td><td style="padding:4px 0;font-size:14px;font-weight:bold;color:${state.levels[k].passed ? C.ok : C.bad};text-align:right">${state.levels[k].best} %${state.levels[k].passed ? ' · validé' : ''}</td></tr>`).join('');
   const extra = typeof ficheExtra === 'function' ? ficheExtra(n, passed) : '';
-  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"></head><body style="margin:0;padding:0;background:#ffffff">
+  // Fragment HTML (sans <html>/<body>) : Make et Gmail l'insèrent tel quel dans le corps du message.
+  const html = (`<div style="margin:0;padding:0;background:#ffffff">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;${F}"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;${F}">
   <tr><td style="padding:0 0 16px 0;border-bottom:3px solid ${C.or}">
@@ -590,7 +597,7 @@ function buildFiche(n, pct, passed, duree) {
   ${parcours ? `<tr><td style="padding:22px 0 4px 0"><p style="margin:0;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:${C.ord};font-weight:bold">Votre parcours sur ce poste</p>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:6px;background:${C.card};border-radius:6px;padding:8px 12px">${parcours}</table></td></tr>` : ''}
   <tr><td style="padding:24px 0 0 0;font-size:12px;color:${C.mut};border-top:1px solid ${C.line}">Fiche générée automatiquement par le jeu de la Formation IA. Les explications reprennent le support de formation ; les références juridiques sont indicatives et à confirmer avec votre conformité.</td></tr>
-</table></td></tr></table></body></html>`;
+</table></td></tr></table></div>`).replace(/>\s+</g, '><').replace(/\s{2,}/g, ' ');
   const sujet = `Formation IA · Niveau ${n} ${passed ? 'validé' : 'non validé'} · ${pct}/100`;
   return { sujet, html };
 }

@@ -168,7 +168,12 @@ main.wrap{padding-block:8px 72px}
 .chip.done{background:var(--ok-soft);color:var(--ok)}
 .chip.fail{background:var(--bad-soft);color:var(--bad);border-color:var(--bad)}
 .arrow{color:var(--muted);font-size:12px}
-.order-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:6px;background:var(--card)}
+.order-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:6px;background:var(--card);border:1px solid transparent;transition:box-shadow .15s,background .15s}
+.order-row.draggable{cursor:grab;user-select:none;-webkit-user-select:none}
+.order-row.draggable:hover{border-color:#D6D6D6}
+.order-row.dragging{cursor:grabbing;background:var(--peach);border-color:var(--orange);box-shadow:0 10px 24px rgba(0,0,0,.15);position:relative;z-index:2}
+.grip{flex:none;width:30px;height:40px;display:grid;place-items:center;color:var(--muted);font-size:18px;letter-spacing:-3px;touch-action:none;border-radius:6px}
+.order-row.draggable:hover .grip{color:var(--orange-deep)}
 .order-row .num-circle{background:var(--white);color:var(--ink);border:1px solid var(--line)}
 .order-row.good .num-circle{background:var(--ok);color:#fff;border-color:var(--ok)}
 .order-row.wrong .num-circle{background:var(--bad);color:#fff;border-color:var(--bad)}
@@ -293,7 +298,7 @@ textarea.field{font-family:var(--mono);font-size:13px;min-height:190px;resize:ve
 // commencé, une ligne quand il est terminé et une ligne s'il est abandonné. Champs : horodatage, evenement, session,
 // version, prenom, nom, joueur, niveau, titre_niveau, niveau_valide, score, seuil,
 // tentative, erreurs_tentative, erreurs_frequentes, email, duree_secondes, avancement,
-// puis envoyer_fiche, fiche_sujet, fiche_html (pour l'e-mail, à ne pas mettre dans la feuille).
+// puis envoyer_fiche, fiche_sujet, fiche_html, fiche_taille (pour l'e-mail, à ne pas mettre dans la feuille).
 // La session vient du lien envoyé aux apprenants : niveau-1.html?session=Groupe-A
 const WEBHOOK_URL = "https://hook.eu2.make.com/nfuswd0gqqz4kv7vrs2lid42tnilpf4v";
 
@@ -469,7 +474,7 @@ function sendStart(n) {
     tentative: String(state.levels[n].attempts + 1),
     erreurs_tentative: '', erreurs_frequentes: topErrors(n) || 'aucune',
     email: normEmail(state.player.email), duree_secondes: '', avancement: '',
-    envoyer_fiche: 'non', fiche_sujet: '', fiche_html: '',
+    envoyer_fiche: 'non', fiche_sujet: '', fiche_html: '', fiche_taille: '0',
   }));
 }
 /* Abandon : réinitialisation, page fermée ou rechargée, retour au parcours, changement de groupe.
@@ -492,7 +497,7 @@ function sendAbandon(n, raison, sansDetail) {
     erreurs_tentative: '', erreurs_frequentes: topErrors(n) || 'aucune',
     email: normEmail(state.player.email), duree_secondes: String(duree),
     avancement: `${raison} · ${prog.txt}`,
-    envoyer_fiche: 'non', fiche_sujet: '', fiche_html: '',
+    envoyer_fiche: 'non', fiche_sujet: '', fiche_html: '', fiche_taille: '0',
   }));
 }
 /* Fermeture ou rechargement de la page en pleine partie : un envoi réseau à ce moment-là n'est pas fiable.
@@ -539,6 +544,7 @@ function sendTracking(n, pct, passed, errs) {
     envoyer_fiche: envoyer && state.player.email ? 'oui' : 'non',
     fiche_sujet: fiche.sujet,
     fiche_html: fiche.html,
+    fiche_taille: String(fiche.html.length),
   }));
 }
 
@@ -564,7 +570,8 @@ function buildFiche(n, pct, passed, duree) {
   const parcours = [1, 2, 3, 4].filter(k => state.levels[k].attempts > 0).map(k =>
     `<tr><td style="padding:4px 12px 4px 0;font-size:14px;color:${C.ink}">Niveau ${k} · ${esc(LEVEL_META[k].title)}</td><td style="padding:4px 0;font-size:14px;font-weight:bold;color:${state.levels[k].passed ? C.ok : C.bad};text-align:right">${state.levels[k].best} %${state.levels[k].passed ? ' · validé' : ''}</td></tr>`).join('');
   const extra = typeof ficheExtra === 'function' ? ficheExtra(n, passed) : '';
-  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"></head><body style="margin:0;padding:0;background:#ffffff">
+  // Fragment HTML (sans <html>/<body>) : Make et Gmail l'insèrent tel quel dans le corps du message.
+  const html = (`<div style="margin:0;padding:0;background:#ffffff">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;${F}"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;${F}">
   <tr><td style="padding:0 0 16px 0;border-bottom:3px solid ${C.or}">
@@ -590,7 +597,7 @@ function buildFiche(n, pct, passed, duree) {
   ${parcours ? `<tr><td style="padding:22px 0 4px 0"><p style="margin:0;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:${C.ord};font-weight:bold">Votre parcours sur ce poste</p>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:6px;background:${C.card};border-radius:6px;padding:8px 12px">${parcours}</table></td></tr>` : ''}
   <tr><td style="padding:24px 0 0 0;font-size:12px;color:${C.mut};border-top:1px solid ${C.line}">Fiche générée automatiquement par le jeu de la Formation IA. Les explications reprennent le support de formation ; les références juridiques sont indicatives et à confirmer avec votre conformité.</td></tr>
-</table></td></tr></table></body></html>`;
+</table></td></tr></table></div>`).replace(/>\s+</g, '><').replace(/\s{2,}/g, ' ');
   const sujet = `Formation IA · Niveau ${n} ${passed ? 'validé' : 'non validé'} · ${pct}/100`;
   return { sujet, html };
 }
@@ -785,13 +792,11 @@ MODS[3] = {
     const rows = s.order.map((id, pos) => {
       const st = stepById(id);
       const cls = done ? (STEPS3[pos].id === id ? 'good' : 'wrong') : '';
-      return `<li class="order-row ${cls}">
+      return `<li class="order-row ${cls} ${lock ? '' : 'draggable'}" data-id="${id}" ${lock ? '' : `tabindex="0" aria-label="${st.name}, position ${pos + 1} sur ${s.order.length}. Glissez pour déplacer, ou utilisez les flèches haut et bas du clavier."`}>
+        ${lock ? '' : '<span class="grip" aria-hidden="true">⋮⋮</span>'}
         <span class="num-circle sm">${pos + 1}</span>
         <div class="min-w-0 flex-1"><b style="font-size:15px">${st.name}</b><p class="small muted">${st.desc}</p></div>
-        <div class="flex gap-1 flex-none">
-          <button class="mv" data-action="l3-move" data-pos="${pos}" data-dir="-1" aria-label="Monter : ${st.name}" ${pos === 0 || lock ? 'disabled' : ''}>↑</button>
-          <button class="mv" data-action="l3-move" data-pos="${pos}" data-dir="1" aria-label="Descendre : ${st.name}" ${pos === s.order.length - 1 || lock ? 'disabled' : ''}>↓</button>
-        </div></li>`;
+      </li>`;
     }).join('');
     const groups = L3_CH.map((g, gi) => {
       const k = s.pick[g.id];
@@ -834,9 +839,9 @@ MODS[3] = {
     <section class="panel mt-5">
       <div class="flex items-baseline justify-between gap-3 flex-wrap">
         <div><p class="eyebrow">A · Architecture</p><h2 class="h2 mt-1">Ordonnez les 7 étapes du pipeline</h2></div>
-        <span class="small muted">Utilisez les flèches pour placer chaque étape.</span>
+        <span class="small muted">Glissez chaque étape à sa place (poignée ⋮⋮ sur mobile).</span>
       </div>
-      <ol class="grid gap-2 mt-4">${rows}</ol>
+      <ol class="grid gap-2 mt-4" id="order-list">${rows}</ol>
     </section>
 
     <div class="grid gap-5 md:grid-cols-2 mt-5">${groups}</div>
@@ -854,7 +859,6 @@ MODS[3] = {
   },
   handle(a, d) {
     const s = S3;
-    if (a === 'l3-move') { const i = +d.pos, j = i + (+d.dir); if (j >= 0 && j < s.order.length) { [s.order[i], s.order[j]] = [s.order[j], s.order[i]]; s.moved = true; render(false); } return true; }
     if (a === 'l3-pick') { s.pick[d.g] = +d.i; render(false); return true; }
     if (a === 'l3-run') {
       const sim = simulateL3(); s.active = -1; s.failStep = -1;
@@ -865,6 +869,51 @@ MODS[3] = {
     return false;
   },
 };
+/* ---------- Cliquer-glisser du pipeline (souris, tactile et clavier) ---------- */
+let drag3 = null;
+function renumber3(list) { [...list.children].forEach((r, i) => { const c = r.querySelector('.num-circle'); if (c) c.textContent = i + 1; }); }
+document.addEventListener('pointerdown', e => {
+  const row = e.target.closest && e.target.closest('#order-list .order-row.draggable');
+  if (!row || !S3 || S3.running || S3.result) return;
+  if (e.pointerType !== 'mouse' && !e.target.closest('.grip')) return; // tactile : par la poignée, pour laisser défiler la page
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  e.preventDefault();
+  drag3 = { row, list: row.parentElement, moved: false };
+  row.classList.add('dragging');
+  try { row.setPointerCapture(e.pointerId); } catch (err) {}
+});
+document.addEventListener('pointermove', e => {
+  if (!drag3) return;
+  e.preventDefault();
+  const { row, list } = drag3;
+  let before = null;
+  for (const r of list.children) {
+    if (r === row) continue;
+    const b = r.getBoundingClientRect();
+    if (e.clientY < b.top + b.height / 2) { before = r; break; }
+  }
+  if (before) { if (row.nextElementSibling !== before) { list.insertBefore(row, before); drag3.moved = true; renumber3(list); } }
+  else if (list.lastElementChild !== row) { list.appendChild(row); drag3.moved = true; renumber3(list); }
+  if (e.clientY < 70) window.scrollBy(0, -14); else if (e.clientY > window.innerHeight - 70) window.scrollBy(0, 14);
+});
+function endDrag3() {
+  if (!drag3) return;
+  const { row, list, moved } = drag3; drag3 = null;
+  row.classList.remove('dragging');
+  if (moved) { S3.order = [...list.children].map(r => r.dataset.id); S3.moved = true; render(false); }
+}
+document.addEventListener('pointerup', endDrag3);
+document.addEventListener('pointercancel', endDrag3);
+document.addEventListener('keydown', e => {
+  const row = e.target.closest && e.target.closest('#order-list .order-row.draggable');
+  if (!row || !S3 || S3.running || S3.result || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+  e.preventDefault();
+  const i = S3.order.indexOf(row.dataset.id), j = i + (e.key === 'ArrowUp' ? -1 : 1);
+  if (j < 0 || j >= S3.order.length) return;
+  [S3.order[i], S3.order[j]] = [S3.order[j], S3.order[i]]; S3.moved = true;
+  const id = row.dataset.id; render(false);
+  const again = document.querySelector(`#order-list .order-row[data-id="${id}"]`); if (again) again.focus();
+});
 function paintPipe3() {
   document.querySelectorAll('[data-chip]').forEach(el => {
     const pos = +el.dataset.chip;
