@@ -1,0 +1,1003 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Niveau 4 · Conception d’agents IA</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config = { corePlugins: { preflight: false } };</script>
+<style>
+/* Layout : colonne de 1080px sous un bandeau blanc ; cartes grises plates, bandeaux orange et encadrés pêche repris du support de formation */
+:root{
+  --orange:#EA6827; --orange-2:#ED7D31; --orange-deep:#C4501A; --peach:#FDEEE3; --peach-2:#FBE3D2;
+  --card:#F3F3F3; --ink:#333333; --ink-2:#404040; --muted:#666666; --line:#E2E2E2; --white:#FFFFFF;
+  --ok:#2C7A4B; --ok-soft:#E3F2E8; --bad:#B3261E; --bad-soft:#FBE5E3;
+  --console:#2F2F2F; --console-ink:#EDEDED; --console-dim:#A8A8A8;
+  --c-thought:#FFB98A; --c-action:#FFD66B; --c-obs:#A9D1FF; --c-ok:#8FE0B0; --c-err:#FF9C92; --c-warn:#FFCB7A;
+  --f:"Calibri","Carlito","Segoe UI",Candara,"Helvetica Neue",Arial,sans-serif;
+  --mono:"Consolas","Cascadia Mono","SFMono-Regular",Menlo,"Courier New",monospace;
+  color-scheme:light;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--white);color:var(--ink);font-family:var(--f);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,p,ul,ol,figure{margin:0}
+ul,ol{padding:0;list-style:none}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0;text-align:inherit}
+:focus-visible{outline:2px solid var(--orange-deep);outline-offset:2px;border-radius:4px}
+[tabindex="-1"]:focus{outline:none}
+.wrap{max-width:1080px;margin-inline:auto;padding-inline:16px}
+@media (min-width:640px){.wrap{padding-inline:28px}}
+main.wrap{padding-block:8px 72px}
+
+/* Typographie (Calibri, comme le support) */
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--orange-deep);font-weight:700}
+.eyebrow.grey{color:var(--muted)}
+.title{font-size:clamp(26px,3.6vw,34px);font-weight:400;line-height:1.18;color:var(--ink);text-wrap:balance;letter-spacing:-.005em}
+.h2{font-size:22px;font-weight:400;line-height:1.25;text-wrap:balance}
+.h3{font-size:17px;font-weight:700;line-height:1.35}
+.lead{font-size:17px;color:var(--ink-2);max-width:68ch}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.xs{font-size:12.5px}
+.mono{font-family:var(--mono)}
+.num{font-variant-numeric:tabular-nums}
+.prose{max-width:70ch}
+
+/* Bandeau supérieur */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--white);border-bottom:1px solid var(--line)}
+.topbar-in{display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;padding-block:12px}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{width:34px;height:34px;border-radius:50%;background:var(--orange);color:#fff;display:grid;place-items:center;font-weight:700;font-size:14px;flex:none}
+.brand b{display:block;font-size:15px;line-height:1.15}
+.brand small{display:block;font-size:12px;color:var(--muted)}
+.gp{flex:1 1 240px;min-width:0}
+.gp-top{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--muted);margin-bottom:5px}
+.gp-top strong{color:var(--ink)}
+.gp-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.seg{height:8px;border-radius:99px;background:var(--card);overflow:hidden;display:block}
+.seg i{display:block;height:100%;width:0;background:var(--orange-2);border-radius:inherit;transition:width .6s ease}
+.seg.ok i{background:var(--ok)}
+.player{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink-2)}
+.btn-top{border:1px solid var(--line);padding:6px 12px;border-radius:6px;font-size:13.5px;color:var(--ink-2);background:var(--white)}
+.btn-top:hover{border-color:var(--orange)}
+
+/* Surfaces reprises du support */
+.card{background:var(--card);border-radius:6px;padding:18px 20px}
+.panel{background:var(--white);border:1px solid var(--line);border-radius:8px;padding:20px}
+@media (min-width:640px){.panel{padding:26px}}
+.banner{background:var(--orange);color:#fff;border-radius:6px;padding:14px 18px;font-size:16.5px}
+.banner b{font-weight:700}
+.callout{background:var(--peach);border-radius:6px;padding:14px 18px}
+.callout .eyebrow{display:block;margin-bottom:4px}
+.divider{height:1px;background:var(--line);border:0;margin:0}
+.num-circle{width:34px;height:34px;border-radius:50%;background:var(--orange);color:#fff;display:grid;place-items:center;font-weight:700;flex:none;font-variant-numeric:tabular-nums}
+.num-circle.sm{width:26px;height:26px;font-size:13px}
+.num-circle.off{background:var(--line);color:var(--muted)}
+.num-circle.ok{background:var(--ok)}
+
+/* Boutons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:6px;padding:10px 18px;font-weight:700;font-size:15px;border:1px solid transparent;line-height:1.3;transition:background .15s,border-color .15s,transform .1s}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn-primary{background:var(--orange-deep);color:#fff}
+.btn-primary:hover:not(:disabled){background:#A9440F}
+.btn-ok{background:var(--ok);color:#fff}
+.btn-ok:hover:not(:disabled){background:#21603A}
+.btn-ghost{background:var(--white);border-color:#CFCFCF;color:var(--ink)}
+.btn-ghost:hover:not(:disabled){border-color:var(--orange)}
+.btn-danger{background:var(--bad);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.link{color:var(--orange-deep);font-weight:700;font-size:14.5px}
+.link:hover{text-decoration:underline}
+
+/* Pastilles */
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--card);color:var(--ink-2);line-height:1.5}
+.pill-o{background:var(--peach-2);color:var(--orange-deep)}
+.pill-ok{background:var(--ok-soft);color:var(--ok)}
+.pill-bad{background:var(--bad-soft);color:var(--bad)}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
+
+/* Jauges */
+.bar{height:8px;background:var(--card);border-radius:99px;overflow:hidden}
+.bar>span{display:block;height:100%;background:var(--orange-2);border-radius:inherit;transition:width .6s ease}
+.bar.ok>span{background:var(--ok)}
+.gauge{position:relative;height:14px;background:var(--card);border-radius:99px;margin-top:28px}
+.gauge-fill{height:100%;border-radius:inherit;background:var(--bad);transition:width .9s cubic-bezier(.2,.8,.2,1)}
+.gauge-fill.ok{background:var(--ok)}
+.gauge-mark{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--ink)}
+.gauge-mark span{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);font-size:11.5px;font-weight:700;color:var(--muted);white-space:nowrap;padding-bottom:2px}
+.score-big{font-weight:700;font-size:54px;line-height:1;font-variant-numeric:tabular-nums}
+
+/* Options de réponse */
+.opt{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;background:var(--white);border:1px solid #D6D6D6;border-radius:6px;padding:12px 14px;transition:border-color .15s,background .15s;line-height:1.5}
+.opt:hover:not(:disabled){border-color:var(--orange)}
+.opt:disabled{cursor:default}
+.opt.sel,.opt[aria-pressed="true"]{border-color:var(--orange);background:var(--peach);box-shadow:inset 0 0 0 1px var(--orange)}
+.opt.ok{border-color:var(--ok);background:var(--ok-soft);box-shadow:inset 0 0 0 1px var(--ok)}
+.opt.ok-reveal{border-color:var(--ok);border-style:dashed}
+.opt.bad{border-color:var(--bad);background:var(--bad-soft);box-shadow:inset 0 0 0 1px var(--bad)}
+.opt.fade{opacity:.6}
+.key{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--card);color:var(--ink-2)}
+.opt.sel .key,.opt[aria-pressed="true"] .key{background:var(--orange);color:#fff}
+.opt.ok .key{background:var(--ok);color:#fff}
+.opt.bad .key{background:var(--bad);color:#fff}
+.check{flex:none;width:20px;height:20px;border-radius:4px;border:1.5px solid #8A8A8A;display:grid;place-items:center;margin-top:2px;font-size:13px;line-height:1;background:var(--white)}
+.opt[aria-pressed="true"] .check{background:var(--orange);border-color:var(--orange);color:#fff}
+.opt-body{min-width:0;flex:1}
+.opt-fb{margin-top:8px;font-size:14.5px;color:var(--ink)}
+
+/* Feedback */
+.fb{border-radius:6px;padding:14px 18px;background:var(--card)}
+.fb-ok{background:var(--ok-soft)}
+.fb-bad{background:var(--bad-soft)}
+.fb-head{display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:4px}
+.fb-ok .fb-head{color:var(--ok)}
+.fb-bad .fb-head{color:var(--bad)}
+
+/* Zones de code */
+.prompt-box{background:var(--card);border-radius:6px;padding:14px 16px;font-family:var(--mono);font-size:13.5px;line-height:1.65;white-space:pre-wrap;word-break:break-word;color:var(--ink)}
+.prompt-box .pk{color:var(--orange-deep);font-weight:700}
+.prompt-box .pe{color:var(--muted);font-style:italic}
+.console{background:var(--console);color:var(--console-ink);border-radius:6px;padding:14px 16px;font-family:var(--mono);font-size:13px;line-height:1.55;max-height:470px;min-height:140px;overflow:auto}
+.ln{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.07);animation:lnIn .25s ease both}
+.ln:last-child{border-bottom:0}
+.ln .lt{font-weight:700;white-space:nowrap}
+.ln-thought .lt{color:var(--c-thought)} .ln-action .lt{color:var(--c-action)} .ln-obs .lt{color:var(--c-obs)}
+.ln-ok .lt,.ln-final .lt{color:var(--c-ok)} .ln-err .lt{color:var(--c-err)} .ln-warn .lt{color:var(--c-warn)} .ln-info .lt{color:var(--console-dim)}
+.ln-err .lx{color:var(--c-err)} .ln-final .lx{color:var(--c-ok)} .ln-action .lx{color:#FFF0C7}
+.ln .it{color:var(--console-dim);font-weight:400}
+.ln-idle{color:var(--console-dim)}
+@keyframes lnIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media (max-width:540px){.ln{grid-template-columns:minmax(0,1fr);gap:0}}
+
+/* Feutre noir (N2) */
+.redact-text{background:var(--card);border-radius:6px;padding:18px 20px;line-height:2.25;font-size:16px}
+.rs{display:inline;border-radius:4px;padding:3px 6px;border:1.5px dashed #9A9A9A;background:var(--white);cursor:pointer;line-height:1.4;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.rs:hover:not(:disabled){border-color:var(--orange)}
+.rs.on{background:#1F1F1F;color:#fff;border-style:solid;border-color:#1F1F1F}
+.rs.good{outline:2px solid var(--ok);outline-offset:1px}
+.rs.wrong{outline:2px solid var(--bad);outline-offset:1px}
+.rs:disabled{cursor:default}
+
+/* Pipeline (N3) */
+.pipe{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.chip{font-size:13px;font-weight:700;padding:5px 10px;border-radius:6px;background:var(--card);color:var(--muted);border:1px solid transparent;transition:all .2s}
+.chip.on{background:var(--peach);color:var(--orange-deep);border-color:var(--orange)}
+.chip.done{background:var(--ok-soft);color:var(--ok)}
+.chip.fail{background:var(--bad-soft);color:var(--bad);border-color:var(--bad)}
+.arrow{color:var(--muted);font-size:12px}
+.order-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:6px;background:var(--card)}
+.order-row .num-circle{background:var(--white);color:var(--ink);border:1px solid var(--line)}
+.order-row.good .num-circle{background:var(--ok);color:#fff;border-color:var(--ok)}
+.order-row.wrong .num-circle{background:var(--bad);color:#fff;border-color:var(--bad)}
+.mv{width:34px;height:34px;border-radius:6px;border:1px solid #CFCFCF;display:grid;place-items:center;color:var(--ink-2);font-size:15px;background:var(--white)}
+.mv:hover:not(:disabled){border-color:var(--orange);color:var(--orange-deep)}
+.mv:disabled{opacity:.3;cursor:not-allowed}
+
+/* Outils (N4) */
+.tool{display:flex;flex-direction:column;gap:4px;text-align:left;border:1px solid #D6D6D6;border-radius:6px;padding:12px 14px;background:var(--white);min-width:0;transition:border-color .15s,background .15s}
+.tool:hover:not(:disabled){border-color:var(--orange)}
+.tool[aria-pressed="true"]{border-color:var(--orange);background:var(--peach);box-shadow:inset 0 0 0 1px var(--orange)}
+.tool code{font-family:var(--mono);font-size:12.5px;color:var(--muted);word-break:break-all}
+.tool .tname{font-weight:700;font-size:15px;display:flex;justify-content:space-between;gap:8px}
+.sw{flex:none;width:32px;height:19px;border-radius:99px;background:var(--line);position:relative}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:var(--white);box-shadow:0 1px 2px rgba(0,0,0,.25);transition:left .15s}
+.tool[aria-pressed="true"] .sw{background:var(--orange)}
+.tool[aria-pressed="true"] .sw::after{left:15px}
+.segd{display:flex;flex-wrap:wrap;gap:6px}
+.segd button{font-size:13.5px;font-weight:700;padding:6px 10px;border-radius:6px;border:1px solid #CFCFCF;background:var(--white)}
+.segd button[aria-pressed="true"]{background:var(--orange);border-color:var(--orange);color:#fff}
+.segd button.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.segd button.bad{background:var(--bad);border-color:var(--bad);color:#fff}
+.segd button.ok-reveal{border:2px dashed var(--ok)}
+.review{display:flex;gap:10px;align-items:flex-start;font-size:14.5px;padding:9px 0;border-bottom:1px solid var(--line)}
+.review:last-child{border-bottom:0}
+.mark{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;margin-top:1px;color:#fff}
+.mark.y{background:var(--ok)} .mark.n{background:var(--bad)}
+
+/* Quiz */
+.qdots{display:flex;gap:4px;flex-wrap:wrap}
+.qdot{width:22px;height:6px;border-radius:99px;background:var(--line)}
+.qdot.cur{background:var(--orange)} .qdot.y{background:var(--ok)} .qdot.n{background:var(--bad)}
+
+/* Personnages */
+.person{display:flex;align-items:center;gap:12px}
+.person svg{flex:none;border-radius:50%}
+.person b{display:block;font-size:15px;line-height:1.2}
+.person span{display:block;font-size:13px;color:var(--muted)}
+
+/* Niveaux (accueil) */
+.lvl{display:flex;flex-direction:column;gap:14px;background:var(--white);border:1px solid var(--line);border-radius:8px;padding:22px;min-width:0}
+.lvl.locked{background:var(--card);border-color:transparent}
+.lvl.locked .lvl-title{color:var(--muted)}
+.lvl-title{font-size:21px;line-height:1.2;text-wrap:balance}
+.tagrow{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:12.5px;padding:2px 9px;border-radius:99px;background:var(--card);color:var(--ink-2)}
+.lvl.locked .tag{background:var(--white)}
+
+/* Résumé de cours */
+.sum-grid{display:grid;gap:14px}
+@media (min-width:720px){.sum-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1000px){.sum-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.sum-card{background:var(--card);border-radius:6px;padding:18px 20px;display:flex;gap:14px;align-items:flex-start;min-width:0}
+.sum-card h3{font-size:16.5px;font-weight:700;line-height:1.3}
+.sum-card p{font-size:14.5px;margin-top:4px;color:var(--ink-2)}
+.sum-card .src{display:block;margin-top:8px;font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--orange-deep);font-weight:700}
+
+/* Code de passage & certificat */
+.code-box{background:var(--peach);border:2px dashed var(--orange);border-radius:8px;padding:20px;text-align:center}
+.code-val{font-family:var(--mono);font-size:clamp(26px,5vw,38px);font-weight:700;letter-spacing:.08em;color:var(--orange-deep);word-break:break-all}
+.cert{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:28px 22px;position:relative;overflow:hidden}
+@media (min-width:640px){.cert{padding:44px 48px}}
+.cert::before{content:"";position:absolute;inset:10px;border:1.5px solid var(--peach-2);border-radius:6px;pointer-events:none}
+.cert-title{font-size:clamp(30px,5vw,44px);line-height:1.05;color:var(--orange-deep);font-weight:700}
+.seal{width:116px;height:116px;border-radius:50%;background:var(--orange);color:#fff;display:grid;place-items:center;text-align:center;flex:none;box-shadow:0 0 0 6px var(--peach),0 0 0 8px var(--orange-2)}
+.seal b{font-size:36px;line-height:1;display:block;font-variant-numeric:tabular-nums}
+.seal span{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase}
+.cert-skill{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 16px;padding:10px 0;border-top:1px solid var(--line)}
+.cert-skill em{font-style:normal;font-variant-numeric:tabular-nums;color:var(--ok);font-weight:700}
+.cert-skill small{grid-column:1/-1;color:var(--muted);font-size:13.5px}
+
+/* Formulaires */
+.field{width:100%;border:1px solid #CFCFCF;border-radius:6px;padding:10px 12px;background:var(--white);color:var(--ink)}
+.field:focus{outline:2px solid var(--orange);outline-offset:0;border-color:transparent}
+.field.err{border-color:var(--bad);background:var(--bad-soft)}
+label.lbl{display:block;font-weight:700;font-size:14.5px;margin-bottom:6px}
+textarea.field{font-family:var(--mono);font-size:13px;min-height:190px;resize:vertical}
+.form-err{color:var(--bad);font-weight:700;font-size:14.5px}
+
+/* Fenêtre et notifications */
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(30,30,30,.5);display:grid;place-items:center;padding:16px}
+.modal{background:var(--white);border-radius:10px;padding:24px;max-width:450px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.25)}
+.toast{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:60;background:var(--ink);color:#fff;border-radius:8px;padding:12px 16px;display:flex;gap:12px;align-items:center;max-width:min(380px,calc(100vw - 32px));box-shadow:0 14px 40px rgba(0,0,0,.25);animation:toastIn .3s ease both}
+.toast small{color:#D0D0D0;display:block;font-size:13px}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.sticky-col{position:sticky;top:calc(env(safe-area-inset-top,0px) + 96px)}
+@media (max-width:1023px){.sticky-col{position:static}}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap topbar-in">
+    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Niveau 4 sur 4 · Conception d’agents IA</small></span></div>
+    <div class="gp" id="gp" role="progressbar" aria-label="Progression" aria-valuemin="0" aria-valuemax="100">
+      <div class="gp-top"><span id="gp-label"></span><strong class="num" id="gp-pct"></strong></div>
+      <div class="gp-bar" id="gp-bar"></div>
+    </div>
+    <div class="player" id="player"></div>
+    <button class="btn-top" data-action="ask-reset">Réinitialiser</button>
+  </div>
+</header>
+<main id="app" class="wrap"></main>
+<div id="overlay" class="overlay" hidden style="display:none">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="m-title">
+    <h2 id="m-title" class="h2">Réinitialiser ?</h2>
+    <p class="muted mt-2" id="m-text">La progression de ce niveau sera effacée de cet appareil.</p>
+    <div class="flex flex-wrap gap-3 mt-6 justify-end">
+      <button class="btn btn-ghost" data-action="cancel-reset" id="m-cancel">Annuler</button>
+      <button class="btn btn-danger" data-action="confirm-reset">Tout effacer</button>
+    </div>
+  </div>
+</div>
+<div id="toast-host" aria-live="polite"></div>
+<script>
+/* =====================================================================
+   CONFIGURATION — À MODIFIER
+   ===================================================================== */
+// URL du webhook (Make, Zapier…). Le jeu envoie une ligne quand un niveau est
+// commencé et une ligne quand il est terminé, avec ces 15 champs :
+// horodatage, evenement, session, version, prenom, nom, joueur, niveau, titre_niveau,
+// niveau_valide, score, seuil, tentative, erreurs_tentative, erreurs_frequentes.
+// La session vient du lien envoyé aux apprenants : niveau-1.html?session=Groupe-A
+const WEBHOOK_URL = "https://hook.eu2.make.com/nfuswd0gqqz4kv7vrs2lid42tnilpf4v";
+
+// Seuil de validation d'un niveau, en pourcentage.
+const SEUIL = 90;
+
+// Sel des codes de passage : il doit être IDENTIQUE dans les 4 fichiers de la version B.
+// Changez-le avant diffusion pour que vos codes ne soient pas devinables.
+const CODE_SECRET = "Lendys_AI2026";
+
+// Code formateur : ouvre n'importe quel niveau, pour les tests et le support. À garder confidentiel.
+const CODE_FORMATEUR = "Lendys_FormateurAI2026";
+
+// Numéro du niveau contenu dans ce fichier (ne pas modifier).
+const LEVEL = 4;
+const STORAGE_KEY = "formation-ia-parcours-B";
+const VERSION_LABEL = "B - fichier niveau 4";
+
+/* =====================================================================
+   NOYAU COMMUN : outils, état, suivi webhook, personnages, composants
+   ===================================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const shuffle = a => { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+const reduceMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+/* ---------- Métadonnées des niveaux ---------- */
+const LEVEL_META = {
+  1: { title: 'Démystifier l’IA générative', short: 'Fondations', format: 'Quiz · 10 situations métier', rule: '9 bonnes réponses sur 10', src: 'Modules 1, 3 et 4 du support',
+       intro: 'Un LLM ne comprend pas : il prédit le mot suivant. Dix situations tirées de nos métiers pour maîtriser tokens, probabilités, température, hallucinations et limites d’usage.',
+       tags: ['Tokens', 'Probabilités', 'Température', 'Hallucinations', 'Feutre noir', 'Zones rouges'] },
+  2: { title: 'Prompt engineering avancé', short: 'L’artisan', format: 'Atelier « Répare le prompt »', rule: 'robustesse ≥ 90/100', src: 'Modules 2 et 3 du support',
+       intro: 'Le fil rouge : la réponse au sociétaire furieux après un refus d’indemnisation. Diagnostiquez le prompt, passez le feutre noir, puis reconstruisez-le avec les cinq ingrédients.',
+       tags: ['Rôle', 'Contexte', 'Tâche', 'Contraintes', 'Format', 'Anonymisation'] },
+  3: { title: 'RAG et gestion du contexte', short: 'L’architecte de données', format: 'Assemblage du pipeline RAG', rule: 'pipeline sans fuite ni hallucination, ≥ 90/100', src: 'Modules 4 et 5 du support',
+       intro: 'Construisez l’assistant documentaire qui répond « à livre ouvert » sur les conditions générales, sans tomber dans le grenier poussiéreux ni percer les droits d’accès.',
+       tags: ['Découpage', 'Embeddings', 'Recherche par le sens', 'Millésimes', 'Droits d’accès'] },
+  4: { title: 'Conception d’agents IA', short: 'Le concepteur', format: 'Simulateur ReAct + AI Act', rule: 'mission sans boucle ni débordement, ≥ 90/100', src: 'Modules 4, 5 et 6 du support, appliqués aux agents',
+       intro: 'Équipez un agent de traitement des réclamations : outils au moindre privilège, garde-fous, validation humaine. Puis classez des usages selon l’AI Act.',
+       tags: ['ReAct', 'Outils', 'Moindre privilège', 'Garde-fous', 'Contrôle humain', 'AI Act'] },
+};
+const SKILLS = {
+  1: 'Expliquer qu’un LLM prédit des tokens, régler la température selon l’enjeu, repérer une hallucination et respecter zones rouges et feutre noir',
+  2: 'Écrire un prompt métier complet (rôle, contexte, tâche, contraintes, format) à partir de données anonymisées',
+  3: 'Concevoir un assistant RAG fiable : sources datées, recherche par le sens filtrée par habilitation, réponses sourcées',
+  4: 'Spécifier un agent ReAct au moindre privilège, avec garde-fous, validation humaine et lecture AI Act des usages',
+};
+
+/* ---------- État et sauvegarde ---------- */
+const lvState = () => ({ best: 0, passed: false, attempts: 0, errors: {} });
+function freshState() { return { player: { prenom: '', nom: '' }, levels: { 1: lvState(), 2: lvState(), 3: lvState(), 4: lvState() }, gates: {}, completedAt: null, session: '' }; }
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const s = JSON.parse(raw), b = freshState();
+      b.player = Object.assign(b.player, s.player || {});
+      for (const n of [1, 2, 3, 4]) { b.levels[n] = Object.assign(lvState(), (s.levels || {})[n] || {}); b.levels[n].errors = b.levels[n].errors || {}; }
+      b.gates = s.gates || {};
+      b.completedAt = s.completedAt || null;
+      b.session = typeof s.session === 'string' ? s.session : '';
+      return b;
+    }
+  } catch (e) {}
+  return freshState();
+}
+function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {} }
+let state = loadState();
+const playerName = () => `${state.player.prenom} ${state.player.nom}`.trim();
+
+/* ---------- Suivi administrateur (webhook Make / Zapier) ---------- */
+function topErrors(n, k = 3) {
+  return Object.entries(state.levels[n].errors).sort((a, b) => b[1] - a[1]).slice(0, k).map(([t, c]) => `${t} (${c})`).join(' ; ');
+}
+/* Session (groupe) : lue dans le lien envoyé par le formateur, ex. niveau-1.html?session=Groupe-A-05-10,
+   puis mémorisée pour les niveaux suivants ouverts dans le même navigateur. */
+function readSessionFromLink() {
+  try {
+    const v = new URLSearchParams(window.location.search).get('session');
+    return v ? v.trim().replace(/[<>"]/g, '').slice(0, 60) : '';
+  } catch (e) { return ''; }
+}
+function currentSession() {
+  const fromLink = readSessionFromLink();
+  if (fromLink && fromLink !== state.session) { state.session = fromLink; saveState(); }
+  return fromLink || state.session || '';
+}
+function postWebhook(payload) {
+  if (!WEBHOOK_URL || WEBHOOK_URL === 'URL_A_REMPLACER') { console.info('[Suivi] WEBHOOK_URL non configurée. Données qui auraient été envoyées :', payload); return; }
+  try {
+    // Format formulaire + mode no-cors : accepté par Make et Zapier sans pré-requête CORS.
+    fetch(WEBHOOK_URL, { method: 'POST', mode: 'no-cors', keepalive: true, body: new URLSearchParams(payload) })
+      .catch(err => console.warn('[Suivi] Envoi impossible :', err));
+  } catch (err) { console.warn('[Suivi] Envoi impossible :', err); }
+}
+function basePayload(n, evenement) {
+  return {
+    horodatage: new Date().toISOString(),
+    evenement,
+    session: currentSession() || 'non renseignée',
+    version: VERSION_LABEL,
+    prenom: state.player.prenom,
+    nom: state.player.nom,
+    joueur: playerName(),
+    niveau: String(n),
+    titre_niveau: LEVEL_META[n].title,
+  };
+}
+// Envoyé à l'ouverture d'un niveau (et à chaque nouvelle tentative).
+function sendStart(n) {
+  postWebhook(Object.assign(basePayload(n, 'niveau commencé'), {
+    niveau_valide: '', score: '', seuil: String(SEUIL),
+    tentative: String(state.levels[n].attempts + 1),
+    erreurs_tentative: '', erreurs_frequentes: topErrors(n) || 'aucune',
+  }));
+}
+// Envoyé à la fin d'un niveau, qu'il soit validé ou non.
+function sendTracking(n, pct, passed, errs) {
+  postWebhook(Object.assign(basePayload(n, 'niveau terminé'), {
+    niveau_valide: passed ? 'oui' : 'non',
+    score: String(pct),
+    seuil: String(SEUIL),
+    tentative: String(state.levels[n].attempts),
+    erreurs_tentative: errs.length ? errs.join(' ; ') : 'aucune',
+    erreurs_frequentes: topErrors(n) || 'aucune',
+  }));
+}
+function finishAttempt(n, pct, passed, errs) {
+  const L = state.levels[n];
+  L.attempts += 1;
+  L.best = Math.max(L.best, pct);
+  errs.forEach(t => { L.errors[t] = (L.errors[t] || 0) + 1; });
+  if (passed) L.passed = true;
+  if (passed && isFinalLevel(n) && !state.completedAt) state.completedAt = new Date().toISOString();
+  saveState();
+  sendTracking(n, pct, passed, errs);
+  if (passed) toast(`Niveau ${n} validé`, `Score ${pct} %. Votre résumé de cours est prêt.`);
+  onProgress();
+}
+
+/* ---------- Personnages ---------- */
+const PEOPLE = {
+  sophie: { name: 'Sophie Martin', role: 'Conseillère clientèle', skin: '#6B4226', hair: 'wrap', hc: '#C4501A', shirt: '#404040' },
+  thomas:    { name: 'Thomas Bernard', role: 'Conseiller patrimonial', skin: '#4E2E1C', hair: 'short', hc: '#161616', shirt: '#EA6827', beard: true },
+  claire:  { name: 'Claire Dubois', role: 'Gestionnaire sinistres', skin: '#7A4B2C', hair: 'puff', hc: '#161616', shirt: '#7A7A7A' },
+  julien:  { name: 'Julien Lefèvre', role: 'Gestionnaire indemnisation', skin: '#5A3521', hair: 'short', hc: '#161616', shirt: '#3F5873', glasses: true },
+  camille:   { name: 'Camille Moreau', role: 'Analyste conformité', skin: '#603A22', hair: 'braids', hc: '#161616', shirt: '#C4501A' },
+  jb:      { name: 'Alexandre Laurent', role: 'Sociétaire', skin: '#4A2B19', hair: 'short', hc: '#8C8C8C', shirt: '#2F4A6B', beard: true },
+  emilie:     { name: 'Émilie Girard', role: 'Responsable innovation', skin: '#65402A', hair: 'locs', hc: '#161616', shirt: '#404040' },
+};
+let avatarSeq = 0;
+function avatar(key, size = 52) {
+  const p = PEOPLE[key]; const id = `av${++avatarSeq}`;
+  let hair = '';
+  if (p.hair === 'short') hair = `<path d="M20.4 27.5C19 13.5 45 13.5 43.6 27.5C42 21 37 18.6 32 18.6S22 21 20.4 27.5Z" fill="${p.hc}"/>`;
+  if (p.hair === 'puff') hair = `<circle cx="32" cy="11.5" r="8" fill="${p.hc}"/><path d="M20.4 27.5C19 13.5 45 13.5 43.6 27.5C42 21 37 18.6 32 18.6S22 21 20.4 27.5Z" fill="${p.hc}"/>`;
+  if (p.hair === 'wrap') hair = `<path d="M19 28C16.5 9 47.5 9 45 28C43 19 37 16.8 32 16.8S21 19 19 28Z" fill="${p.hc}"/><circle cx="42.5" cy="13" r="5.5" fill="${p.hc}"/>`;
+  if (p.hair === 'braids') hair = `<path d="M20.2 28C18.8 13.5 45.2 13.5 43.8 28C42 21 37 18.4 32 18.4S22 21 20.2 28Z" fill="${p.hc}"/><rect x="17" y="22" width="5.4" height="26" rx="2.7" fill="${p.hc}"/><rect x="41.6" y="22" width="5.4" height="26" rx="2.7" fill="${p.hc}"/>`;
+  if (p.hair === 'locs') hair = `<path d="M19.6 28C18 12.5 46 12.5 44.4 28C42 20.5 37 18 32 18S22 20.5 19.6 28Z" fill="${p.hc}"/><rect x="18" y="22" width="4.6" height="20" rx="2.3" fill="${p.hc}"/><rect x="23" y="24" width="4" height="18" rx="2" fill="${p.hc}"/><rect x="37" y="24" width="4" height="18" rx="2" fill="${p.hc}"/><rect x="41.4" y="22" width="4.6" height="20" rx="2.3" fill="${p.hc}"/>`;
+  const beard = p.beard ? `<path d="M21.6 30.5C22.6 43 41.4 43 42.4 30.5C39.5 38 24.5 38 21.6 30.5Z" fill="${p.hc}"/>` : '';
+  const glasses = p.glasses ? `<g fill="none" stroke="#161616" stroke-width="1.4"><circle cx="27.6" cy="28.4" r="3.4"/><circle cx="36.4" cy="28.4" r="3.4"/><path d="M31 28.4h2"/></g>` : '';
+  return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" role="img" aria-label="${esc(p.name)}"><defs><clipPath id="${id}"><circle cx="32" cy="32" r="32"/></clipPath></defs><g clip-path="url(#${id})"><rect width="64" height="64" fill="#FBE3D2"/><path d="M8 66C8 51 19 44.5 32 44.5S56 51 56 66Z" fill="${p.shirt}"/><rect x="27" y="35" width="10" height="11" rx="3" fill="${p.skin}"/><ellipse cx="32" cy="28.5" rx="11.2" ry="13" fill="${p.skin}"/>${hair}${beard}${glasses}</g></svg>`;
+}
+const person = (key, size) => `<div class="person">${avatar(key, size)}<div><b>${esc(PEOPLE[key].name)}</b><span>${esc(PEOPLE[key].role)}</span></div></div>`;
+
+/* ---------- Notifications ---------- */
+const toastQ = []; let toastBusy = false;
+function toast(title, sub) { toastQ.push({ title, sub }); if (!toastBusy) nextToast(); }
+function nextToast() {
+  const host = $('#toast-host'); const t = toastQ.shift();
+  if (!t) { toastBusy = false; host.innerHTML = ''; return; }
+  toastBusy = true;
+  host.innerHTML = `<div class="toast"><span class="logo" aria-hidden="true">✓</span><div><b>${esc(t.title)}</b>${t.sub ? `<small>${esc(t.sub)}</small>` : ''}</div></div>`;
+  setTimeout(nextToast, 3000);
+}
+
+/* ---------- Composants partagés ---------- */
+function LevelHeader(n) {
+  const M = LEVEL_META[n], st = state.levels[n];
+  return `<section class="mt-6 mb-6">
+    <p class="eyebrow">Niveau ${n} sur 4 · ${M.short}</p>
+    <h1 tabindex="-1" class="title mt-1">${M.title}</h1>
+    <p class="lead mt-2">${M.intro}</p>
+    <div class="flex flex-wrap gap-2 mt-4">
+      <span class="pill">${M.format}</span>
+      <span class="pill pill-o">Validation : ${M.rule}</span>
+      <span class="pill">${M.src}</span>
+      ${st.passed ? `<span class="pill pill-ok">Déjà validé · meilleur score ${st.best} %</span>` : ''}
+    </div>
+  </section>`;
+}
+function ResultCard({ n, pct, passed, headline, text, extra }) {
+  return `<section class="panel mt-6" id="result">
+    <div class="grid gap-6 md:grid-cols-[220px_minmax(0,1fr)] items-start">
+      <div>
+        <p class="eyebrow grey">Score du niveau</p>
+        <div class="score-big mt-2" style="color:var(${passed ? '--ok' : '--bad'})">${pct}<span style="font-size:24px">/100</span></div>
+        <div class="gauge" aria-hidden="true"><div class="gauge-fill ${passed ? 'ok' : ''}" style="width:${pct}%"></div><div class="gauge-mark" style="left:${SEUIL}%"><span>seuil ${SEUIL}</span></div></div>
+      </div>
+      <div class="min-w-0">
+        <span class="pill ${passed ? 'pill-ok' : 'pill-bad'}"><span class="dot"></span>${passed ? 'Niveau validé' : 'Niveau non validé'}</span>
+        <h2 class="h2 mt-3">${headline}</h2>
+        <p class="mt-2 prose">${text}</p>
+      </div>
+    </div>
+    ${extra ? `<div class="mt-6">${extra}</div>` : ''}
+    <div class="flex flex-wrap gap-3 mt-6">
+      ${passed ? `<button class="btn btn-ok" data-action="summary" data-n="${n}">Voir le résumé de cours</button>
+                  <button class="btn btn-ghost" data-action="retry" data-n="${n}">Rejouer ce niveau</button>`
+               : `<button class="btn btn-primary" data-action="retry" data-n="${n}">Réessayer le niveau</button>`}
+    </div>
+  </section>`;
+}
+function CourseSummary(n) {
+  const C = COURSE[n];
+  return `<section class="mt-6">
+    <p class="eyebrow">Résumé de cours · Niveau ${n}</p>
+    <h1 tabindex="-1" class="title mt-1">${C.title}</h1>
+    <div class="banner mt-5">${C.banner}</div>
+    <div class="sum-grid ${C.cards.length % 3 === 0 ? 'three' : ''} mt-5">
+      ${C.cards.map((c, i) => `<article class="sum-card"><span class="num-circle sm">${i + 1}</span><div class="min-w-0"><h3>${c.h}</h3><p>${c.t}</p>${c.src ? `<span class="src">${c.src}</span>` : ''}</div></article>`).join('')}
+    </div>
+    <div class="grid gap-4 md:grid-cols-2 mt-5">
+      ${C.callouts.map(c => `<div class="callout"><span class="eyebrow">${c.e}</span><p>${c.t}</p></div>`).join('')}
+    </div>
+  </section>`;
+}
+
+/* ---------- Console animée (niveaux 3 et 4) ---------- */
+const LBL = { thought: 'Pensée', action: 'Action', obs: 'Observation', err: 'Échec', ok: 'OK', warn: 'Alerte', info: 'Info', final: 'Réponse finale' };
+const lineHtml = e => `<div class="ln ln-${e.k}"><span class="lt">${LBL[e.k]}${e.it ? ` <span class="it">#${e.it}</span>` : ''}</span><span class="lx">${esc(e.t)}</span></div>`;
+let playToken = 0;
+function play(sess, events, onStep, onDone) {
+  const token = ++playToken;
+  sess.running = true; sess.log = [];
+  render(false);
+  const delay = reduceMotion() ? 0 : 520;
+  let i = 0;
+  const tick = () => {
+    if (token !== playToken) return;
+    if (i >= events.length) {
+      sess.running = false; onDone(); render(false);
+      const r = $('#result'); if (r) r.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' });
+      return;
+    }
+    const e = events[i++]; sess.log.push(e); if (onStep) onStep(e);
+    const c = $('#console');
+    if (c) { if (sess.log.length === 1) c.innerHTML = ''; c.insertAdjacentHTML('beforeend', lineHtml(e)); c.scrollTop = c.scrollHeight; }
+    if (delay === 0) tick(); else setTimeout(tick, delay);
+  };
+  tick();
+}
+
+/* ---------- Registre des niveaux ---------- */
+const MODS = {};
+const COURSE = {};
+
+/* =====================================================================
+   NIVEAU 4 — CONCEPTION D'AGENTS IA (boucle ReAct, outils, AI Act)
+   ===================================================================== */
+const TOOLS4 = [
+  { id: 'dossier', code: 'dossier.lire', name: 'Lecture du dossier sinistre', desc: 'Faits, dates et pièces du dossier, en lecture seule, selon l’habilitation.', need: true,
+    fb: 'Indispensable : sans les faits réels du dossier, l’agent improvise.' },
+  { id: 'web', code: 'web.rechercher', name: 'Recherche web publique', desc: 'Interroger un moteur de recherche grand public.', need: false,
+    fb: 'À exclure : inutile pour la mission, et les éléments du dossier partiraient hors du périmètre de l’établissement. Où partent vos mots ?' },
+  { id: 'cg', code: 'cg.rechercher', name: 'Assistant documentaire (RAG)', desc: 'Retrouver la clause applicable dans les CG, avec version et page.', need: true,
+    fb: 'Indispensable : c’est l’assistant du niveau 3, qui fait répondre l’agent à livre ouvert.' },
+  { id: 'expert', code: 'expertise_medicale.lire', name: 'Rapports d’expertise médicale', desc: 'Accès aux rapports médicaux des sociétaires.', need: false,
+    fb: 'Zone rouge : le secret médical est réservé au médecin-conseil et aux gestionnaires habilités. Un agent n’y accède pas.' },
+  { id: 'calc', code: 'calculatrice', name: 'Calculatrice', desc: 'Calculs exacts : durées, montants, franchises.', need: true,
+    fb: 'Indispensable : un LLM prédit des chiffres au lieu de les calculer. La durée d’inoccupation doit être exacte.' },
+  { id: 'write', code: 'dossier.modifier', name: 'Écriture dans le dossier', desc: 'Modifier le statut, clôturer, déclencher un paiement.', need: false,
+    fb: 'Hors mandat : l’agent prépare, il ne décide pas. Moindre privilège : lecture seule.' },
+  { id: 'human', code: 'validation_humaine.soumettre', name: 'Validation humaine', desc: 'Soumettre le projet au gestionnaire habilité, qui relit et signe.', need: true,
+    fb: 'Indispensable : l’outil propose, l’humain certifie (AI Act, art. 14 : contrôle humain).' },
+  { id: 'mail', code: 'email.envoyer', name: 'Envoi d’e-mail direct', desc: 'Écrire au sociétaire au nom de l’établissement.', need: false,
+    fb: 'À éviter : la réponse partirait au nom de l’établissement. Si vous le gardez, il doit passer après la signature humaine.' },
+];
+const GUARDS4 = [
+  { id: 'maxit', kind: 'need', t: 'Maximum 10 itérations. Si une information manque après 2 tentatives, t’arrêter et la signaler au gestionnaire.', fb: 'Indispensable : borne la boucle ReAct et dit quoi faire en cas d’impasse.' },
+  { id: 'auto', kind: 'bad', t: 'Sois autonome : tranche toi-même la réclamation et clôture le dossier.', fb: 'Dangereux : « c’est l’ordinateur qui a dit non » n’est plus une réponse. La décision reste humaine.' },
+  { id: 'scope', kind: 'need', t: 'Périmètre : lecture seule, dossiers habitation. Zones rouges exclues : santé, Tracfin, information privilégiée.', fb: 'Indispensable : les zones rouges s’appliquent aussi aux agents, même sur l’outil interne.' },
+  { id: 'minim', kind: 'need', t: 'Feutre noir : ne transmettre aux outils que les données nécessaires ; jamais d’IBAN, de date de naissance ni de donnée de santé.', fb: 'Indispensable : minimisation des données dans chaque appel d’outil et dans le brouillon.' },
+  { id: 'retry', kind: 'bad', t: 'Réessaie jusqu’à trouver une garantie applicable.', fb: 'Dangereux : sans condition d’arrêt, l’agent boucle à la recherche d’une réponse qui n’existe pas.' },
+  { id: 'hitl', kind: 'need', t: 'Aucune réponse ne part sans relecture et signature d’un gestionnaire habilité.', fb: 'Indispensable dès qu’un canal de diffusion existe.' },
+  { id: 'geste', kind: 'bad', t: 'Pour apaiser le sociétaire, propose-lui un geste commercial.', fb: 'Dangereux : une promesse non autorisée engage l’établissement.' },
+  { id: 'source', kind: 'need', t: 'Chaque affirmation cite sa source : document, version, page.', fb: 'Nécessaire : explicabilité et traçabilité de la réponse (AI Act, art. 86).' },
+];
+const RISK_LEVELS = ['Interdit', 'Haut risque', 'Risque limité', 'Risque minimal'];
+const AIACT = [
+  { t: 'Score de solvabilité d’un particulier pour un prêt immobilier', good: 1, why: 'Haut risque : annexe III, point 5 (score de crédit d’une personne physique).' },
+  { t: 'Chatbot d’accueil sur le site de l’assureur', good: 2, why: 'Risque limité : obligation de transparence, dire au client qu’il parle à une IA (art. 50).' },
+  { t: 'Note sociale des clients selon leur comportement', good: 0, why: 'Interdit : pratique de notation sociale (art. 5).' },
+  { t: 'Tarification d’un contrat vie ou santé par un algorithme', good: 1, why: 'Haut risque : annexe III, point 5 (évaluation du risque et tarification vie et santé).' },
+  { t: 'Résumé d’une note de veille interne', good: 3, why: 'Risque minimal : usage libre, mais RGPD et zones rouges s’appliquent toujours.' },
+];
+
+let S4 = null;
+MODS[4] = {
+  start() { S4 = { tools: new Set(), guards: new Set(), risk: {}, running: false, log: [], result: null, it: 0, recorded: false }; },
+  view() {
+    const s = S4, done = !!s.result, lock = s.running || done;
+    const tools = TOOLS4.map(t => `<button class="tool" data-action="l4-tool" data-id="${t.id}" aria-pressed="${s.tools.has(t.id)}" ${lock ? 'disabled' : ''}>
+        <span class="tname"><span>${t.name}</span><span class="sw" aria-hidden="true"></span></span><code>${t.code}</code><span class="small muted">${t.desc}</span></button>`).join('');
+    const guards = GUARDS4.map(g => { const on = s.guards.has(g.id); return `<button class="opt" data-action="l4-guard" data-id="${g.id}" aria-pressed="${on}" ${lock ? 'disabled' : ''}><span class="check" aria-hidden="true">${on ? '✓' : ''}</span><span class="opt-body">${g.t}</span></button>`; }).join('');
+    const risk = AIACT.map((c, i) => {
+      const k = s.risk[i];
+      return `<div class="review" style="flex-wrap:wrap"><div class="min-w-0" style="flex:1 1 260px"><b>${c.t}</b>${done ? `<p class="muted mt-1">${c.why}</p>` : ''}</div>
+        <div class="segd" role="group" aria-label="Niveau de risque">${RISK_LEVELS.map((lv, j) => {
+          let cls = '';
+          if (done) cls = j === k ? (j === c.good ? 'ok' : 'bad') : (j === c.good ? 'ok-reveal' : '');
+          return `<button class="${cls}" data-action="l4-risk" data-i="${i}" data-j="${j}" aria-pressed="${k === j}" ${lock ? 'disabled' : ''}>${lv}</button>`;
+        }).join('')}</div></div>`;
+    }).join('');
+    const sys = L4SystemPrompt();
+    const ready = s.tools.size > 0 && Object.keys(s.risk).length === AIACT.length;
+
+    return `${LevelHeader(4)}
+    <section class="panel">
+      <div class="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div class="min-w-0">
+          <p class="eyebrow">Mission · Service réclamations habitation</p>
+          <div class="mt-3">${person('claire', 48)}</div>
+          <p class="mt-3">Claire veut un agent qui prépare les réponses aux réclamations. Premier dossier : la réclamation A-117 de M. Laurent (refus d’indemnisation, gel de canalisations). L’agent doit lire le dossier, retrouver la clause applicable, vérifier les dates, rédiger un projet de réponse et le soumettre à un gestionnaire.</p>
+        </div>
+        <div class="card min-w-0" style="background:var(--peach)">
+          <p class="eyebrow">Critères de réussite</p>
+          <ul class="small mt-2 grid gap-1">
+            <li>✓ Aucun fait ni chiffre inventé</li>
+            <li>✓ Aucune boucle infinie</li>
+            <li>✓ Aucune zone rouge franchie, aucune donnée superflue transmise</li>
+            <li>✓ Aucune décision ni promesse prise par l’agent</li>
+            <li>✓ Rien ne part sans signature humaine</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel mt-5">
+      <div class="flex items-baseline justify-between gap-3 flex-wrap">
+        <div><p class="eyebrow">A · Outils</p><h2 class="h2 mt-1">Attribuez les outils de l’agent</h2></div>
+        <span class="small muted">Moindre privilège : des casiers individuels fermés, pas un grand débarras commun.</span>
+      </div>
+      <div class="grid gap-3 mt-4 sm:grid-cols-2 lg:grid-cols-4">${tools}</div>
+    </section>
+
+    <section class="panel mt-5">
+      <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px] items-start">
+        <div class="min-w-0">
+          <p class="eyebrow">B · Garde-fous</p><h2 class="h2 mt-1">Écrivez le prompt système</h2>
+          <p class="small muted mt-1">Cochez les règles à inclure. Trois d’entre elles sont des pièges.</p>
+          <div class="grid gap-2 mt-4">${guards}</div>
+        </div>
+        <div class="min-w-0 sticky-col">
+          <p class="eyebrow grey">Prompt système généré</p>
+          <div class="prompt-box mt-2">${sys}</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel mt-5">
+      <p class="eyebrow">C · AI Act</p><h2 class="h2 mt-1">Classez ces usages par niveau de risque</h2>
+      <p class="small muted mt-1">Le niveau se juge par cas d’usage, pas par outil. Classement indicatif, à confirmer avec votre équipe conformité.</p>
+      <div class="mt-3">${risk}</div>
+    </section>
+
+    <section class="panel mt-5">
+      <div class="flex items-baseline justify-between gap-3 flex-wrap">
+        <div><p class="eyebrow">Simulation ReAct</p><h2 class="h2 mt-1">Lancez l’agent sur la réclamation A-117</h2></div>
+        <div class="flex items-center gap-3 flex-wrap">
+          <span class="pill num" id="itc">Itérations : ${s.it}</span>
+          ${done ? '' : `<button class="btn btn-primary" data-action="l4-run" ${ready && !s.running ? '' : 'disabled'}>${s.running ? 'Agent en cours…' : 'Lancer l’agent'}</button>`}
+        </div>
+      </div>
+      ${ready || s.running || done ? '' : '<p class="small muted mt-2">Activez au moins un outil et classez les cinq usages pour lancer l’agent.</p>'}
+      <div class="flex flex-wrap gap-4 mt-3 xs"><span><b style="color:#B85A1C">■</b> Pensée</span><span><b style="color:#A07800">■</b> Action</span><span><b style="color:#3F6FA8">■</b> Observation</span></div>
+      <div class="console mt-3" id="console" aria-live="polite">${s.log.length ? s.log.map(lineHtml).join('') : '<div class="ln-idle">L’agent attend sa configuration…</div>'}</div>
+    </section>
+    ${done ? L4Result() : ''}`;
+  },
+  handle(a, d) {
+    const s = S4;
+    if (a === 'l4-tool') { s.tools.has(d.id) ? s.tools.delete(d.id) : s.tools.add(d.id); render(false); return true; }
+    if (a === 'l4-guard') { s.guards.has(d.id) ? s.guards.delete(d.id) : s.guards.add(d.id); render(false); return true; }
+    if (a === 'l4-risk') { s.risk[+d.i] = +d.j; render(false); return true; }
+    if (a === 'l4-run') {
+      const sim = simulateL4(); s.it = 0;
+      play(s, sim.ev, e => { if (e.it) { s.it = e.it; const c = $('#itc'); if (c) c.textContent = `Itérations : ${e.it}`; } },
+        () => { s.it = sim.it; s.result = { fail: sim.fail }; });
+      return true;
+    }
+    return false;
+  },
+};
+function L4SystemPrompt() {
+  const s = S4;
+  const tools = TOOLS4.filter(t => s.tools.has(t.id)).map(t => t.code);
+  const guards = GUARDS4.filter(g => s.guards.has(g.id)).map(g => `- ${esc(g.t)}`);
+  return `<span class="pk">Rôle</span> : agent de préparation des réponses aux réclamations habitation.
+<span class="pk">Mission</span> : pour chaque réclamation, lire le dossier, retrouver la clause applicable, vérifier les faits, rédiger un projet de réponse et le soumettre.
+<span class="pk">Outils</span> : ${tools.length ? tools.join(', ') : '<span class="pe">aucun outil attribué</span>'}
+<span class="pk">Règles</span> :
+${guards.length ? guards.join('\n') : '<span class="pe">aucun garde-fou défini</span>'}
+<span class="pk">Boucle</span> : Pensée → Action → Observation, jusqu’à la réponse finale.`;
+}
+function simulateL4() {
+  const T = S4.tools, G = S4.guards, ev = [];
+  let fail = null, it = 0;
+  const th = t => ev.push({ k: 'thought', t });
+  const ac = t => { it++; ev.push({ k: 'action', t, it }); };
+  const ob = t => ev.push({ k: 'obs', t });
+  const er = (t, code) => { ev.push({ k: 'err', t }); fail = code; };
+  (function run() {
+    th('Réclamation A-117 reçue. Plan : 1) lire le dossier, 2) retrouver la clause applicable, 3) vérifier les dates, 4) rédiger un projet, 5) le soumettre au gestionnaire.');
+    if (T.has('expert')) {
+      th('Pour être exhaustif, je consulte aussi les rapports médicaux liés au sociétaire.');
+      ac('expertise_medicale.lire(dossier="A-117")');
+      return er('Zone rouge franchie : secret médical (Code pénal, art. 226-13). Un outil disponible finit toujours par être utilisé.', 'zone');
+    }
+    if (T.has('web')) {
+      th('Je vérifie sur Internet si d’autres assureurs couvrent le gel dans ce cas.');
+      ac('web.rechercher("gel canalisations Quimper contrat 48-2291-A refus indemnisation")');
+      return er('Fuite : des éléments du dossier sont partis vers un moteur de recherche public, hors du périmètre de l’établissement.', 'fuite');
+    }
+    if (!T.has('dossier')) {
+      th('Je n’ai pas accès au dossier. Je pars d’un cas classique : sinistre garanti, sans franchise.');
+      return er('Hallucination : les faits du dossier sont inventés. Tout le raisonnement repose sur du vide.', 'halluc');
+    }
+    ac('dossier.lire(id="A-117", champs="faits, dates, pièces")');
+    ob('Dégât des eaux par gel. Contrat souscrit le 12/03/2019, sinistre du 03/02/2025, départ du logement le 04/01/2025. Pièces : déclaration, photos, certificat médical d’hospitalisation.');
+    if (!G.has('minim')) {
+      th('Je reprends toutes les données du dossier dans mon brouillon de travail, IBAN et date de naissance compris.');
+      return er('Feutre noir non passé : IBAN et date de naissance circulent dans les appels d’outils et dans le brouillon partagé.', 'data');
+    }
+    if (!G.has('scope')) {
+      th('Le certificat médical explique peut-être l’absence : je l’ouvre pour l’analyser.');
+      ac('dossier.lire_piece(id="A-117", piece="certificat_medical.pdf")');
+      return er('Zone rouge franchie : donnée de santé ouverte par l’agent. Sans périmètre explicite, il lit tout ce qu’il peut lire.', 'zone');
+    }
+    th('Pièce médicale jointe : zone rouge. Je ne l’ouvre pas et je la signalerai au gestionnaire pour le circuit habilité.');
+    if (!T.has('cg')) {
+      th('Je n’ai pas l’assistant documentaire. D’après mes connaissances, le gel est généralement couvert.');
+      return er('Hallucination : la réponse repose sur une généralité, pas sur les conditions générales du contrat.', 'halluc');
+    }
+    ac('cg.rechercher("exclusion gel inoccupation", contrat_souscrit="2019-03-12")');
+    ob('CG habitation 2017 (applicables au contrat), p. 42 : exclusion des dommages de gel si le logement est inoccupé plus de 15 jours consécutifs.');
+    if (G.has('retry') || !G.has('maxit')) {
+      th(G.has('retry') ? 'Consigne : trouver une garantie applicable. Je cherche une autre clause.' : 'Aucun critère d’arrêt : je cherche une autre garantie possible.');
+      for (let k = 0; k < 4; k++) { ac('cg.rechercher("autre garantie applicable gel inoccupation")'); ob('Aucun nouvel extrait pertinent.'); }
+      ev.push({ k: 'warn', t: '… 19 itérations identiques masquées …' }); it += 19;
+      return er(`Boucle infinie : ${it} itérations sans progrès, aucun projet de réponse. Il manquait un plafond d’itérations et une règle d’arrêt.`, 'loop');
+    }
+    th('Je vérifie la durée d’inoccupation entre le départ et le sinistre.');
+    if (!T.has('calc')) {
+      th('À vue d’œil, environ 14 jours : l’exclusion ne s’applique pas.');
+      return er('Erreur de calcul : du 04/01/2025 au 03/02/2025, il y a 30 jours. Le modèle a prédit un chiffre au lieu de le calculer.', 'calc');
+    }
+    ac('calculatrice("jours_entre(2025-01-04, 2025-02-03)")');
+    ob('30');
+    th('30 jours, au-delà des 15 jours : la clause p. 42 s’applique, sous réserve de l’appréciation du gestionnaire sur la pièce médicale signalée.');
+    if (G.has('geste')) {
+      th('Pour apaiser M. Laurent, j’ajoute la promesse d’un geste commercial de 500 €.');
+      return er('Débordement : promesse non autorisée qui engage l’établissement. L’agent n’a aucun mandat commercial.', 'scope');
+    }
+    if (G.has('auto') || T.has('write')) {
+      th('Je tranche : refus confirmé. Je clôture le dossier.');
+      if (T.has('write')) ac('dossier.modifier(id="A-117", statut="clos - refus confirmé")');
+      return er('Débordement : l’agent a pris la décision à la place du gestionnaire. L’outil propose, l’humain certifie.', 'scope');
+    }
+    th(`Je rédige le projet : rappel des faits, clause CG 2017 p. 42, voies de recours (médiateur de l’assurance)${G.has('source') ? ', avec la source de chaque affirmation' : ''}.`);
+    if (T.has('mail') && !G.has('hitl')) {
+      th('Le projet est prêt et j’ai un outil d’envoi : je l’adresse directement au sociétaire.');
+      ac('email.envoyer(destinataire="societaire A-117", piece="reponse_A-117.pdf")');
+      return er('Débordement : une réponse non relue part au nom de l’établissement.', 'scope');
+    }
+    if (!T.has('human')) {
+      th(G.has('hitl') ? 'Ma règle impose une signature humaine, mais aucun outil ne me permet de la demander.' : 'Je n’ai aucun canal sûr pour transmettre le projet.');
+      return er('Mission bloquée : aucun point de validation humaine. Le projet ne peut pas être transmis.', 'blocked');
+    }
+    ac('validation_humaine.soumettre(gestionnaire="Claire Dubois", piece="projet_reponse_A-117", alerte="pièce médicale à examiner par le circuit habilité")');
+    ob('Relu, ajusté et signé par Claire Dubois. Pièce médicale transmise au médecin-conseil.');
+    if (T.has('mail')) { ac('email.envoyer(destinataire="societaire A-117", piece="reponse_A-117_signee.pdf")'); ob('Envoyé après signature.'); }
+    ev.push({ k: 'final', t: `Projet de réponse signé : refus motivé par la clause CG 2017 p. 42 (inoccupation de 30 jours, au-delà de 15), voies de recours indiquées, pièce médicale orientée vers le circuit habilité.${G.has('source') ? ' Chaque affirmation est sourcée.' : ' Attention : affirmations non sourcées, réponse moins explicable.'}` });
+  })();
+  return { ev, fail, it };
+}
+function L4Score() {
+  const s = S4, items = [];
+  TOOLS4.forEach(t => items.push({ kind: 'Outil', label: t.name, on: s.tools.has(t.id), ok: s.tools.has(t.id) === t.need, fb: t.fb }));
+  GUARDS4.forEach(g => items.push({ kind: 'Garde-fou', label: g.t, on: s.guards.has(g.id), ok: g.kind === 'bad' ? !s.guards.has(g.id) : s.guards.has(g.id), fb: g.fb }));
+  AIACT.forEach((c, i) => items.push({ kind: 'AI Act', label: c.t, ok: s.risk[i] === c.good, fb: c.why, risk: true }));
+  const good = items.filter(i => i.ok).length;
+  return { items, pct: Math.round(good / items.length * 100) };
+}
+function L4Result() {
+  const s = S4, r = s.result, sc = L4Score();
+  const passed = !r.fail && sc.pct >= SEUIL;
+  const failHead = { zone: 'Zone rouge franchie', fuite: 'Fuite de données', halluc: 'L’agent a inventé', data: 'Feutre noir non passé', loop: 'L’agent tourne en boucle', calc: 'Calcul faux', scope: 'Débordement de périmètre', blocked: 'Mission bloquée' };
+  if (!s.recorded) {
+    s.recorded = true;
+    const errs = sc.items.filter(i => !i.ok).map(i => i.risk ? `AI Act : ${i.label}` : `${i.kind} : ${i.label.length > 60 ? i.label.slice(0, 57) + '…' : i.label}`);
+    if (r.fail) errs.unshift(`Incident : ${failHead[r.fail]}`);
+    finishAttempt(4, sc.pct, passed, errs);
+  }
+  const review = sc.items.map(i => `<div class="review"><span class="mark ${i.ok ? 'y' : 'n'}">${i.ok ? '✓' : '✗'}</span><div class="min-w-0"><b>${i.kind} · ${i.label}</b>${i.risk ? '' : ` <span class="muted">(${i.on ? 'retenu' : 'non retenu'})</span>`}<p class="muted mt-1">${i.fb}</p></div></div>`).join('');
+  const extra = `<p class="eyebrow grey">Revue de votre conception (${sc.items.filter(i => i.ok).length} / ${sc.items.length} éléments justes)</p><div class="mt-2">${review}</div>`;
+  return ResultCard({ n: 4, pct: sc.pct, passed,
+    headline: passed ? 'Un agent utile, borné et supervisé' : (r.fail ? failHead[r.fail] : 'Mission accomplie, mais conception sous le seuil'),
+    text: passed ? 'L’agent a lu les vrais faits, cité le bon texte, calculé juste, respecté les zones rouges et laissé la décision à un humain. C’est une conception défendable devant la conformité.'
+                 : (r.fail ? 'La trace montre l’itération où l’agent a dérapé. Chaque échec vient d’un outil de trop, d’un outil manquant ou d’un garde-fou absent : la revue ci-dessous les détaille.' : `L’agent a abouti, mais il faut ${SEUIL} % d’éléments justes pour valider.`),
+    extra });
+}
+
+COURSE[4] = {
+  title: 'Concevoir un agent IA sous contrôle : l’essentiel',
+  banner: '<b>Un agent, c’est un LLM qui raisonne, agit avec des outils et observe le résultat, en boucle.</b> Le modèle décide de l’étape suivante ; vos choix de conception décident de ce qu’il a le droit de faire.',
+  cards: [
+    { h: 'La boucle ReAct', t: 'Pensée → Action → Observation, jusqu’à la réponse finale. Sans plafond ni règle d’arrêt, un échec devient une boucle infinie.', src: 'Niveau 4' },
+    { h: 'Moindre privilège', t: 'Des casiers individuels fermés : lecture seule, uniquement les outils utiles à la mission. Un outil disponible finit toujours par être utilisé.', src: 'Module 4' },
+    { h: 'Zones rouges et feutre noir', t: 'Santé, Tracfin, information privilégiée : interdits aux agents aussi. Chaque appel d’outil ne transporte que les données nécessaires.', src: 'Modules 3 et 4' },
+    { h: 'L’outil propose, l’humain certifie', t: 'Contrôle humain (art. 14) et explicabilité (art. 86) : l’IA n’a pas le dernier mot sur un dossier sensible.', src: 'Module 6' },
+    { h: 'Niveau de risque par usage', t: 'Interdit, haut risque, risque limité, risque minimal : le même LLM peut servir un usage minimal ou à haut risque.', src: 'Module 6' },
+    { h: 'Calendrier et sanctions', t: 'Littératie IA (art. 4) depuis le 2 février 2025 ; transparence (art. 50) depuis le 2 août 2026 ; haut risque annexe III au 2 décembre 2027. Jusqu’à 35 M€ ou 7 % du CA mondial.', src: 'Module 6' },
+  ],
+  callouts: [
+    { e: 'Kit de survie', t: 'Canal validé ? Zone rouge ? Feutre noir passé ? Cinq ingrédients ? Sources à jour ? Je relis et je signe ? Une seule réponse « non » : on ne lance pas.' },
+    { e: 'En conclusion', t: 'La conformité n’est pas l’ennemie de l’innovation : c’est notre plus grand bouclier. Articles cités à titre indicatif, à confirmer avec votre conformité.' },
+  ],
+};
+
+/* =====================================================================
+   VERSION B — FICHIER D'UN SEUL NIVEAU, DÉVERROUILLÉ PAR CODE
+   ===================================================================== */
+const app = $('#app');
+let view = 'gate';
+function isFinalLevel(n) { return n === 4; }
+
+/* ---------- Codes de passage (liés au prénom et au nom) ---------- */
+const normName = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
+function hash4(src) {
+  let h = 2166136261;
+  for (const ch of src) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
+  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let out = '';
+  for (let i = 0; i < 4; i++) { out += A[h % 32]; h = Math.floor(h / 32); }
+  return out;
+}
+const unlockCode = (prenom, nom, lvl) => `NIV${lvl}-${hash4(`${normName(prenom)}|${normName(nom)}|${lvl}|${CODE_SECRET}`)}`;
+const certCode = (prenom, nom) => `CERT-${hash4(`${normName(prenom)}|${normName(nom)}|certif|${CODE_SECRET}`)}`;
+const cleanCode = s => String(s || '').toUpperCase().replace(/\s+/g, '');
+
+function onProgress() {
+  const L = state.levels[LEVEL];
+  $('#gp-label').textContent = `Niveau ${LEVEL} sur 4 · ${L.passed ? 'validé' : 'en cours'}`;
+  $('#gp-pct').textContent = `${L.best} %`;
+  $('#gp').setAttribute('aria-valuenow', L.best);
+  $('#gp-bar').innerHTML = [1, 2, 3, 4].map(n => {
+    const w = n < LEVEL ? 100 : n === LEVEL ? (L.passed ? 100 : L.best) : 0;
+    return `<span class="seg ${n < LEVEL || (n === LEVEL && L.passed) ? 'ok' : ''}" title="Niveau ${n}"><i style="width:${w}%"></i></span>`;
+  }).join('');
+  const ses = currentSession();
+  $('#player').innerHTML = (state.player.prenom && state.gates[LEVEL] ? `<span class="muted">Joueur :</span> <b>${esc(playerName())}</b>` : '') + (ses ? ` <span class="pill">Session ${esc(ses)}</span>` : '');
+}
+function go(v) {
+  playToken++;
+  if (!state.gates[LEVEL]) v = 'gate';
+  else if (v === 'summary' && !state.levels[LEVEL].passed) v = 'level';
+  view = v;
+  if (v === 'level') { MODS[LEVEL].start(); sendStart(LEVEL); }
+  render(true);
+}
+function render(top) {
+  const y = window.scrollY;
+  if (view === 'gate') app.innerHTML = GateView();
+  else if (view === 'summary') app.innerHTML = SummaryView();
+  else app.innerHTML = MODS[LEVEL].view();
+  onProgress();
+  if (top) { window.scrollTo(0, 0); const h = app.querySelector('h1'); if (h) h.focus({ preventScroll: true }); }
+  else window.scrollTo(0, y);
+}
+
+function GateView() {
+  const M = LEVEL_META[LEVEL];
+  const needCode = LEVEL > 1;
+  return `<section class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_420px] items-start mt-10">
+    <div class="min-w-0">
+      <p class="eyebrow">Formation IA · Niveau ${LEVEL} sur 4 · ${M.short}</p>
+      <h1 tabindex="-1" class="title mt-2">${M.title}</h1>
+      <p class="lead mt-3">${M.intro}</p>
+      <div class="flex flex-wrap gap-2 mt-4"><span class="pill">${M.format}</span><span class="pill pill-o">Validation : ${M.rule}</span><span class="pill">${M.src}</span></div>
+      ${needCode ? `<div class="callout mt-6"><span class="eyebrow">Accès protégé</span><p>Ce niveau s’ouvre avec le code affiché à la fin du niveau ${LEVEL - 1}, dans le résumé de cours. Le code est personnel : saisissez vos prénom et nom exactement comme au niveau précédent (majuscules et accents ne comptent pas).</p></div>`
+                 : '<div class="banner mt-6">Chaque niveau exige 90 % de réussite. À la fin, votre résumé de cours affiche le code qui ouvre le niveau suivant.</div>'}
+    </div>
+    <div class="panel min-w-0" id="gate-form">
+      <h2 class="h2">${needCode ? 'Déverrouiller le niveau' : 'Qui joue ?'}</h2>
+      <p class="small muted mt-1">Votre nom figure dans le suivi de la formation.</p>
+      <div class="grid gap-4 mt-5">
+        <div><label class="lbl" for="f-prenom">Prénom</label><input class="field" id="f-prenom" autocomplete="given-name" maxlength="40" value="${esc(state.player.prenom)}"></div>
+        <div><label class="lbl" for="f-nom">Nom</label><input class="field" id="f-nom" autocomplete="family-name" maxlength="40" value="${esc(state.player.nom)}"></div>
+        ${needCode ? `<div><label class="lbl" for="f-code">Code du niveau ${LEVEL}</label><input class="field mono" id="f-code" placeholder="NIV${LEVEL}-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="80"></div>` : ''}
+        <p class="form-err" id="f-err" hidden></p>
+        <button class="btn btn-primary" type="button" data-action="gate-submit">${needCode ? 'Déverrouiller' : 'Commencer le niveau 1'}</button>
+      </div>
+    </div>
+  </section>`;
+}
+function SummaryView() {
+  const p = state.player.prenom, n = state.player.nom;
+  let tail;
+  if (LEVEL < 4) {
+    const code = unlockCode(p, n, LEVEL + 1);
+    tail = `<section class="panel mt-8">
+      <div class="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-center">
+        <div class="min-w-0">
+          <p class="eyebrow">Accès au niveau ${LEVEL + 1}</p>
+          <h2 class="h2 mt-1">${LEVEL_META[LEVEL + 1].title}</h2>
+          <p class="mt-2">Ouvrez le fichier <b class="mono">niveau-${LEVEL + 1}.html</b>, puis saisissez vos prénom, nom et ce code. Il est personnel : il ne fonctionne qu’avec votre nom.</p>
+        </div>
+        <div class="code-box"><p class="eyebrow grey">Votre code</p><p class="code-val mt-2" id="code-val">${code}</p>
+          <button class="btn btn-ghost mt-3" data-action="copy-code" data-code="${code}">Copier le code</button></div>
+      </div>
+    </section>`;
+  } else {
+    const cc = certCode(p, n);
+    const date = (() => { try { return new Date(state.completedAt || Date.now()).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return ''; } })();
+    tail = `<section class="cert mt-8">
+      <div class="relative flex flex-wrap items-start justify-between gap-6">
+        <div class="min-w-0" style="flex:1 1 320px">
+          <p class="eyebrow grey">Formation IA · Parcours terminé</p>
+          <p class="mt-4 muted">Certifie que</p>
+          <p class="mt-1" style="font-size:26px;font-weight:700">${esc(playerName())}</p>
+          <p class="mt-3 muted">a validé les quatre niveaux et obtient le titre de</p>
+          <p class="cert-title mt-1">Concepteur IA certifié</p>
+          <p class="small muted mt-5">Délivré le ${date} · Code de vérification <span class="mono">${cc}</span></p>
+        </div>
+        <div class="seal"><div><b>${state.levels[4].best}</b><span>score niveau 4</span></div></div>
+      </div>
+      <div class="relative mt-8"><p class="eyebrow">Compétences acquises</p>
+        <div class="mt-2">${[1, 2, 3, 4].map(k => `<div class="cert-skill"><span><b>Niveau ${k}</b> · ${LEVEL_META[k].title}</span><em>${k < 4 ? 'validé' : state.levels[4].best + ' %'}</em><small>${SKILLS[k]}</small></div>`).join('')}</div>
+      </div>
+      <div class="relative flex flex-wrap gap-3 mt-6"><button class="btn btn-primary" data-action="copy-cert">Copier mon résultat</button></div>
+    </section>`;
+  }
+  return `<nav class="mt-6"><button class="link" data-action="back">← Revenir au niveau</button></nav>
+    ${CourseSummary(LEVEL)}
+    ${tail}
+    <textarea id="share-fallback" class="field mt-4" readonly hidden aria-label="Texte à copier"></textarea>`;
+}
+function copyText(txt, okMsg) {
+  const fallback = () => { const t = $('#share-fallback'); t.value = txt; t.hidden = false; t.focus(); t.select(); toast('Texte sélectionné', 'Copiez-le avec Ctrl+C ou ⌘+C.'); };
+  try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(() => toast(okMsg, '')).catch(fallback); else fallback(); } catch (e) { fallback(); }
+}
+
+/* ---------- Réinitialisation (ce niveau uniquement) ---------- */
+function openModal() { const o = $('#overlay'); o.hidden = false; o.style.display = ''; $('#m-cancel').focus(); }
+function closeModal() { const o = $('#overlay'); o.hidden = true; o.style.display = 'none'; }
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-action]');
+  if (!b || b.disabled) return;
+  const a = b.dataset.action, d = b.dataset;
+  if (view === 'level' && MODS[LEVEL].handle(a, d, b)) return;
+  switch (a) {
+    case 'retry': case 'back': go('level'); break;
+    case 'summary': go('summary'); break;
+    case 'gate-submit': submitGate(); break;
+    case 'copy-code': copyText(d.code, 'Code copié'); break;
+    case 'copy-cert': copyText(`Formation IA : ${playerName()}, Concepteur IA certifié. Score niveau 4 : ${state.levels[4].best} %. Code de vérification ${certCode(state.player.prenom, state.player.nom)}.`, 'Résultat copié'); break;
+    case 'ask-reset': openModal(); break;
+    case 'cancel-reset': closeModal(); break;
+    case 'confirm-reset': {
+      state.levels[LEVEL] = lvState(); delete state.gates[LEVEL];
+      if (LEVEL === 4) state.completedAt = null;
+      saveState(); closeModal(); toast('Niveau réinitialisé', LEVEL > 1 ? 'Saisissez à nouveau votre code pour rejouer.' : 'Saisissez à nouveau votre nom pour rejouer.'); go('gate'); break;
+    }
+  }
+});
+function submitGate() {
+  const p = $('#f-prenom').value.trim(), n = $('#f-nom').value.trim();
+  const err = $('#f-err');
+  $('#f-prenom').classList.toggle('err', !p); $('#f-nom').classList.toggle('err', !n);
+  if (!p || !n) { err.textContent = 'Renseignez votre prénom et votre nom.'; err.hidden = false; return; }
+  if (LEVEL > 1) {
+    const typed = cleanCode($('#f-code').value);
+    const ok = typed === cleanCode(unlockCode(p, n, LEVEL)) || typed === cleanCode(CODE_FORMATEUR);
+    $('#f-code').classList.toggle('err', !ok);
+    if (!ok) {
+      // Code valide pour ce joueur, mais d'un autre niveau : refusé avec un message explicite.
+      const other = [2, 3, 4].find(k => k !== LEVEL && typed === cleanCode(unlockCode(p, n, k)));
+      if (!typed) err.textContent = `Saisissez le code affiché à la fin du niveau ${LEVEL - 1}.`;
+      else if (other) err.textContent = `Ce code ouvre le niveau ${other}, pas le niveau ${LEVEL}. Le niveau ${LEVEL} s’ouvre uniquement avec le code obtenu en validant le niveau ${LEVEL - 1}.`;
+      else err.textContent = `Code incorrect pour ${p} ${n}. Vérifiez le code affiché à la fin du niveau ${LEVEL - 1} et l’orthographe de votre nom.`;
+      err.hidden = false; return;
+    }
+  }
+  const changed = normName(p + n) !== normName(state.player.prenom + state.player.nom);
+  state.player = { prenom: p, nom: n };
+  if (changed) { state.levels = { 1: lvState(), 2: lvState(), 3: lvState(), 4: lvState() }; state.gates = {}; state.completedAt = null; }
+  state.gates[LEVEL] = true; saveState();
+  go(state.levels[LEVEL].passed ? 'summary' : 'level');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.closest && e.target.closest('#gate-form')) { e.preventDefault(); submitGate(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#overlay').hidden) closeModal(); });
+$('#overlay').addEventListener('click', e => { if (e.target.id === 'overlay') closeModal(); });
+
+go(state.gates[LEVEL] ? (state.levels[LEVEL].passed ? 'summary' : 'level') : 'gate');
+
+</script>
+</body>
+</html>

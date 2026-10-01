@@ -1,0 +1,926 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Niveau 1 · Démystifier l’IA générative</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config = { corePlugins: { preflight: false } };</script>
+<style>
+/* Layout : colonne de 1080px sous un bandeau blanc ; cartes grises plates, bandeaux orange et encadrés pêche repris du support de formation */
+:root{
+  --orange:#EA6827; --orange-2:#ED7D31; --orange-deep:#C4501A; --peach:#FDEEE3; --peach-2:#FBE3D2;
+  --card:#F3F3F3; --ink:#333333; --ink-2:#404040; --muted:#666666; --line:#E2E2E2; --white:#FFFFFF;
+  --ok:#2C7A4B; --ok-soft:#E3F2E8; --bad:#B3261E; --bad-soft:#FBE5E3;
+  --console:#2F2F2F; --console-ink:#EDEDED; --console-dim:#A8A8A8;
+  --c-thought:#FFB98A; --c-action:#FFD66B; --c-obs:#A9D1FF; --c-ok:#8FE0B0; --c-err:#FF9C92; --c-warn:#FFCB7A;
+  --f:"Calibri","Carlito","Segoe UI",Candara,"Helvetica Neue",Arial,sans-serif;
+  --mono:"Consolas","Cascadia Mono","SFMono-Regular",Menlo,"Courier New",monospace;
+  color-scheme:light;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--white);color:var(--ink);font-family:var(--f);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,p,ul,ol,figure{margin:0}
+ul,ol{padding:0;list-style:none}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0;text-align:inherit}
+:focus-visible{outline:2px solid var(--orange-deep);outline-offset:2px;border-radius:4px}
+[tabindex="-1"]:focus{outline:none}
+.wrap{max-width:1080px;margin-inline:auto;padding-inline:16px}
+@media (min-width:640px){.wrap{padding-inline:28px}}
+main.wrap{padding-block:8px 72px}
+
+/* Typographie (Calibri, comme le support) */
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--orange-deep);font-weight:700}
+.eyebrow.grey{color:var(--muted)}
+.title{font-size:clamp(26px,3.6vw,34px);font-weight:400;line-height:1.18;color:var(--ink);text-wrap:balance;letter-spacing:-.005em}
+.h2{font-size:22px;font-weight:400;line-height:1.25;text-wrap:balance}
+.h3{font-size:17px;font-weight:700;line-height:1.35}
+.lead{font-size:17px;color:var(--ink-2);max-width:68ch}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.xs{font-size:12.5px}
+.mono{font-family:var(--mono)}
+.num{font-variant-numeric:tabular-nums}
+.prose{max-width:70ch}
+
+/* Bandeau supérieur */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--white);border-bottom:1px solid var(--line)}
+.topbar-in{display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;padding-block:12px}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{width:34px;height:34px;border-radius:50%;background:var(--orange);color:#fff;display:grid;place-items:center;font-weight:700;font-size:14px;flex:none}
+.brand b{display:block;font-size:15px;line-height:1.15}
+.brand small{display:block;font-size:12px;color:var(--muted)}
+.gp{flex:1 1 240px;min-width:0}
+.gp-top{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--muted);margin-bottom:5px}
+.gp-top strong{color:var(--ink)}
+.gp-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.seg{height:8px;border-radius:99px;background:var(--card);overflow:hidden;display:block}
+.seg i{display:block;height:100%;width:0;background:var(--orange-2);border-radius:inherit;transition:width .6s ease}
+.seg.ok i{background:var(--ok)}
+.player{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink-2)}
+.btn-top{border:1px solid var(--line);padding:6px 12px;border-radius:6px;font-size:13.5px;color:var(--ink-2);background:var(--white)}
+.btn-top:hover{border-color:var(--orange)}
+
+/* Surfaces reprises du support */
+.card{background:var(--card);border-radius:6px;padding:18px 20px}
+.panel{background:var(--white);border:1px solid var(--line);border-radius:8px;padding:20px}
+@media (min-width:640px){.panel{padding:26px}}
+.banner{background:var(--orange);color:#fff;border-radius:6px;padding:14px 18px;font-size:16.5px}
+.banner b{font-weight:700}
+.callout{background:var(--peach);border-radius:6px;padding:14px 18px}
+.callout .eyebrow{display:block;margin-bottom:4px}
+.divider{height:1px;background:var(--line);border:0;margin:0}
+.num-circle{width:34px;height:34px;border-radius:50%;background:var(--orange);color:#fff;display:grid;place-items:center;font-weight:700;flex:none;font-variant-numeric:tabular-nums}
+.num-circle.sm{width:26px;height:26px;font-size:13px}
+.num-circle.off{background:var(--line);color:var(--muted)}
+.num-circle.ok{background:var(--ok)}
+
+/* Boutons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:6px;padding:10px 18px;font-weight:700;font-size:15px;border:1px solid transparent;line-height:1.3;transition:background .15s,border-color .15s,transform .1s}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn-primary{background:var(--orange-deep);color:#fff}
+.btn-primary:hover:not(:disabled){background:#A9440F}
+.btn-ok{background:var(--ok);color:#fff}
+.btn-ok:hover:not(:disabled){background:#21603A}
+.btn-ghost{background:var(--white);border-color:#CFCFCF;color:var(--ink)}
+.btn-ghost:hover:not(:disabled){border-color:var(--orange)}
+.btn-danger{background:var(--bad);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.link{color:var(--orange-deep);font-weight:700;font-size:14.5px}
+.link:hover{text-decoration:underline}
+
+/* Pastilles */
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--card);color:var(--ink-2);line-height:1.5}
+.pill-o{background:var(--peach-2);color:var(--orange-deep)}
+.pill-ok{background:var(--ok-soft);color:var(--ok)}
+.pill-bad{background:var(--bad-soft);color:var(--bad)}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
+
+/* Jauges */
+.bar{height:8px;background:var(--card);border-radius:99px;overflow:hidden}
+.bar>span{display:block;height:100%;background:var(--orange-2);border-radius:inherit;transition:width .6s ease}
+.bar.ok>span{background:var(--ok)}
+.gauge{position:relative;height:14px;background:var(--card);border-radius:99px;margin-top:28px}
+.gauge-fill{height:100%;border-radius:inherit;background:var(--bad);transition:width .9s cubic-bezier(.2,.8,.2,1)}
+.gauge-fill.ok{background:var(--ok)}
+.gauge-mark{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--ink)}
+.gauge-mark span{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);font-size:11.5px;font-weight:700;color:var(--muted);white-space:nowrap;padding-bottom:2px}
+.score-big{font-weight:700;font-size:54px;line-height:1;font-variant-numeric:tabular-nums}
+
+/* Options de réponse */
+.opt{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;background:var(--white);border:1px solid #D6D6D6;border-radius:6px;padding:12px 14px;transition:border-color .15s,background .15s;line-height:1.5}
+.opt:hover:not(:disabled){border-color:var(--orange)}
+.opt:disabled{cursor:default}
+.opt.sel,.opt[aria-pressed="true"]{border-color:var(--orange);background:var(--peach);box-shadow:inset 0 0 0 1px var(--orange)}
+.opt.ok{border-color:var(--ok);background:var(--ok-soft);box-shadow:inset 0 0 0 1px var(--ok)}
+.opt.ok-reveal{border-color:var(--ok);border-style:dashed}
+.opt.bad{border-color:var(--bad);background:var(--bad-soft);box-shadow:inset 0 0 0 1px var(--bad)}
+.opt.fade{opacity:.6}
+.key{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--card);color:var(--ink-2)}
+.opt.sel .key,.opt[aria-pressed="true"] .key{background:var(--orange);color:#fff}
+.opt.ok .key{background:var(--ok);color:#fff}
+.opt.bad .key{background:var(--bad);color:#fff}
+.check{flex:none;width:20px;height:20px;border-radius:4px;border:1.5px solid #8A8A8A;display:grid;place-items:center;margin-top:2px;font-size:13px;line-height:1;background:var(--white)}
+.opt[aria-pressed="true"] .check{background:var(--orange);border-color:var(--orange);color:#fff}
+.opt-body{min-width:0;flex:1}
+.opt-fb{margin-top:8px;font-size:14.5px;color:var(--ink)}
+
+/* Feedback */
+.fb{border-radius:6px;padding:14px 18px;background:var(--card)}
+.fb-ok{background:var(--ok-soft)}
+.fb-bad{background:var(--bad-soft)}
+.fb-head{display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:4px}
+.fb-ok .fb-head{color:var(--ok)}
+.fb-bad .fb-head{color:var(--bad)}
+
+/* Zones de code */
+.prompt-box{background:var(--card);border-radius:6px;padding:14px 16px;font-family:var(--mono);font-size:13.5px;line-height:1.65;white-space:pre-wrap;word-break:break-word;color:var(--ink)}
+.prompt-box .pk{color:var(--orange-deep);font-weight:700}
+.prompt-box .pe{color:var(--muted);font-style:italic}
+.console{background:var(--console);color:var(--console-ink);border-radius:6px;padding:14px 16px;font-family:var(--mono);font-size:13px;line-height:1.55;max-height:470px;min-height:140px;overflow:auto}
+.ln{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.07);animation:lnIn .25s ease both}
+.ln:last-child{border-bottom:0}
+.ln .lt{font-weight:700;white-space:nowrap}
+.ln-thought .lt{color:var(--c-thought)} .ln-action .lt{color:var(--c-action)} .ln-obs .lt{color:var(--c-obs)}
+.ln-ok .lt,.ln-final .lt{color:var(--c-ok)} .ln-err .lt{color:var(--c-err)} .ln-warn .lt{color:var(--c-warn)} .ln-info .lt{color:var(--console-dim)}
+.ln-err .lx{color:var(--c-err)} .ln-final .lx{color:var(--c-ok)} .ln-action .lx{color:#FFF0C7}
+.ln .it{color:var(--console-dim);font-weight:400}
+.ln-idle{color:var(--console-dim)}
+@keyframes lnIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media (max-width:540px){.ln{grid-template-columns:minmax(0,1fr);gap:0}}
+
+/* Feutre noir (N2) */
+.redact-text{background:var(--card);border-radius:6px;padding:18px 20px;line-height:2.25;font-size:16px}
+.rs{display:inline;border-radius:4px;padding:3px 6px;border:1.5px dashed #9A9A9A;background:var(--white);cursor:pointer;line-height:1.4;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.rs:hover:not(:disabled){border-color:var(--orange)}
+.rs.on{background:#1F1F1F;color:#fff;border-style:solid;border-color:#1F1F1F}
+.rs.good{outline:2px solid var(--ok);outline-offset:1px}
+.rs.wrong{outline:2px solid var(--bad);outline-offset:1px}
+.rs:disabled{cursor:default}
+
+/* Pipeline (N3) */
+.pipe{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.chip{font-size:13px;font-weight:700;padding:5px 10px;border-radius:6px;background:var(--card);color:var(--muted);border:1px solid transparent;transition:all .2s}
+.chip.on{background:var(--peach);color:var(--orange-deep);border-color:var(--orange)}
+.chip.done{background:var(--ok-soft);color:var(--ok)}
+.chip.fail{background:var(--bad-soft);color:var(--bad);border-color:var(--bad)}
+.arrow{color:var(--muted);font-size:12px}
+.order-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:6px;background:var(--card)}
+.order-row .num-circle{background:var(--white);color:var(--ink);border:1px solid var(--line)}
+.order-row.good .num-circle{background:var(--ok);color:#fff;border-color:var(--ok)}
+.order-row.wrong .num-circle{background:var(--bad);color:#fff;border-color:var(--bad)}
+.mv{width:34px;height:34px;border-radius:6px;border:1px solid #CFCFCF;display:grid;place-items:center;color:var(--ink-2);font-size:15px;background:var(--white)}
+.mv:hover:not(:disabled){border-color:var(--orange);color:var(--orange-deep)}
+.mv:disabled{opacity:.3;cursor:not-allowed}
+
+/* Outils (N4) */
+.tool{display:flex;flex-direction:column;gap:4px;text-align:left;border:1px solid #D6D6D6;border-radius:6px;padding:12px 14px;background:var(--white);min-width:0;transition:border-color .15s,background .15s}
+.tool:hover:not(:disabled){border-color:var(--orange)}
+.tool[aria-pressed="true"]{border-color:var(--orange);background:var(--peach);box-shadow:inset 0 0 0 1px var(--orange)}
+.tool code{font-family:var(--mono);font-size:12.5px;color:var(--muted);word-break:break-all}
+.tool .tname{font-weight:700;font-size:15px;display:flex;justify-content:space-between;gap:8px}
+.sw{flex:none;width:32px;height:19px;border-radius:99px;background:var(--line);position:relative}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:var(--white);box-shadow:0 1px 2px rgba(0,0,0,.25);transition:left .15s}
+.tool[aria-pressed="true"] .sw{background:var(--orange)}
+.tool[aria-pressed="true"] .sw::after{left:15px}
+.segd{display:flex;flex-wrap:wrap;gap:6px}
+.segd button{font-size:13.5px;font-weight:700;padding:6px 10px;border-radius:6px;border:1px solid #CFCFCF;background:var(--white)}
+.segd button[aria-pressed="true"]{background:var(--orange);border-color:var(--orange);color:#fff}
+.segd button.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.segd button.bad{background:var(--bad);border-color:var(--bad);color:#fff}
+.segd button.ok-reveal{border:2px dashed var(--ok)}
+.review{display:flex;gap:10px;align-items:flex-start;font-size:14.5px;padding:9px 0;border-bottom:1px solid var(--line)}
+.review:last-child{border-bottom:0}
+.mark{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;margin-top:1px;color:#fff}
+.mark.y{background:var(--ok)} .mark.n{background:var(--bad)}
+
+/* Quiz */
+.qdots{display:flex;gap:4px;flex-wrap:wrap}
+.qdot{width:22px;height:6px;border-radius:99px;background:var(--line)}
+.qdot.cur{background:var(--orange)} .qdot.y{background:var(--ok)} .qdot.n{background:var(--bad)}
+
+/* Personnages */
+.person{display:flex;align-items:center;gap:12px}
+.person svg{flex:none;border-radius:50%}
+.person b{display:block;font-size:15px;line-height:1.2}
+.person span{display:block;font-size:13px;color:var(--muted)}
+
+/* Niveaux (accueil) */
+.lvl{display:flex;flex-direction:column;gap:14px;background:var(--white);border:1px solid var(--line);border-radius:8px;padding:22px;min-width:0}
+.lvl.locked{background:var(--card);border-color:transparent}
+.lvl.locked .lvl-title{color:var(--muted)}
+.lvl-title{font-size:21px;line-height:1.2;text-wrap:balance}
+.tagrow{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:12.5px;padding:2px 9px;border-radius:99px;background:var(--card);color:var(--ink-2)}
+.lvl.locked .tag{background:var(--white)}
+
+/* Résumé de cours */
+.sum-grid{display:grid;gap:14px}
+@media (min-width:720px){.sum-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1000px){.sum-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.sum-card{background:var(--card);border-radius:6px;padding:18px 20px;display:flex;gap:14px;align-items:flex-start;min-width:0}
+.sum-card h3{font-size:16.5px;font-weight:700;line-height:1.3}
+.sum-card p{font-size:14.5px;margin-top:4px;color:var(--ink-2)}
+.sum-card .src{display:block;margin-top:8px;font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--orange-deep);font-weight:700}
+
+/* Code de passage & certificat */
+.code-box{background:var(--peach);border:2px dashed var(--orange);border-radius:8px;padding:20px;text-align:center}
+.code-val{font-family:var(--mono);font-size:clamp(26px,5vw,38px);font-weight:700;letter-spacing:.08em;color:var(--orange-deep);word-break:break-all}
+.cert{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:28px 22px;position:relative;overflow:hidden}
+@media (min-width:640px){.cert{padding:44px 48px}}
+.cert::before{content:"";position:absolute;inset:10px;border:1.5px solid var(--peach-2);border-radius:6px;pointer-events:none}
+.cert-title{font-size:clamp(30px,5vw,44px);line-height:1.05;color:var(--orange-deep);font-weight:700}
+.seal{width:116px;height:116px;border-radius:50%;background:var(--orange);color:#fff;display:grid;place-items:center;text-align:center;flex:none;box-shadow:0 0 0 6px var(--peach),0 0 0 8px var(--orange-2)}
+.seal b{font-size:36px;line-height:1;display:block;font-variant-numeric:tabular-nums}
+.seal span{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase}
+.cert-skill{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 16px;padding:10px 0;border-top:1px solid var(--line)}
+.cert-skill em{font-style:normal;font-variant-numeric:tabular-nums;color:var(--ok);font-weight:700}
+.cert-skill small{grid-column:1/-1;color:var(--muted);font-size:13.5px}
+
+/* Formulaires */
+.field{width:100%;border:1px solid #CFCFCF;border-radius:6px;padding:10px 12px;background:var(--white);color:var(--ink)}
+.field:focus{outline:2px solid var(--orange);outline-offset:0;border-color:transparent}
+.field.err{border-color:var(--bad);background:var(--bad-soft)}
+label.lbl{display:block;font-weight:700;font-size:14.5px;margin-bottom:6px}
+textarea.field{font-family:var(--mono);font-size:13px;min-height:190px;resize:vertical}
+.form-err{color:var(--bad);font-weight:700;font-size:14.5px}
+
+/* Fenêtre et notifications */
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(30,30,30,.5);display:grid;place-items:center;padding:16px}
+.modal{background:var(--white);border-radius:10px;padding:24px;max-width:450px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.25)}
+.toast{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:60;background:var(--ink);color:#fff;border-radius:8px;padding:12px 16px;display:flex;gap:12px;align-items:center;max-width:min(380px,calc(100vw - 32px));box-shadow:0 14px 40px rgba(0,0,0,.25);animation:toastIn .3s ease both}
+.toast small{color:#D0D0D0;display:block;font-size:13px}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.sticky-col{position:sticky;top:calc(env(safe-area-inset-top,0px) + 96px)}
+@media (max-width:1023px){.sticky-col{position:static}}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap topbar-in">
+    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Niveau 1 sur 4 · Démystifier l’IA générative</small></span></div>
+    <div class="gp" id="gp" role="progressbar" aria-label="Progression" aria-valuemin="0" aria-valuemax="100">
+      <div class="gp-top"><span id="gp-label"></span><strong class="num" id="gp-pct"></strong></div>
+      <div class="gp-bar" id="gp-bar"></div>
+    </div>
+    <div class="player" id="player"></div>
+    <button class="btn-top" data-action="ask-reset">Réinitialiser</button>
+  </div>
+</header>
+<main id="app" class="wrap"></main>
+<div id="overlay" class="overlay" hidden style="display:none">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="m-title">
+    <h2 id="m-title" class="h2">Réinitialiser ?</h2>
+    <p class="muted mt-2" id="m-text">La progression de ce niveau sera effacée de cet appareil.</p>
+    <div class="flex flex-wrap gap-3 mt-6 justify-end">
+      <button class="btn btn-ghost" data-action="cancel-reset" id="m-cancel">Annuler</button>
+      <button class="btn btn-danger" data-action="confirm-reset">Tout effacer</button>
+    </div>
+  </div>
+</div>
+<div id="toast-host" aria-live="polite"></div>
+<script>
+/* =====================================================================
+   CONFIGURATION — À MODIFIER
+   ===================================================================== */
+// URL du webhook (Make, Zapier…). Le jeu envoie une ligne quand un niveau est
+// commencé et une ligne quand il est terminé, avec ces 15 champs :
+// horodatage, evenement, session, version, prenom, nom, joueur, niveau, titre_niveau,
+// niveau_valide, score, seuil, tentative, erreurs_tentative, erreurs_frequentes.
+// La session vient du lien envoyé aux apprenants : niveau-1.html?session=Groupe-A
+const WEBHOOK_URL = "https://hook.eu2.make.com/nfuswd0gqqz4kv7vrs2lid42tnilpf4v";
+
+// Seuil de validation d'un niveau, en pourcentage.
+const SEUIL = 90;
+
+// Sel des codes de passage : il doit être IDENTIQUE dans les 4 fichiers de la version B.
+// Changez-le avant diffusion pour que vos codes ne soient pas devinables.
+const CODE_SECRET = "Lendys_AI2026";
+
+// Code formateur : ouvre n'importe quel niveau, pour les tests et le support. À garder confidentiel.
+const CODE_FORMATEUR = "Lendys_FormateurAI2026";
+
+// Numéro du niveau contenu dans ce fichier (ne pas modifier).
+const LEVEL = 1;
+const STORAGE_KEY = "formation-ia-parcours-B";
+const VERSION_LABEL = "B - fichier niveau 1";
+
+/* =====================================================================
+   NOYAU COMMUN : outils, état, suivi webhook, personnages, composants
+   ===================================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const shuffle = a => { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+const reduceMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+/* ---------- Métadonnées des niveaux ---------- */
+const LEVEL_META = {
+  1: { title: 'Démystifier l’IA générative', short: 'Fondations', format: 'Quiz · 10 situations métier', rule: '9 bonnes réponses sur 10', src: 'Modules 1, 3 et 4 du support',
+       intro: 'Un LLM ne comprend pas : il prédit le mot suivant. Dix situations tirées de nos métiers pour maîtriser tokens, probabilités, température, hallucinations et limites d’usage.',
+       tags: ['Tokens', 'Probabilités', 'Température', 'Hallucinations', 'Feutre noir', 'Zones rouges'] },
+  2: { title: 'Prompt engineering avancé', short: 'L’artisan', format: 'Atelier « Répare le prompt »', rule: 'robustesse ≥ 90/100', src: 'Modules 2 et 3 du support',
+       intro: 'Le fil rouge : la réponse au sociétaire furieux après un refus d’indemnisation. Diagnostiquez le prompt, passez le feutre noir, puis reconstruisez-le avec les cinq ingrédients.',
+       tags: ['Rôle', 'Contexte', 'Tâche', 'Contraintes', 'Format', 'Anonymisation'] },
+  3: { title: 'RAG et gestion du contexte', short: 'L’architecte de données', format: 'Assemblage du pipeline RAG', rule: 'pipeline sans fuite ni hallucination, ≥ 90/100', src: 'Modules 4 et 5 du support',
+       intro: 'Construisez l’assistant documentaire qui répond « à livre ouvert » sur les conditions générales, sans tomber dans le grenier poussiéreux ni percer les droits d’accès.',
+       tags: ['Découpage', 'Embeddings', 'Recherche par le sens', 'Millésimes', 'Droits d’accès'] },
+  4: { title: 'Conception d’agents IA', short: 'Le concepteur', format: 'Simulateur ReAct + AI Act', rule: 'mission sans boucle ni débordement, ≥ 90/100', src: 'Modules 4, 5 et 6 du support, appliqués aux agents',
+       intro: 'Équipez un agent de traitement des réclamations : outils au moindre privilège, garde-fous, validation humaine. Puis classez des usages selon l’AI Act.',
+       tags: ['ReAct', 'Outils', 'Moindre privilège', 'Garde-fous', 'Contrôle humain', 'AI Act'] },
+};
+const SKILLS = {
+  1: 'Expliquer qu’un LLM prédit des tokens, régler la température selon l’enjeu, repérer une hallucination et respecter zones rouges et feutre noir',
+  2: 'Écrire un prompt métier complet (rôle, contexte, tâche, contraintes, format) à partir de données anonymisées',
+  3: 'Concevoir un assistant RAG fiable : sources datées, recherche par le sens filtrée par habilitation, réponses sourcées',
+  4: 'Spécifier un agent ReAct au moindre privilège, avec garde-fous, validation humaine et lecture AI Act des usages',
+};
+
+/* ---------- État et sauvegarde ---------- */
+const lvState = () => ({ best: 0, passed: false, attempts: 0, errors: {} });
+function freshState() { return { player: { prenom: '', nom: '' }, levels: { 1: lvState(), 2: lvState(), 3: lvState(), 4: lvState() }, gates: {}, completedAt: null, session: '' }; }
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const s = JSON.parse(raw), b = freshState();
+      b.player = Object.assign(b.player, s.player || {});
+      for (const n of [1, 2, 3, 4]) { b.levels[n] = Object.assign(lvState(), (s.levels || {})[n] || {}); b.levels[n].errors = b.levels[n].errors || {}; }
+      b.gates = s.gates || {};
+      b.completedAt = s.completedAt || null;
+      b.session = typeof s.session === 'string' ? s.session : '';
+      return b;
+    }
+  } catch (e) {}
+  return freshState();
+}
+function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {} }
+let state = loadState();
+const playerName = () => `${state.player.prenom} ${state.player.nom}`.trim();
+
+/* ---------- Suivi administrateur (webhook Make / Zapier) ---------- */
+function topErrors(n, k = 3) {
+  return Object.entries(state.levels[n].errors).sort((a, b) => b[1] - a[1]).slice(0, k).map(([t, c]) => `${t} (${c})`).join(' ; ');
+}
+/* Session (groupe) : lue dans le lien envoyé par le formateur, ex. niveau-1.html?session=Groupe-A-05-10,
+   puis mémorisée pour les niveaux suivants ouverts dans le même navigateur. */
+function readSessionFromLink() {
+  try {
+    const v = new URLSearchParams(window.location.search).get('session');
+    return v ? v.trim().replace(/[<>"]/g, '').slice(0, 60) : '';
+  } catch (e) { return ''; }
+}
+function currentSession() {
+  const fromLink = readSessionFromLink();
+  if (fromLink && fromLink !== state.session) { state.session = fromLink; saveState(); }
+  return fromLink || state.session || '';
+}
+function postWebhook(payload) {
+  if (!WEBHOOK_URL || WEBHOOK_URL === 'URL_A_REMPLACER') { console.info('[Suivi] WEBHOOK_URL non configurée. Données qui auraient été envoyées :', payload); return; }
+  try {
+    // Format formulaire + mode no-cors : accepté par Make et Zapier sans pré-requête CORS.
+    fetch(WEBHOOK_URL, { method: 'POST', mode: 'no-cors', keepalive: true, body: new URLSearchParams(payload) })
+      .catch(err => console.warn('[Suivi] Envoi impossible :', err));
+  } catch (err) { console.warn('[Suivi] Envoi impossible :', err); }
+}
+function basePayload(n, evenement) {
+  return {
+    horodatage: new Date().toISOString(),
+    evenement,
+    session: currentSession() || 'non renseignée',
+    version: VERSION_LABEL,
+    prenom: state.player.prenom,
+    nom: state.player.nom,
+    joueur: playerName(),
+    niveau: String(n),
+    titre_niveau: LEVEL_META[n].title,
+  };
+}
+// Envoyé à l'ouverture d'un niveau (et à chaque nouvelle tentative).
+function sendStart(n) {
+  postWebhook(Object.assign(basePayload(n, 'niveau commencé'), {
+    niveau_valide: '', score: '', seuil: String(SEUIL),
+    tentative: String(state.levels[n].attempts + 1),
+    erreurs_tentative: '', erreurs_frequentes: topErrors(n) || 'aucune',
+  }));
+}
+// Envoyé à la fin d'un niveau, qu'il soit validé ou non.
+function sendTracking(n, pct, passed, errs) {
+  postWebhook(Object.assign(basePayload(n, 'niveau terminé'), {
+    niveau_valide: passed ? 'oui' : 'non',
+    score: String(pct),
+    seuil: String(SEUIL),
+    tentative: String(state.levels[n].attempts),
+    erreurs_tentative: errs.length ? errs.join(' ; ') : 'aucune',
+    erreurs_frequentes: topErrors(n) || 'aucune',
+  }));
+}
+function finishAttempt(n, pct, passed, errs) {
+  const L = state.levels[n];
+  L.attempts += 1;
+  L.best = Math.max(L.best, pct);
+  errs.forEach(t => { L.errors[t] = (L.errors[t] || 0) + 1; });
+  if (passed) L.passed = true;
+  if (passed && isFinalLevel(n) && !state.completedAt) state.completedAt = new Date().toISOString();
+  saveState();
+  sendTracking(n, pct, passed, errs);
+  if (passed) toast(`Niveau ${n} validé`, `Score ${pct} %. Votre résumé de cours est prêt.`);
+  onProgress();
+}
+
+/* ---------- Personnages ---------- */
+const PEOPLE = {
+  sophie: { name: 'Sophie Martin', role: 'Conseillère clientèle', skin: '#6B4226', hair: 'wrap', hc: '#C4501A', shirt: '#404040' },
+  thomas:    { name: 'Thomas Bernard', role: 'Conseiller patrimonial', skin: '#4E2E1C', hair: 'short', hc: '#161616', shirt: '#EA6827', beard: true },
+  claire:  { name: 'Claire Dubois', role: 'Gestionnaire sinistres', skin: '#7A4B2C', hair: 'puff', hc: '#161616', shirt: '#7A7A7A' },
+  julien:  { name: 'Julien Lefèvre', role: 'Gestionnaire indemnisation', skin: '#5A3521', hair: 'short', hc: '#161616', shirt: '#3F5873', glasses: true },
+  camille:   { name: 'Camille Moreau', role: 'Analyste conformité', skin: '#603A22', hair: 'braids', hc: '#161616', shirt: '#C4501A' },
+  jb:      { name: 'Alexandre Laurent', role: 'Sociétaire', skin: '#4A2B19', hair: 'short', hc: '#8C8C8C', shirt: '#2F4A6B', beard: true },
+  emilie:     { name: 'Émilie Girard', role: 'Responsable innovation', skin: '#65402A', hair: 'locs', hc: '#161616', shirt: '#404040' },
+};
+let avatarSeq = 0;
+function avatar(key, size = 52) {
+  const p = PEOPLE[key]; const id = `av${++avatarSeq}`;
+  let hair = '';
+  if (p.hair === 'short') hair = `<path d="M20.4 27.5C19 13.5 45 13.5 43.6 27.5C42 21 37 18.6 32 18.6S22 21 20.4 27.5Z" fill="${p.hc}"/>`;
+  if (p.hair === 'puff') hair = `<circle cx="32" cy="11.5" r="8" fill="${p.hc}"/><path d="M20.4 27.5C19 13.5 45 13.5 43.6 27.5C42 21 37 18.6 32 18.6S22 21 20.4 27.5Z" fill="${p.hc}"/>`;
+  if (p.hair === 'wrap') hair = `<path d="M19 28C16.5 9 47.5 9 45 28C43 19 37 16.8 32 16.8S21 19 19 28Z" fill="${p.hc}"/><circle cx="42.5" cy="13" r="5.5" fill="${p.hc}"/>`;
+  if (p.hair === 'braids') hair = `<path d="M20.2 28C18.8 13.5 45.2 13.5 43.8 28C42 21 37 18.4 32 18.4S22 21 20.2 28Z" fill="${p.hc}"/><rect x="17" y="22" width="5.4" height="26" rx="2.7" fill="${p.hc}"/><rect x="41.6" y="22" width="5.4" height="26" rx="2.7" fill="${p.hc}"/>`;
+  if (p.hair === 'locs') hair = `<path d="M19.6 28C18 12.5 46 12.5 44.4 28C42 20.5 37 18 32 18S22 20.5 19.6 28Z" fill="${p.hc}"/><rect x="18" y="22" width="4.6" height="20" rx="2.3" fill="${p.hc}"/><rect x="23" y="24" width="4" height="18" rx="2" fill="${p.hc}"/><rect x="37" y="24" width="4" height="18" rx="2" fill="${p.hc}"/><rect x="41.4" y="22" width="4.6" height="20" rx="2.3" fill="${p.hc}"/>`;
+  const beard = p.beard ? `<path d="M21.6 30.5C22.6 43 41.4 43 42.4 30.5C39.5 38 24.5 38 21.6 30.5Z" fill="${p.hc}"/>` : '';
+  const glasses = p.glasses ? `<g fill="none" stroke="#161616" stroke-width="1.4"><circle cx="27.6" cy="28.4" r="3.4"/><circle cx="36.4" cy="28.4" r="3.4"/><path d="M31 28.4h2"/></g>` : '';
+  return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" role="img" aria-label="${esc(p.name)}"><defs><clipPath id="${id}"><circle cx="32" cy="32" r="32"/></clipPath></defs><g clip-path="url(#${id})"><rect width="64" height="64" fill="#FBE3D2"/><path d="M8 66C8 51 19 44.5 32 44.5S56 51 56 66Z" fill="${p.shirt}"/><rect x="27" y="35" width="10" height="11" rx="3" fill="${p.skin}"/><ellipse cx="32" cy="28.5" rx="11.2" ry="13" fill="${p.skin}"/>${hair}${beard}${glasses}</g></svg>`;
+}
+const person = (key, size) => `<div class="person">${avatar(key, size)}<div><b>${esc(PEOPLE[key].name)}</b><span>${esc(PEOPLE[key].role)}</span></div></div>`;
+
+/* ---------- Notifications ---------- */
+const toastQ = []; let toastBusy = false;
+function toast(title, sub) { toastQ.push({ title, sub }); if (!toastBusy) nextToast(); }
+function nextToast() {
+  const host = $('#toast-host'); const t = toastQ.shift();
+  if (!t) { toastBusy = false; host.innerHTML = ''; return; }
+  toastBusy = true;
+  host.innerHTML = `<div class="toast"><span class="logo" aria-hidden="true">✓</span><div><b>${esc(t.title)}</b>${t.sub ? `<small>${esc(t.sub)}</small>` : ''}</div></div>`;
+  setTimeout(nextToast, 3000);
+}
+
+/* ---------- Composants partagés ---------- */
+function LevelHeader(n) {
+  const M = LEVEL_META[n], st = state.levels[n];
+  return `<section class="mt-6 mb-6">
+    <p class="eyebrow">Niveau ${n} sur 4 · ${M.short}</p>
+    <h1 tabindex="-1" class="title mt-1">${M.title}</h1>
+    <p class="lead mt-2">${M.intro}</p>
+    <div class="flex flex-wrap gap-2 mt-4">
+      <span class="pill">${M.format}</span>
+      <span class="pill pill-o">Validation : ${M.rule}</span>
+      <span class="pill">${M.src}</span>
+      ${st.passed ? `<span class="pill pill-ok">Déjà validé · meilleur score ${st.best} %</span>` : ''}
+    </div>
+  </section>`;
+}
+function ResultCard({ n, pct, passed, headline, text, extra }) {
+  return `<section class="panel mt-6" id="result">
+    <div class="grid gap-6 md:grid-cols-[220px_minmax(0,1fr)] items-start">
+      <div>
+        <p class="eyebrow grey">Score du niveau</p>
+        <div class="score-big mt-2" style="color:var(${passed ? '--ok' : '--bad'})">${pct}<span style="font-size:24px">/100</span></div>
+        <div class="gauge" aria-hidden="true"><div class="gauge-fill ${passed ? 'ok' : ''}" style="width:${pct}%"></div><div class="gauge-mark" style="left:${SEUIL}%"><span>seuil ${SEUIL}</span></div></div>
+      </div>
+      <div class="min-w-0">
+        <span class="pill ${passed ? 'pill-ok' : 'pill-bad'}"><span class="dot"></span>${passed ? 'Niveau validé' : 'Niveau non validé'}</span>
+        <h2 class="h2 mt-3">${headline}</h2>
+        <p class="mt-2 prose">${text}</p>
+      </div>
+    </div>
+    ${extra ? `<div class="mt-6">${extra}</div>` : ''}
+    <div class="flex flex-wrap gap-3 mt-6">
+      ${passed ? `<button class="btn btn-ok" data-action="summary" data-n="${n}">Voir le résumé de cours</button>
+                  <button class="btn btn-ghost" data-action="retry" data-n="${n}">Rejouer ce niveau</button>`
+               : `<button class="btn btn-primary" data-action="retry" data-n="${n}">Réessayer le niveau</button>`}
+    </div>
+  </section>`;
+}
+function CourseSummary(n) {
+  const C = COURSE[n];
+  return `<section class="mt-6">
+    <p class="eyebrow">Résumé de cours · Niveau ${n}</p>
+    <h1 tabindex="-1" class="title mt-1">${C.title}</h1>
+    <div class="banner mt-5">${C.banner}</div>
+    <div class="sum-grid ${C.cards.length % 3 === 0 ? 'three' : ''} mt-5">
+      ${C.cards.map((c, i) => `<article class="sum-card"><span class="num-circle sm">${i + 1}</span><div class="min-w-0"><h3>${c.h}</h3><p>${c.t}</p>${c.src ? `<span class="src">${c.src}</span>` : ''}</div></article>`).join('')}
+    </div>
+    <div class="grid gap-4 md:grid-cols-2 mt-5">
+      ${C.callouts.map(c => `<div class="callout"><span class="eyebrow">${c.e}</span><p>${c.t}</p></div>`).join('')}
+    </div>
+  </section>`;
+}
+
+/* ---------- Console animée (niveaux 3 et 4) ---------- */
+const LBL = { thought: 'Pensée', action: 'Action', obs: 'Observation', err: 'Échec', ok: 'OK', warn: 'Alerte', info: 'Info', final: 'Réponse finale' };
+const lineHtml = e => `<div class="ln ln-${e.k}"><span class="lt">${LBL[e.k]}${e.it ? ` <span class="it">#${e.it}</span>` : ''}</span><span class="lx">${esc(e.t)}</span></div>`;
+let playToken = 0;
+function play(sess, events, onStep, onDone) {
+  const token = ++playToken;
+  sess.running = true; sess.log = [];
+  render(false);
+  const delay = reduceMotion() ? 0 : 520;
+  let i = 0;
+  const tick = () => {
+    if (token !== playToken) return;
+    if (i >= events.length) {
+      sess.running = false; onDone(); render(false);
+      const r = $('#result'); if (r) r.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' });
+      return;
+    }
+    const e = events[i++]; sess.log.push(e); if (onStep) onStep(e);
+    const c = $('#console');
+    if (c) { if (sess.log.length === 1) c.innerHTML = ''; c.insertAdjacentHTML('beforeend', lineHtml(e)); c.scrollTop = c.scrollHeight; }
+    if (delay === 0) tick(); else setTimeout(tick, delay);
+  };
+  tick();
+}
+
+/* ---------- Registre des niveaux ---------- */
+const MODS = {};
+const COURSE = {};
+
+/* =====================================================================
+   NIVEAU 1 — DÉMYSTIFIER L'IA GÉNÉRATIVE (quiz, 10 situations)
+   ===================================================================== */
+const L1Q = [
+  { mod: 'Module 1', who: 'claire', tag: 'Tokenisation',
+    scenario: 'Claire saisit le mot « surassurance » dans l’assistant IA. Elle se demande ce que le modèle « voit » réellement.',
+    q: 'Comment le modèle traite-t-il ce mot ?',
+    opts: [
+      { t: 'Comme un mot entier dont il connaît la définition juridique.', fb: 'Non. Le modèle ne manipule pas des définitions mais des morceaux de texte numérotés. Il n’a pas de dictionnaire de sens.' },
+      { t: 'Il le découpe en 3 tokens (« sur », « assur », « ance »), chacun converti en numéro.', ok: true, fb: 'Exact. C’est la tokenisation : le texte devient une suite de blocs, chacun identifié par un numéro (4812, 27305, 1096 dans l’exemple du support). Le modèle ne calcule que sur ces numéros.' },
+      { t: 'Lettre par lettre, soit 12 caractères analysés un à un.', fb: 'Non. Le découpage se fait en sous-mots fréquents, pas en lettres. Un token vaut en moyenne un peu moins d’un mot en français.' },
+      { t: 'Il cherche le mot dans une base de connaissances de la banque.', fb: 'Non. Un LLM seul ne consulte aucune base. Le brancher sur vos documents, c’est le RAG (niveau 3).' } ],
+    concept: 'Un LLM découpe le texte en tokens, leur attribue un numéro, puis boucle : lire le contexte, calculer la probabilité de chaque token, en choisir un, l’ajouter, recommencer.' },
+
+  { mod: 'Module 1', who: null, tag: 'Prédiction du mot suivant',
+    scenario: 'Le modèle complète la phrase : « Le taux d’usure applicable ce trimestre est fixé par la Banque de … » et écrit « France ».',
+    q: 'Pourquoi écrit-il « France » ?',
+    opts: [
+      { t: 'Il a vérifié l’information sur le site de la Banque de France.', fb: 'Non. Il n’a rien vérifié : il n’a pas accès au web par défaut. Il a seulement calculé une suite probable.' },
+      { t: 'Parce qu’il comprend le droit bancaire français.', fb: 'Non. Il ne comprend pas : il reproduit des régularités statistiques apprises sur d’énormes volumes de textes.' },
+      { t: 'C’est le token le plus probable dans ce contexte (environ 94 %, contre 3 % pour « détail »).', ok: true, fb: 'Exact. Le modèle attribue une probabilité à chaque suite possible : « France » domine, « réserve » ou « bananes » sont quasi nuls. Il choisit, ajoute, puis recalcule pour le mot suivant.' },
+      { t: 'C’est la seule réponse possible, le modèle est déterministe.', fb: 'Non. D’autres tokens avaient une probabilité non nulle. Selon la température, le choix peut varier.' } ],
+    concept: 'Le clavier de votre téléphone qui propose le mot suivant fait la même chose, en beaucoup plus simple. Un LLM est un jeu statistique géant.' },
+
+  { mod: 'Module 1', who: 'thomas', tag: 'Illusion de compréhension',
+    scenario: 'Thomas lit la réponse d’apaisement générée pour un sociétaire furieux. Il est bluffé : « L’IA a vraiment compris sa détresse. »',
+    q: 'Que lui répondez-vous ?',
+    opts: [
+      { t: 'Oui, les modèles récents ont une forme d’empathie.', fb: 'Non. Le ton empathique est la suite statistiquement la plus probable après un message de colère. Il n’y a ni ressenti ni compréhension.' },
+      { t: 'Le modèle a prédit la suite la plus probable. Aucune empathie, aucune compréhension : il faut juger le fond, pas le ton.', ok: true, fb: 'Exact. Un LLM a une seule fonction : prédire le prochain token, en boucle. Un texte bien tourné n’est pas une garantie de justesse.' },
+      { t: 'Seulement si la température est réglée haut.', fb: 'Non. La température règle la part de hasard, pas une capacité à comprendre.' },
+      { t: 'Cela dépend de la langue utilisée par le sociétaire.', fb: 'Non. Quelle que soit la langue, le mécanisme reste la prédiction du token suivant.' } ],
+    concept: 'L’illusion de compréhension est le premier piège : plus le texte est fluide, plus on lui prête une intelligence qu’il n’a pas.' },
+
+  { mod: 'Module 1', who: 'sophie', tag: 'Température',
+    scenario: 'Sophie prépare un courrier contractuel de résiliation. Elle veut une formulation sobre, identique d’un dossier à l’autre.',
+    q: 'Quel réglage choisir ?',
+    opts: [
+      { t: 'Une température basse.', ok: true, fb: 'Exact. Température basse = choix des tokens les plus probables = réponses sobres et reproductibles. C’est le réglage des écrits contractuels.' },
+      { t: 'Une température haute pour un style plus riche.', fb: 'Non. Plus de variété, c’est aussi plus d’invention. À proscrire pour un courrier qui engage l’établissement.' },
+      { t: 'Le réglage n’a aucune influence sur le texte.', fb: 'Si. La température règle directement le degré de hasard dans le choix de chaque token.' },
+      { t: 'La température maximale, puis une relecture attentive.', fb: 'Non. On règle selon l’enjeu dès le départ ; la relecture reste indispensable dans tous les cas.' } ],
+    concept: 'Régler selon l’enjeu : basse pour la rigueur (courrier contractuel), haute pour la créativité (idées de campagne).' },
+
+  { mod: 'Module 1', who: 'emilie', tag: 'Température',
+    scenario: 'Émilie, responsable innovation, veut vingt idées d’accroches pour une campagne sur l’épargne des jeunes actifs.',
+    q: 'Quel réglage est le plus adapté ?',
+    opts: [
+      { t: 'Température 0, pour des idées fiables.', fb: 'Non. À température nulle, le modèle reprend toujours les suites les plus probables : des idées convenues et répétitives.' },
+      { t: 'Peu importe, les idées seront relues.', fb: 'La relecture est nécessaire, mais le réglage conditionne la diversité des propositions reçues.' },
+      { t: 'Une température plus haute : plus de variété, en sachant qu’elle augmente aussi l’invention.', ok: true, fb: 'Exact. Pour de l’idéation, on accepte plus de hasard. Chaque accroche retenue sera ensuite vérifiée (promesses, conformité).' },
+      { t: 'Température haute, et publication directe des meilleures idées.', fb: 'Non. L’IA propose, vous décidez : aucune accroche ne part sans validation humaine et conformité.' } ],
+    concept: 'La température est un curseur entre sobriété et variété. Il n’y a pas de bon réglage universel, seulement un réglage adapté à l’usage.' },
+
+  { mod: 'Module 1', who: 'julien', tag: 'Hallucination',
+    scenario: 'Pour motiver un refus, l’IA de Julien cite avec aplomb un article du Code des assurances et un arrêt de la Cour de cassation, numéros et dates compris.',
+    q: 'Quel est le bon réflexe ?',
+    opts: [
+      { t: 'Faire confiance : une référence aussi précise est forcément exacte.', fb: 'Non. La précision de la forme ne prouve rien : le modèle peut citer un article ou un arrêt qui n’existe pas, avec aplomb.' },
+      { t: 'Demander à l’IA si elle est bien sûre d’elle.', fb: 'Insuffisant. Le modèle peut confirmer sa propre invention avec la même assurance.' },
+      { t: 'Vérifier chaque référence dans la source officielle avant tout usage.', ok: true, fb: 'Exact. Plausible n’est pas exact. Tout fait sensible (article, arrêt, chiffre, date) se vérifie à la source.' },
+      { t: 'Augmenter la température pour obtenir d’autres références.', fb: 'Contre-productif : plus de hasard, donc plus d’invention.' } ],
+    concept: 'Une hallucination est un texte plausible mais faux. Les références précises sont les plus exposées : leur forme est facile à imiter, leur contenu impossible à deviner.' },
+
+  { mod: 'Module 1 · Fil rouge', who: 'jb', tag: 'Fond vs forme',
+    scenario: 'M. Laurent conteste un refus d’indemnisation. L’IA rédige en 3 secondes une réponse impeccable, au ton parfait.',
+    q: 'Quel est le vrai risque ?',
+    opts: [
+      { t: 'Le texte est trop long pour un sociétaire mécontent.', fb: 'La longueur se règle. Le risque majeur est ailleurs.' },
+      { t: 'Le sociétaire devinera que la réponse vient d’une IA.', fb: 'La transparence compte (module 6), mais le risque principal ici est l’exactitude du fond.' },
+      { t: 'Aucun : le modèle connaît les contrats de l’établissement.', fb: 'Non. Un LLM brut ne connaît pas vos contrats : il n’a jamais lu la clause en cause.' },
+      { t: 'La clause d’exclusion du contrat n’a jamais été lue par l’outil : le ton est juste, le fond peut être faux.', ok: true, fb: 'Exact. C’est le fil rouge du support. Qui a vérifié le contrat, protégé les données et signé la réponse ? Pas l’IA.' } ],
+    concept: 'Comme l’IA devine plutôt qu’elle ne sait, on lui donne un cadre (prompt), on contrôle ce qu’on lui confie (données) et on lui fournit les bons documents (RAG).' },
+
+  { mod: 'Module 3', who: 'julien', tag: 'Outil non homologué',
+    scenario: 'Vendredi, 17 h 30. Julien veut coller un rapport de sinistre de douze pages dans un outil d’IA grand public gratuit pour gagner du temps.',
+    q: 'Que doit-il faire ?',
+    opts: [
+      { t: 'Le coller, en retirant simplement le nom du sociétaire.', fb: 'Non. Retirer le nom ne suffit pas (voir la règle du feutre noir), et l’outil n’est de toute façon pas homologué.' },
+      { t: 'Renoncer : zéro donnée professionnelle sur un outil non homologué. Ce qui est collé peut quitter le périmètre et servir à réentraîner le modèle.', ok: true, fb: 'Exact. Coller un dossier dans un outil public, c’est afficher le dossier du sociétaire dans la vitrine de l’agence. On passe par l’environnement fermé validé par la DSI.' },
+      { t: 'Le coller en navigation privée : rien n’est conservé.', fb: 'Non. La navigation privée n’efface que l’historique local. Les données partent bien chez l’éditeur du service.' },
+      { t: 'Le coller : un outil gratuit ne conserve jamais les données.', fb: 'Non. Un outil gratuit se paie souvent en données ; tout dépend du service et de ses réglages.' } ],
+    concept: 'Outil public : les données quittent le périmètre et peuvent alimenter l’apprentissage du modèle. Environnement d’entreprise fermé : contrat de confidentialité, données ni conservées ni réutilisées.' },
+
+  { mod: 'Module 3', who: null, tag: 'Pseudonymisation vs anonymisation',
+    scenario: 'Un collègue prépare ce contexte : « M. X, 52 ans, chirurgien-dentiste à Saint-Brieuc, en arrêt longue durée, encours de 450 000 €. »',
+    q: 'Ce texte est-il anonymisé ?',
+    opts: [
+      { t: 'Oui, le nom a été remplacé.', fb: 'Non. Remplacer le nom par une initiale, c’est de la pseudonymisation : la personne reste réidentifiable par recoupement.' },
+      { t: 'Oui, si l’outil utilisé est sécurisé.', fb: 'Non. La sécurité de l’outil ne change pas la nature de la donnée : elle reste personnelle.' },
+      { t: 'Non : un seul individu correspond. C’est une donnée personnelle (RGPD, secret bancaire), et l’arrêt de travail touche à la santé.', ok: true, fb: 'Exact. Règle du feutre noir : noms, localisation fine, dates de naissance, numéros de contrat, IBAN, montants uniques. Et une pathologie est une donnée de santé (RGPD, art. 9).' },
+      { t: 'Non, mais il suffit de retirer l’âge.', fb: 'Insuffisant. Profession, ville, situation et montant suffisent encore à identifier la personne.' } ],
+    concept: 'Pseudonymisation : réidentification possible, le RGPD s’applique. Anonymisation : tous les marqueurs d’individualité sont supprimés, la personne n’est plus identifiable.' },
+
+  { mod: 'Module 4', who: 'camille', tag: 'Zones rouges',
+    scenario: 'Camille veut faire résumer par l’IA interne sécurisée son analyse de mouvements atypiques, préalable à une déclaration de soupçon.',
+    q: 'Peut-elle le faire ?',
+    opts: [
+      { t: 'Oui, l’outil interne est sécurisé et hébergé en Europe.', fb: 'Non. « C’est sécurisé, nous sommes en famille » est le piège psychologique : un outil validé n’autorise pas tout.' },
+      { t: 'Oui, à condition d’anonymiser le client.', fb: 'Non. Tracfin est une zone rouge absolue : même anonymisée, l’analyse ne passe pas par l’IA.' },
+      { t: 'Oui, si elle efface l’historique juste après.', fb: 'Non. Le risque de fuite (tipping-off) existe dès la saisie, surtout avec des historiques partagés.' },
+      { t: 'Non : zone rouge Tracfin. Même sur l’outil interne, ces données se traitent à la main, par les canaux sécurisés.', ok: true, fb: 'Exact. Il est interdit de laisser fuiter qu’un client est examiné (CMF, L.561-18 et suivants). Même règle pour le secret médical et l’information privilégiée.' } ],
+    concept: 'Trois zones rouges absolues, même sur l’outil interne : secret médical et santé, secret Tracfin, marchés et clés techniques (information privilégiée, mots de passe, clés d’API).' },
+];
+
+let S1 = null;
+MODS[1] = {
+  start() { S1 = { i: 0, picks: [], perm: L1Q.map(q => shuffle(q.opts.map((_, k) => k))), recorded: false }; },
+  view() {
+    const s = S1;
+    if (s.i >= L1Q.length) return L1Result();
+    const q = L1Q[s.i], p = s.picks[s.i], answered = p !== undefined;
+    const dots = L1Q.map((qq, k) => {
+      const c = k < s.i || (k === s.i && answered) ? (qq.opts[s.picks[k]].ok ? 'y' : 'n') : (k === s.i ? 'cur' : '');
+      return `<span class="qdot ${c}"></span>`;
+    }).join('');
+    const opts = s.perm[s.i].map((k, pos) => {
+      const o = q.opts[k]; let c = 'opt';
+      if (answered) { if (k === p) c += o.ok ? ' ok' : ' bad'; else if (o.ok) c += ' ok-reveal'; else c += ' fade'; }
+      return `<button class="${c}" data-action="l1-pick" data-k="${k}" ${answered ? 'disabled' : ''}><span class="key">${'ABCD'[pos]}</span><span class="opt-body">${o.t}</span></button>`;
+    }).join('');
+    const chosen = answered ? q.opts[p] : null;
+    const good = q.opts.find(o => o.ok);
+    const fb = answered ? `
+      <div class="fb ${chosen.ok ? 'fb-ok' : 'fb-bad'} mt-5" role="status">
+        <div class="fb-head">${chosen.ok ? '✓ Bonne réponse' : '✗ Ce n’est pas la bonne réponse'}</div>
+        <p>${chosen.fb}</p>
+        ${chosen.ok ? '' : `<p class="mt-2"><b>Bonne réponse :</b> ${good.t}</p><p class="mt-1 small">${good.fb}</p>`}
+      </div>
+      <div class="callout mt-4"><span class="eyebrow">À retenir · ${q.mod}</span><p>${q.concept}</p></div>
+      <div class="flex justify-end mt-6"><button class="btn btn-primary" data-action="l1-next">${s.i < L1Q.length - 1 ? 'Question suivante' : 'Voir mon résultat'}</button></div>` : '';
+    const score = s.picks.filter((pk, k) => L1Q[k].opts[pk].ok).length;
+    return `${LevelHeader(1)}
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] items-start">
+      <section class="panel min-w-0">
+        <div class="flex items-center justify-between gap-3 flex-wrap"><p class="eyebrow">Situation ${s.i + 1} sur ${L1Q.length} · ${q.mod}</p><div class="qdots" aria-hidden="true">${dots}</div></div>
+        <div class="card mt-4">
+          ${q.who ? `<div class="mb-3">${person(q.who, 48)}</div>` : ''}
+          <p>${q.scenario}</p>
+        </div>
+        <h2 class="h3 mt-5">${q.q}</h2>
+        <div class="grid gap-2 mt-3">${opts}</div>
+        ${fb}
+      </section>
+      <aside class="card sticky-col min-w-0">
+        <p class="eyebrow">Règle du niveau</p>
+        <p class="mt-1 small">Dix situations. Il faut au moins <b>9 bonnes réponses</b> (90 %) pour valider. Chaque réponse est expliquée.</p>
+        <hr class="divider my-4">
+        <p class="eyebrow grey">Bonnes réponses</p>
+        <p class="num mt-1" style="font-size:30px;font-weight:700">${score}<span class="muted" style="font-size:18px"> / ${L1Q.length}</span></p>
+        <hr class="divider my-4">
+        <p class="eyebrow grey">Notions</p>
+        <div class="tagrow mt-2">${LEVEL_META[1].tags.map(t => `<span class="tag" style="background:var(--white)">${t}</span>`).join('')}</div>
+      </aside>
+    </div>`;
+  },
+  handle(a, d) {
+    if (a === 'l1-pick') { if (S1.picks[S1.i] === undefined) { S1.picks[S1.i] = +d.k; render(false); } return true; }
+    if (a === 'l1-next') { S1.i++; render(true); return true; }
+    return false;
+  },
+};
+function L1Result() {
+  const s = S1;
+  const good = s.picks.filter((p, k) => L1Q[k].opts[p].ok).length;
+  const pct = Math.round(good / L1Q.length * 100), passed = pct >= SEUIL;
+  if (!s.recorded) { s.recorded = true; finishAttempt(1, pct, passed, L1Q.filter((q, k) => !q.opts[s.picks[k]].ok).map(q => q.tag)); }
+  const extra = `<p class="eyebrow grey">Détail de vos réponses</p>
+    <div class="mt-2">${L1Q.map((q, k) => {
+      const ok = q.opts[s.picks[k]].ok;
+      return `<div class="review"><span class="mark ${ok ? 'y' : 'n'}">${ok ? '✓' : '✗'}</span><div class="min-w-0"><b>${q.tag}</b> <span class="muted">· ${q.mod}</span>${ok ? '' : `<p class="mt-1">${q.concept}</p>`}</div></div>`;
+    }).join('')}</div>`;
+  return `${LevelHeader(1)}${ResultCard({ n: 1, pct, passed,
+    headline: passed ? `${good} sur 10 : vous savez ce que fait vraiment un LLM` : `${good} sur 10 : il en faut au moins 9`,
+    text: passed ? 'Tokens, probabilités, température, hallucinations, zones rouges : vous avez les bases pour conseiller un métier sans surpromettre.'
+                 : 'Relisez les notions signalées en rouge, puis rejouez le niveau. Ces fondations conditionnent tous les niveaux suivants.',
+    extra })}`;
+}
+
+COURSE[1] = {
+  title: 'Démystifier l’IA générative : l’essentiel',
+  banner: '<b>Un LLM a une seule fonction : prédire le prochain token, en boucle.</b> Aucune empathie, aucune compréhension : un jeu statistique géant. À nous d’encadrer chaque étape.',
+  cards: [
+    { h: 'Le mot devient des tokens', t: '« surassurance » devient « sur », « assur », « ance » : trois blocs, trois numéros. Le modèle ne calcule que sur ces numéros.', src: 'Module 1' },
+    { h: 'Lire, calculer, choisir, ajouter', t: '« …fixé par la Banque de » : France 94 %, détail 3 %, bananes quasi nul. Le modèle choisit, ajoute, recalcule.', src: 'Module 1' },
+    { h: 'Température', t: 'Basse : réponses sobres et reproductibles (courrier contractuel). Haute : plus de variété, et plus d’invention (idées de campagne).', src: 'Module 1' },
+    { h: 'Hallucination', t: 'Plausible n’est pas exact. Le modèle peut citer un article ou un arrêt qui n’existe pas, avec aplomb. Vérifier chaque fait sensible.', src: 'Module 1' },
+    { h: 'Où partent vos mots ?', t: 'Zéro donnée professionnelle sur un outil personnel non homologué. L’environnement d’entreprise fermé ne conserve ni ne réutilise les données.', src: 'Module 3' },
+    { h: 'Zones rouges absolues', t: 'Secret médical et santé, secret Tracfin, marchés et clés techniques : même sur l’outil interne, l’IA reste éteinte.', src: 'Module 4' },
+  ],
+  callouts: [
+    { e: 'Trois règles d’or', t: 'Vérifier chaque fait sensible. Régler selon l’enjeu. Décider soi-même : l’IA propose.' },
+    { e: 'Règle du feutre noir', t: '« M. X » n’anonymise rien. Retirer noms, localisation fine, dates de naissance, numéros de contrat et de sinistre, IBAN, montants uniques.' },
+  ],
+};
+
+/* =====================================================================
+   VERSION B — FICHIER D'UN SEUL NIVEAU, DÉVERROUILLÉ PAR CODE
+   ===================================================================== */
+const app = $('#app');
+let view = 'gate';
+function isFinalLevel(n) { return n === 4; }
+
+/* ---------- Codes de passage (liés au prénom et au nom) ---------- */
+const normName = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
+function hash4(src) {
+  let h = 2166136261;
+  for (const ch of src) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
+  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let out = '';
+  for (let i = 0; i < 4; i++) { out += A[h % 32]; h = Math.floor(h / 32); }
+  return out;
+}
+const unlockCode = (prenom, nom, lvl) => `NIV${lvl}-${hash4(`${normName(prenom)}|${normName(nom)}|${lvl}|${CODE_SECRET}`)}`;
+const certCode = (prenom, nom) => `CERT-${hash4(`${normName(prenom)}|${normName(nom)}|certif|${CODE_SECRET}`)}`;
+const cleanCode = s => String(s || '').toUpperCase().replace(/\s+/g, '');
+
+function onProgress() {
+  const L = state.levels[LEVEL];
+  $('#gp-label').textContent = `Niveau ${LEVEL} sur 4 · ${L.passed ? 'validé' : 'en cours'}`;
+  $('#gp-pct').textContent = `${L.best} %`;
+  $('#gp').setAttribute('aria-valuenow', L.best);
+  $('#gp-bar').innerHTML = [1, 2, 3, 4].map(n => {
+    const w = n < LEVEL ? 100 : n === LEVEL ? (L.passed ? 100 : L.best) : 0;
+    return `<span class="seg ${n < LEVEL || (n === LEVEL && L.passed) ? 'ok' : ''}" title="Niveau ${n}"><i style="width:${w}%"></i></span>`;
+  }).join('');
+  const ses = currentSession();
+  $('#player').innerHTML = (state.player.prenom && state.gates[LEVEL] ? `<span class="muted">Joueur :</span> <b>${esc(playerName())}</b>` : '') + (ses ? ` <span class="pill">Session ${esc(ses)}</span>` : '');
+}
+function go(v) {
+  playToken++;
+  if (!state.gates[LEVEL]) v = 'gate';
+  else if (v === 'summary' && !state.levels[LEVEL].passed) v = 'level';
+  view = v;
+  if (v === 'level') { MODS[LEVEL].start(); sendStart(LEVEL); }
+  render(true);
+}
+function render(top) {
+  const y = window.scrollY;
+  if (view === 'gate') app.innerHTML = GateView();
+  else if (view === 'summary') app.innerHTML = SummaryView();
+  else app.innerHTML = MODS[LEVEL].view();
+  onProgress();
+  if (top) { window.scrollTo(0, 0); const h = app.querySelector('h1'); if (h) h.focus({ preventScroll: true }); }
+  else window.scrollTo(0, y);
+}
+
+function GateView() {
+  const M = LEVEL_META[LEVEL];
+  const needCode = LEVEL > 1;
+  return `<section class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_420px] items-start mt-10">
+    <div class="min-w-0">
+      <p class="eyebrow">Formation IA · Niveau ${LEVEL} sur 4 · ${M.short}</p>
+      <h1 tabindex="-1" class="title mt-2">${M.title}</h1>
+      <p class="lead mt-3">${M.intro}</p>
+      <div class="flex flex-wrap gap-2 mt-4"><span class="pill">${M.format}</span><span class="pill pill-o">Validation : ${M.rule}</span><span class="pill">${M.src}</span></div>
+      ${needCode ? `<div class="callout mt-6"><span class="eyebrow">Accès protégé</span><p>Ce niveau s’ouvre avec le code affiché à la fin du niveau ${LEVEL - 1}, dans le résumé de cours. Le code est personnel : saisissez vos prénom et nom exactement comme au niveau précédent (majuscules et accents ne comptent pas).</p></div>`
+                 : '<div class="banner mt-6">Chaque niveau exige 90 % de réussite. À la fin, votre résumé de cours affiche le code qui ouvre le niveau suivant.</div>'}
+    </div>
+    <div class="panel min-w-0" id="gate-form">
+      <h2 class="h2">${needCode ? 'Déverrouiller le niveau' : 'Qui joue ?'}</h2>
+      <p class="small muted mt-1">Votre nom figure dans le suivi de la formation.</p>
+      <div class="grid gap-4 mt-5">
+        <div><label class="lbl" for="f-prenom">Prénom</label><input class="field" id="f-prenom" autocomplete="given-name" maxlength="40" value="${esc(state.player.prenom)}"></div>
+        <div><label class="lbl" for="f-nom">Nom</label><input class="field" id="f-nom" autocomplete="family-name" maxlength="40" value="${esc(state.player.nom)}"></div>
+        ${needCode ? `<div><label class="lbl" for="f-code">Code du niveau ${LEVEL}</label><input class="field mono" id="f-code" placeholder="NIV${LEVEL}-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="80"></div>` : ''}
+        <p class="form-err" id="f-err" hidden></p>
+        <button class="btn btn-primary" type="button" data-action="gate-submit">${needCode ? 'Déverrouiller' : 'Commencer le niveau 1'}</button>
+      </div>
+    </div>
+  </section>`;
+}
+function SummaryView() {
+  const p = state.player.prenom, n = state.player.nom;
+  let tail;
+  if (LEVEL < 4) {
+    const code = unlockCode(p, n, LEVEL + 1);
+    tail = `<section class="panel mt-8">
+      <div class="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-center">
+        <div class="min-w-0">
+          <p class="eyebrow">Accès au niveau ${LEVEL + 1}</p>
+          <h2 class="h2 mt-1">${LEVEL_META[LEVEL + 1].title}</h2>
+          <p class="mt-2">Ouvrez le fichier <b class="mono">niveau-${LEVEL + 1}.html</b>, puis saisissez vos prénom, nom et ce code. Il est personnel : il ne fonctionne qu’avec votre nom.</p>
+        </div>
+        <div class="code-box"><p class="eyebrow grey">Votre code</p><p class="code-val mt-2" id="code-val">${code}</p>
+          <button class="btn btn-ghost mt-3" data-action="copy-code" data-code="${code}">Copier le code</button></div>
+      </div>
+    </section>`;
+  } else {
+    const cc = certCode(p, n);
+    const date = (() => { try { return new Date(state.completedAt || Date.now()).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return ''; } })();
+    tail = `<section class="cert mt-8">
+      <div class="relative flex flex-wrap items-start justify-between gap-6">
+        <div class="min-w-0" style="flex:1 1 320px">
+          <p class="eyebrow grey">Formation IA · Parcours terminé</p>
+          <p class="mt-4 muted">Certifie que</p>
+          <p class="mt-1" style="font-size:26px;font-weight:700">${esc(playerName())}</p>
+          <p class="mt-3 muted">a validé les quatre niveaux et obtient le titre de</p>
+          <p class="cert-title mt-1">Concepteur IA certifié</p>
+          <p class="small muted mt-5">Délivré le ${date} · Code de vérification <span class="mono">${cc}</span></p>
+        </div>
+        <div class="seal"><div><b>${state.levels[4].best}</b><span>score niveau 4</span></div></div>
+      </div>
+      <div class="relative mt-8"><p class="eyebrow">Compétences acquises</p>
+        <div class="mt-2">${[1, 2, 3, 4].map(k => `<div class="cert-skill"><span><b>Niveau ${k}</b> · ${LEVEL_META[k].title}</span><em>${k < 4 ? 'validé' : state.levels[4].best + ' %'}</em><small>${SKILLS[k]}</small></div>`).join('')}</div>
+      </div>
+      <div class="relative flex flex-wrap gap-3 mt-6"><button class="btn btn-primary" data-action="copy-cert">Copier mon résultat</button></div>
+    </section>`;
+  }
+  return `<nav class="mt-6"><button class="link" data-action="back">← Revenir au niveau</button></nav>
+    ${CourseSummary(LEVEL)}
+    ${tail}
+    <textarea id="share-fallback" class="field mt-4" readonly hidden aria-label="Texte à copier"></textarea>`;
+}
+function copyText(txt, okMsg) {
+  const fallback = () => { const t = $('#share-fallback'); t.value = txt; t.hidden = false; t.focus(); t.select(); toast('Texte sélectionné', 'Copiez-le avec Ctrl+C ou ⌘+C.'); };
+  try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(() => toast(okMsg, '')).catch(fallback); else fallback(); } catch (e) { fallback(); }
+}
+
+/* ---------- Réinitialisation (ce niveau uniquement) ---------- */
+function openModal() { const o = $('#overlay'); o.hidden = false; o.style.display = ''; $('#m-cancel').focus(); }
+function closeModal() { const o = $('#overlay'); o.hidden = true; o.style.display = 'none'; }
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-action]');
+  if (!b || b.disabled) return;
+  const a = b.dataset.action, d = b.dataset;
+  if (view === 'level' && MODS[LEVEL].handle(a, d, b)) return;
+  switch (a) {
+    case 'retry': case 'back': go('level'); break;
+    case 'summary': go('summary'); break;
+    case 'gate-submit': submitGate(); break;
+    case 'copy-code': copyText(d.code, 'Code copié'); break;
+    case 'copy-cert': copyText(`Formation IA : ${playerName()}, Concepteur IA certifié. Score niveau 4 : ${state.levels[4].best} %. Code de vérification ${certCode(state.player.prenom, state.player.nom)}.`, 'Résultat copié'); break;
+    case 'ask-reset': openModal(); break;
+    case 'cancel-reset': closeModal(); break;
+    case 'confirm-reset': {
+      state.levels[LEVEL] = lvState(); delete state.gates[LEVEL];
+      if (LEVEL === 4) state.completedAt = null;
+      saveState(); closeModal(); toast('Niveau réinitialisé', LEVEL > 1 ? 'Saisissez à nouveau votre code pour rejouer.' : 'Saisissez à nouveau votre nom pour rejouer.'); go('gate'); break;
+    }
+  }
+});
+function submitGate() {
+  const p = $('#f-prenom').value.trim(), n = $('#f-nom').value.trim();
+  const err = $('#f-err');
+  $('#f-prenom').classList.toggle('err', !p); $('#f-nom').classList.toggle('err', !n);
+  if (!p || !n) { err.textContent = 'Renseignez votre prénom et votre nom.'; err.hidden = false; return; }
+  if (LEVEL > 1) {
+    const typed = cleanCode($('#f-code').value);
+    const ok = typed === cleanCode(unlockCode(p, n, LEVEL)) || typed === cleanCode(CODE_FORMATEUR);
+    $('#f-code').classList.toggle('err', !ok);
+    if (!ok) {
+      // Code valide pour ce joueur, mais d'un autre niveau : refusé avec un message explicite.
+      const other = [2, 3, 4].find(k => k !== LEVEL && typed === cleanCode(unlockCode(p, n, k)));
+      if (!typed) err.textContent = `Saisissez le code affiché à la fin du niveau ${LEVEL - 1}.`;
+      else if (other) err.textContent = `Ce code ouvre le niveau ${other}, pas le niveau ${LEVEL}. Le niveau ${LEVEL} s’ouvre uniquement avec le code obtenu en validant le niveau ${LEVEL - 1}.`;
+      else err.textContent = `Code incorrect pour ${p} ${n}. Vérifiez le code affiché à la fin du niveau ${LEVEL - 1} et l’orthographe de votre nom.`;
+      err.hidden = false; return;
+    }
+  }
+  const changed = normName(p + n) !== normName(state.player.prenom + state.player.nom);
+  state.player = { prenom: p, nom: n };
+  if (changed) { state.levels = { 1: lvState(), 2: lvState(), 3: lvState(), 4: lvState() }; state.gates = {}; state.completedAt = null; }
+  state.gates[LEVEL] = true; saveState();
+  go(state.levels[LEVEL].passed ? 'summary' : 'level');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.closest && e.target.closest('#gate-form')) { e.preventDefault(); submitGate(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#overlay').hidden) closeModal(); });
+$('#overlay').addEventListener('click', e => { if (e.target.id === 'overlay') closeModal(); });
+
+go(state.gates[LEVEL] ? (state.levels[LEVEL].passed ? 'summary' : 'level') : 'gate');
+
+</script>
+</body>
+</html>
