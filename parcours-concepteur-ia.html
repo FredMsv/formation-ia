@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Niveau 4 · Conception d’agents IA</title>
+<title>Parcours Concepteur IA</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>tailwind.config = { corePlugins: { preflight: false } };</script>
 <style>
@@ -279,7 +279,7 @@ textarea.field.sat-comment{font-family:inherit;font-size:14px;min-height:72px}
 <body>
 <header class="topbar">
   <div class="wrap topbar-in">
-    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Niveau 4 sur 4 · Conception d’agents IA · v2026-10-06.1</small></span></div>
+    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Parcours Concepteur IA · 4 niveaux · v2026-10-06.1</small></span></div>
     <div class="gp" id="gp" role="progressbar" aria-label="Progression" aria-valuemin="0" aria-valuemax="100">
       <div class="gp-top"><span id="gp-label"></span><strong class="num" id="gp-pct"></strong></div>
       <div class="gp-bar" id="gp-bar"></div>
@@ -293,7 +293,7 @@ textarea.field.sat-comment{font-family:inherit;font-size:14px;min-height:72px}
 <div id="overlay" class="overlay" hidden style="display:none">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="m-title">
     <h2 id="m-title" class="h2">Réinitialiser ?</h2>
-    <p class="muted mt-2" id="m-text">La progression de ce niveau sera effacée de cet appareil.</p>
+    <p class="muted mt-2" id="m-text">Scores, niveaux débloqués et nom du joueur seront effacés de cet appareil.</p>
     <div class="flex flex-wrap gap-3 mt-6 justify-end">
       <button class="btn btn-ghost" data-action="cancel-reset" id="m-cancel">Annuler</button>
       <button class="btn btn-danger" data-action="confirm-reset">Tout effacer</button>
@@ -328,17 +328,8 @@ const DOMAINE_EMAIL = "lendys.fr";
 // "toujours" (chaque niveau terminé, validé ou non) ou "jamais".
 const ENVOI_FICHE = "validation";
 
-// Sel des codes de passage : il doit être IDENTIQUE dans les 4 fichiers de la version B.
-// Changez-le avant diffusion pour que vos codes ne soient pas devinables.
-const CODE_SECRET = "Lendys_AI2026";
-
-// Code formateur : ouvre n'importe quel niveau, pour les tests et le support. À garder confidentiel.
-const CODE_FORMATEUR = "Lendys_FormateurAI2026";
-
-// Numéro du niveau contenu dans ce fichier (ne pas modifier).
-const LEVEL = 4;
-const STORAGE_KEY = "formation-ia-parcours-B";
-const VERSION_LABEL = "B - fichier niveau 4 · v2026-10-06.1";
+const STORAGE_KEY = "formation-ia-parcours-A";
+const VERSION_LABEL = "A - parcours continu · v2026-10-06.1";
 
 /* =====================================================================
    NOYAU COMMUN : outils, état, suivi webhook, personnages, composants
@@ -746,6 +737,756 @@ const MODS = {};
 const COURSE = {};
 
 /* =====================================================================
+   NIVEAU 1 — DÉMYSTIFIER L'IA GÉNÉRATIVE (quiz, 10 situations)
+   ===================================================================== */
+const L1Q = [
+  { mod: 'Module 1', who: 'claire', tag: 'Tokenisation',
+    scenario: 'Claire saisit le mot « surassurance » dans l’assistant IA. Elle se demande ce que le modèle « voit » réellement.',
+    q: 'Comment le modèle traite-t-il ce mot ?',
+    opts: [
+      { t: 'Comme un mot entier dont il connaît la définition juridique.', fb: 'Non. Le modèle ne manipule pas des définitions mais des morceaux de texte numérotés. Il n’a pas de dictionnaire de sens.' },
+      { t: 'Il le découpe en 3 tokens (« sur », « assur », « ance »), chacun converti en numéro.', ok: true, fb: 'Exact. C’est la tokenisation : le texte devient une suite de blocs, chacun identifié par un numéro (4812, 27305, 1096 dans l’exemple du support). Le modèle ne calcule que sur ces numéros.' },
+      { t: 'Lettre par lettre, soit 12 caractères analysés un à un.', fb: 'Non. Le découpage se fait en sous-mots fréquents, pas en lettres. Un token vaut en moyenne un peu moins d’un mot en français.' },
+      { t: 'Il cherche le mot dans une base de connaissances de la banque.', fb: 'Non. Un LLM seul ne consulte aucune base. Le brancher sur vos documents, c’est le RAG (niveau 3).' } ],
+    concept: 'Un LLM découpe le texte en tokens, leur attribue un numéro, puis boucle : lire le contexte, calculer la probabilité de chaque token, en choisir un, l’ajouter, recommencer.' },
+
+  { mod: 'Module 1', who: null, tag: 'Prédiction du mot suivant',
+    scenario: 'Le modèle complète la phrase : « Le taux d’usure applicable ce trimestre est fixé par la Banque de … » et écrit « France ».',
+    q: 'Pourquoi écrit-il « France » ?',
+    opts: [
+      { t: 'Il a vérifié l’information sur le site de la Banque de France.', fb: 'Non. Il n’a rien vérifié : il n’a pas accès au web par défaut. Il a seulement calculé une suite probable.' },
+      { t: 'Parce qu’il comprend le droit bancaire français.', fb: 'Non. Il ne comprend pas : il reproduit des régularités statistiques apprises sur d’énormes volumes de textes.' },
+      { t: 'C’est le token le plus probable dans ce contexte (environ 94 %, contre 3 % pour « détail »).', ok: true, fb: 'Exact. Le modèle attribue une probabilité à chaque suite possible : « France » domine, « réserve » ou « bananes » sont quasi nuls. Il choisit, ajoute, puis recalcule pour le mot suivant.' },
+      { t: 'C’est la seule réponse possible, le modèle est déterministe.', fb: 'Non. D’autres tokens avaient une probabilité non nulle. Selon la température, le choix peut varier.' } ],
+    concept: 'Le clavier de votre téléphone qui propose le mot suivant fait la même chose, en beaucoup plus simple. Un LLM est un jeu statistique géant.' },
+
+  { mod: 'Module 1', who: 'thomas', tag: 'Illusion de compréhension',
+    scenario: 'Thomas lit la réponse d’apaisement générée pour un sociétaire furieux. Il est bluffé : « L’IA a vraiment compris sa détresse. »',
+    q: 'Que lui répondez-vous ?',
+    opts: [
+      { t: 'Oui, les modèles récents ont une forme d’empathie.', fb: 'Non. Le ton empathique est la suite statistiquement la plus probable après un message de colère. Il n’y a ni ressenti ni compréhension.' },
+      { t: 'Le modèle a prédit la suite la plus probable. Aucune empathie, aucune compréhension : il faut juger le fond, pas le ton.', ok: true, fb: 'Exact. Un LLM a une seule fonction : prédire le prochain token, en boucle. Un texte bien tourné n’est pas une garantie de justesse.' },
+      { t: 'Seulement si la température est réglée haut.', fb: 'Non. La température règle la part de hasard, pas une capacité à comprendre.' },
+      { t: 'Cela dépend de la langue utilisée par le sociétaire.', fb: 'Non. Quelle que soit la langue, le mécanisme reste la prédiction du token suivant.' } ],
+    concept: 'L’illusion de compréhension est le premier piège : plus le texte est fluide, plus on lui prête une intelligence qu’il n’a pas.' },
+
+  { mod: 'Module 1', who: 'sophie', tag: 'Température',
+    scenario: 'Sophie prépare un courrier contractuel de résiliation. Elle veut une formulation sobre, identique d’un dossier à l’autre.',
+    q: 'Quel réglage choisir ?',
+    opts: [
+      { t: 'Une température basse.', ok: true, fb: 'Exact. Température basse = choix des tokens les plus probables = réponses sobres et reproductibles. C’est le réglage des écrits contractuels.' },
+      { t: 'Une température haute pour un style plus riche.', fb: 'Non. Plus de variété, c’est aussi plus d’invention. À proscrire pour un courrier qui engage l’établissement.' },
+      { t: 'Le réglage n’a aucune influence sur le texte.', fb: 'Si. La température règle directement le degré de hasard dans le choix de chaque token.' },
+      { t: 'La température maximale, puis une relecture attentive.', fb: 'Non. On règle selon l’enjeu dès le départ ; la relecture reste indispensable dans tous les cas.' } ],
+    concept: 'Régler selon l’enjeu : basse pour la rigueur (courrier contractuel), haute pour la créativité (idées de campagne).' },
+
+  { mod: 'Module 1', who: 'emilie', tag: 'Température',
+    scenario: 'Émilie, responsable innovation, veut vingt idées d’accroches pour une campagne sur l’épargne des jeunes actifs.',
+    q: 'Quel réglage est le plus adapté ?',
+    opts: [
+      { t: 'Température 0, pour des idées fiables.', fb: 'Non. À température nulle, le modèle reprend toujours les suites les plus probables : des idées convenues et répétitives.' },
+      { t: 'Peu importe, les idées seront relues.', fb: 'La relecture est nécessaire, mais le réglage conditionne la diversité des propositions reçues.' },
+      { t: 'Une température plus haute : plus de variété, en sachant qu’elle augmente aussi l’invention.', ok: true, fb: 'Exact. Pour de l’idéation, on accepte plus de hasard. Chaque accroche retenue sera ensuite vérifiée (promesses, conformité).' },
+      { t: 'Température haute, et publication directe des meilleures idées.', fb: 'Non. L’IA propose, vous décidez : aucune accroche ne part sans validation humaine et conformité.' } ],
+    concept: 'La température est un curseur entre sobriété et variété. Il n’y a pas de bon réglage universel, seulement un réglage adapté à l’usage.' },
+
+  { mod: 'Module 1', who: 'julien', tag: 'Hallucination',
+    scenario: 'Pour motiver un refus, l’IA de Julien cite avec aplomb un article du Code des assurances et un arrêt de la Cour de cassation, numéros et dates compris.',
+    q: 'Quel est le bon réflexe ?',
+    opts: [
+      { t: 'Faire confiance : une référence aussi précise est forcément exacte.', fb: 'Non. La précision de la forme ne prouve rien : le modèle peut citer un article ou un arrêt qui n’existe pas, avec aplomb.' },
+      { t: 'Demander à l’IA si elle est bien sûre d’elle.', fb: 'Insuffisant. Le modèle peut confirmer sa propre invention avec la même assurance.' },
+      { t: 'Vérifier chaque référence dans la source officielle avant tout usage.', ok: true, fb: 'Exact. Plausible n’est pas exact. Tout fait sensible (article, arrêt, chiffre, date) se vérifie à la source.' },
+      { t: 'Augmenter la température pour obtenir d’autres références.', fb: 'Contre-productif : plus de hasard, donc plus d’invention.' } ],
+    concept: 'Une hallucination est un texte plausible mais faux. Les références précises sont les plus exposées : leur forme est facile à imiter, leur contenu impossible à deviner.' },
+
+  { mod: 'Module 1 · Fil rouge', who: 'jb', tag: 'Fond vs forme',
+    scenario: 'M. Laurent conteste un refus d’indemnisation. L’IA rédige en 3 secondes une réponse impeccable, au ton parfait.',
+    q: 'Quel est le vrai risque ?',
+    opts: [
+      { t: 'Le texte est trop long pour un sociétaire mécontent.', fb: 'La longueur se règle. Le risque majeur est ailleurs.' },
+      { t: 'Le sociétaire devinera que la réponse vient d’une IA.', fb: 'La transparence compte (module 6), mais le risque principal ici est l’exactitude du fond.' },
+      { t: 'Aucun : le modèle connaît les contrats de l’établissement.', fb: 'Non. Un LLM brut ne connaît pas vos contrats : il n’a jamais lu la clause en cause.' },
+      { t: 'La clause d’exclusion du contrat n’a jamais été lue par l’outil : le ton est juste, le fond peut être faux.', ok: true, fb: 'Exact. C’est le fil rouge du support. Qui a vérifié le contrat, protégé les données et signé la réponse ? Pas l’IA.' } ],
+    concept: 'Comme l’IA devine plutôt qu’elle ne sait, on lui donne un cadre (prompt), on contrôle ce qu’on lui confie (données) et on lui fournit les bons documents (RAG).' },
+
+  { mod: 'Module 3', who: 'julien', tag: 'Outil non homologué',
+    scenario: 'Vendredi, 17 h 30. Julien veut coller un rapport de sinistre de douze pages dans un outil d’IA grand public gratuit pour gagner du temps.',
+    q: 'Que doit-il faire ?',
+    opts: [
+      { t: 'Le coller, en retirant simplement le nom du sociétaire.', fb: 'Non. Retirer le nom ne suffit pas (voir la règle du feutre noir), et l’outil n’est de toute façon pas homologué.' },
+      { t: 'Renoncer : zéro donnée professionnelle sur un outil non homologué. Ce qui est collé peut quitter le périmètre et servir à réentraîner le modèle.', ok: true, fb: 'Exact. Coller un dossier dans un outil public, c’est afficher le dossier du sociétaire dans la vitrine de l’agence. On passe par l’environnement fermé validé par la DSI.' },
+      { t: 'Le coller en navigation privée : rien n’est conservé.', fb: 'Non. La navigation privée n’efface que l’historique local. Les données partent bien chez l’éditeur du service.' },
+      { t: 'Le coller : un outil gratuit ne conserve jamais les données.', fb: 'Non. Un outil gratuit se paie souvent en données ; tout dépend du service et de ses réglages.' } ],
+    concept: 'Outil public : les données quittent le périmètre et peuvent alimenter l’apprentissage du modèle. Environnement d’entreprise fermé : contrat de confidentialité, données ni conservées ni réutilisées.' },
+
+  { mod: 'Module 3', who: null, tag: 'Pseudonymisation vs anonymisation',
+    scenario: 'Un collègue prépare ce contexte : « M. X, 52 ans, chirurgien-dentiste à Saint-Brieuc, en arrêt longue durée, encours de 450 000 €. »',
+    q: 'Ce texte est-il anonymisé ?',
+    opts: [
+      { t: 'Oui, le nom a été remplacé.', fb: 'Non. Remplacer le nom par une initiale, c’est de la pseudonymisation : la personne reste réidentifiable par recoupement.' },
+      { t: 'Oui, si l’outil utilisé est sécurisé.', fb: 'Non. La sécurité de l’outil ne change pas la nature de la donnée : elle reste personnelle.' },
+      { t: 'Non : un seul individu correspond. C’est une donnée personnelle (RGPD, secret bancaire), et l’arrêt de travail touche à la santé.', ok: true, fb: 'Exact. Règle du feutre noir : noms, localisation fine, dates de naissance, numéros de contrat, IBAN, montants uniques. Et une pathologie est une donnée de santé (RGPD, art. 9).' },
+      { t: 'Non, mais il suffit de retirer l’âge.', fb: 'Insuffisant. Profession, ville, situation et montant suffisent encore à identifier la personne.' } ],
+    concept: 'Pseudonymisation : réidentification possible, le RGPD s’applique. Anonymisation : tous les marqueurs d’individualité sont supprimés, la personne n’est plus identifiable.' },
+
+  { mod: 'Module 4', who: 'camille', tag: 'Zones rouges',
+    scenario: 'Camille veut faire résumer par l’IA interne sécurisée son analyse de mouvements atypiques, préalable à une déclaration de soupçon.',
+    q: 'Peut-elle le faire ?',
+    opts: [
+      { t: 'Oui, l’outil interne est sécurisé et hébergé en Europe.', fb: 'Non. « C’est sécurisé, nous sommes en famille » est le piège psychologique : un outil validé n’autorise pas tout.' },
+      { t: 'Oui, à condition d’anonymiser le client.', fb: 'Non. Tracfin est une zone rouge absolue : même anonymisée, l’analyse ne passe pas par l’IA.' },
+      { t: 'Oui, si elle efface l’historique juste après.', fb: 'Non. Le risque de fuite (tipping-off) existe dès la saisie, surtout avec des historiques partagés.' },
+      { t: 'Non : zone rouge Tracfin. Même sur l’outil interne, ces données se traitent à la main, par les canaux sécurisés.', ok: true, fb: 'Exact. Il est interdit de laisser fuiter qu’un client est examiné (CMF, L.561-18 et suivants). Même règle pour le secret médical et l’information privilégiée.' } ],
+    concept: 'Trois zones rouges absolues, même sur l’outil interne : secret médical et santé, secret Tracfin, marchés et clés techniques (information privilégiée, mots de passe, clés d’API).' },
+];
+
+let S1 = null;
+MODS[1] = {
+  progress() {
+    const done = S1.picks.filter(p => p !== undefined).length;
+    const ok = S1.picks.filter((p, k) => p !== undefined && L1Q[k].opts[p].ok).length;
+    return { answered: done, txt: `${done} question${done > 1 ? 's' : ''} sur 10 répondue${done > 1 ? 's' : ''}, dont ${ok} juste${ok > 1 ? 's' : ''}` };
+  },
+  // Détail par question, pour la fiche de score envoyée par e-mail.
+  details() {
+    return [{ title: 'Les 10 situations', items: L1Q.map((q, k) => {
+      const c = q.opts[S1.picks[k]], g = q.opts.find(o => o.ok);
+      return { label: `${k + 1}. ${q.q} (${q.tag})`, ok: !!c.ok, given: c.t, expected: g.t, why: `${c.ok ? c.fb : g.fb} ${q.concept}` };
+    }) }];
+  },
+  start() { S1 = { i: 0, picks: [], perm: L1Q.map(q => shuffle(q.opts.map((_, k) => k))), recorded: false }; },
+  view() {
+    const s = S1;
+    if (s.i >= L1Q.length) return L1Result();
+    const q = L1Q[s.i], p = s.picks[s.i], answered = p !== undefined;
+    const dots = L1Q.map((qq, k) => {
+      const c = k < s.i || (k === s.i && answered) ? (qq.opts[s.picks[k]].ok ? 'y' : 'n') : (k === s.i ? 'cur' : '');
+      return `<span class="qdot ${c}"></span>`;
+    }).join('');
+    const opts = s.perm[s.i].map((k, pos) => {
+      const o = q.opts[k]; let c = 'opt';
+      if (answered) { if (k === p) c += o.ok ? ' ok' : ' bad'; else if (o.ok) c += ' ok-reveal'; else c += ' fade'; }
+      return `<button class="${c}" data-action="l1-pick" data-k="${k}" ${answered ? 'disabled' : ''}><span class="key">${'ABCD'[pos]}</span><span class="opt-body">${o.t}</span></button>`;
+    }).join('');
+    const chosen = answered ? q.opts[p] : null;
+    const good = q.opts.find(o => o.ok);
+    const fb = answered ? `
+      <div class="fb ${chosen.ok ? 'fb-ok' : 'fb-bad'} mt-5" role="status">
+        <div class="fb-head">${chosen.ok ? '✓ Bonne réponse' : '✗ Ce n’est pas la bonne réponse'}</div>
+        <p>${chosen.fb}</p>
+        ${chosen.ok ? '' : `<p class="mt-2"><b>Bonne réponse :</b> ${good.t}</p><p class="mt-1 small">${good.fb}</p>`}
+      </div>
+      <div class="callout mt-4"><span class="eyebrow">À retenir · ${q.mod}</span><p>${q.concept}</p></div>
+      <div class="flex justify-end mt-6"><button class="btn btn-primary" data-action="l1-next">${s.i < L1Q.length - 1 ? 'Question suivante' : 'Voir mon résultat'}</button></div>` : '';
+    const score = s.picks.filter((pk, k) => L1Q[k].opts[pk].ok).length;
+    return `${LevelHeader(1)}
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] items-start">
+      <section class="panel min-w-0">
+        <div class="flex items-center justify-between gap-3 flex-wrap"><p class="eyebrow">Situation ${s.i + 1} sur ${L1Q.length} · ${q.mod}</p><div class="qdots" aria-hidden="true">${dots}</div></div>
+        <div class="card mt-4">
+          ${q.who ? `<div class="mb-3">${person(q.who, 48)}</div>` : ''}
+          <p>${q.scenario}</p>
+        </div>
+        <h2 class="h3 mt-5">${q.q}</h2>
+        <div class="grid gap-2 mt-3">${opts}</div>
+        ${fb}
+      </section>
+      <aside class="card sticky-col min-w-0">
+        <p class="eyebrow">Règle du niveau</p>
+        <p class="mt-1 small">Dix situations. Il faut au moins <b>9 bonnes réponses</b> (90 %) pour valider. Chaque réponse est expliquée.</p>
+        <hr class="divider my-4">
+        <p class="eyebrow grey">Bonnes réponses</p>
+        <p class="num mt-1" style="font-size:30px;font-weight:700">${score}<span class="muted" style="font-size:18px"> / ${L1Q.length}</span></p>
+        <hr class="divider my-4">
+        <p class="eyebrow grey">Notions</p>
+        <div class="tagrow mt-2">${LEVEL_META[1].tags.map(t => `<span class="tag" style="background:var(--white)">${t}</span>`).join('')}</div>
+      </aside>
+    </div>`;
+  },
+  handle(a, d) {
+    if (a === 'l1-pick') { if (S1.picks[S1.i] === undefined) { S1.picks[S1.i] = +d.k; render(false); } return true; }
+    if (a === 'l1-next') { S1.i++; render(true); return true; }
+    return false;
+  },
+};
+function L1Result() {
+  const s = S1;
+  const good = s.picks.filter((p, k) => L1Q[k].opts[p].ok).length;
+  const pct = Math.round(good / L1Q.length * 100), passed = pct >= SEUIL;
+  if (!s.recorded) { s.recorded = true; finishAttempt(1, pct, passed, L1Q.filter((q, k) => !q.opts[s.picks[k]].ok).map(q => q.tag)); }
+  const extra = `<p class="eyebrow grey">Détail de vos réponses</p>
+    <div class="mt-2">${L1Q.map((q, k) => {
+      const ok = q.opts[s.picks[k]].ok;
+      return `<div class="review"><span class="mark ${ok ? 'y' : 'n'}">${ok ? '✓' : '✗'}</span><div class="min-w-0"><b>${q.tag}</b> <span class="muted">· ${q.mod}</span>${ok ? '' : `<p class="mt-1">${q.concept}</p>`}</div></div>`;
+    }).join('')}</div>`;
+  return `${LevelHeader(1)}${ResultCard({ n: 1, pct, passed,
+    headline: passed ? `${good} sur 10 : vous savez ce que fait vraiment un LLM` : `${good} sur 10 : il en faut au moins 9`,
+    text: passed ? 'Tokens, probabilités, température, hallucinations, zones rouges : vous avez les bases pour conseiller un métier sans surpromettre.'
+                 : 'Relisez les notions signalées en rouge, puis rejouez le niveau. Ces fondations conditionnent tous les niveaux suivants.',
+    extra })}`;
+}
+
+COURSE[1] = {
+  title: 'Démystifier l’IA générative : l’essentiel',
+  banner: '<b>Un LLM a une seule fonction : prédire le prochain token, en boucle.</b> Aucune empathie, aucune compréhension : un jeu statistique géant. À nous d’encadrer chaque étape.',
+  cards: [
+    { h: 'Le mot devient des tokens', t: '« surassurance » devient « sur », « assur », « ance » : trois blocs, trois numéros. Le modèle ne calcule que sur ces numéros.', src: 'Module 1' },
+    { h: 'Lire, calculer, choisir, ajouter', t: '« …fixé par la Banque de » : France 94 %, détail 3 %, bananes quasi nul. Le modèle choisit, ajoute, recalcule.', src: 'Module 1' },
+    { h: 'Température', t: 'Basse : réponses sobres et reproductibles (courrier contractuel). Haute : plus de variété, et plus d’invention (idées de campagne).', src: 'Module 1' },
+    { h: 'Hallucination', t: 'Plausible n’est pas exact. Le modèle peut citer un article ou un arrêt qui n’existe pas, avec aplomb. Vérifier chaque fait sensible.', src: 'Module 1' },
+    { h: 'Où partent vos mots ?', t: 'Zéro donnée professionnelle sur un outil personnel non homologué. L’environnement d’entreprise fermé ne conserve ni ne réutilise les données.', src: 'Module 3' },
+    { h: 'Zones rouges absolues', t: 'Secret médical et santé, secret Tracfin, marchés et clés techniques : même sur l’outil interne, l’IA reste éteinte.', src: 'Module 4' },
+  ],
+  callouts: [
+    { e: 'Trois règles d’or', t: 'Vérifier chaque fait sensible. Régler selon l’enjeu. Décider soi-même : l’IA propose.' },
+    { e: 'Règle du feutre noir', t: '« M. X » n’anonymise rien. Retirer noms, localisation fine, dates de naissance, numéros de contrat et de sinistre, IBAN, montants uniques.' },
+  ],
+};
+
+/* =====================================================================
+   NIVEAU 2 — PROMPT ENGINEERING AVANCÉ (atelier de réparation)
+   ===================================================================== */
+const L2_DIAG = [
+  { id: 'role', t: 'Aucun rôle n’est attribué au modèle.', fault: true,
+    fb: 'Sans « tablier du chef », le modèle répond comme un assistant généraliste : vocabulaire, angle et niveau d’exigence ne sont pas ceux d’un gestionnaire sinistres.' },
+  { id: 'long', t: 'Le prompt est trop court : un bon prompt fait au moins 1 000 mots.', fault: false,
+    fb: 'La longueur n’est pas un critère. Cinq ingrédients précis valent mieux qu’un long texte vague, qui dilue les consignes.' },
+  { id: 'ctx', t: 'Aucun contexte métier : ni la garantie, ni la clause en cause, ni les dates.', fault: true,
+    fb: 'Sans matières premières, le modèle improvise : il ne sait pas qu’une clause d’exclusion pour inoccupation s’applique.' },
+  { id: 'cons', t: 'Aucune contrainte : ton, longueur, interdiction d’inventer ou de promettre.', fault: true,
+    fb: 'Les contraintes sont l’ingrédient le plus oublié. Sans elles, le modèle peut inventer un fait ou laisser entendre un geste commercial.' },
+  { id: 'polite', t: 'Il manque « s’il te plaît » et « merci ».', fault: false,
+    fb: 'La politesse n’est pas un levier de qualité significatif. Ce qui compte, ce sont les cinq ingrédients.' },
+  { id: 'fmt', t: 'Aucun format de sortie n’est demandé.', fault: true,
+    fb: 'Sans « dressage », la structure change à chaque génération et le courrier n’est pas prêt à l’emploi.' },
+  { id: 'pii', t: 'Des données identifiantes sont collées telles quelles (nom, adresse, numéro de contrat, IBAN).', fault: true,
+    fb: 'Le contexte vient de vos données réelles : il faut passer le feutre noir avant de coller quoi que ce soit.' },
+  { id: 'eng', t: 'Le prompt devrait être rédigé en anglais pour de meilleurs résultats.', fault: false,
+    fb: 'Les modèles actuels traitent très bien le français. La langue du livrable attendu est la bonne langue du prompt.' },
+];
+
+const L2_TEXT = [
+  { r: 1, t: 'M. Alexandre Laurent', tag: '[ASSURÉ]', why: 'Nom et prénom : identifiant direct.' },
+  { x: ', ' },
+  { r: 1, t: 'né le 14/06/1973', tag: '[DATE DE NAISSANCE]', why: 'Date de naissance exacte : marqueur d’individualité.' },
+  { x: ', domicilié ' },
+  { r: 1, t: '12 rue des Lilas à Quimper', tag: '[ADRESSE]', why: 'Localisation fine : elle suffit presque à identifier la personne.' },
+  { x: ', titulaire du ' },
+  { r: 1, t: 'contrat MRH n° 48-2291-A', tag: '[N° CONTRAT]', why: 'Numéro de contrat : il permet de retrouver le sociétaire.' },
+  { x: ' souscrit le ' },
+  { r: 0, t: '12/03/2019', why: 'Date de souscription : utile pour retrouver le bon millésime des conditions générales, et non identifiante à elle seule.' },
+  { x: '. Sinistre ' },
+  { r: 1, t: 'n° S-25-00871', tag: '[N° SINISTRE]', why: 'Numéro de sinistre : identifiant.' },
+  { x: ' survenu le ' },
+  { r: 0, t: '03/02/2025', why: 'Date du sinistre : indispensable au raisonnement sur la garantie.' },
+  { x: ' : ' },
+  { r: 0, t: 'dégât des eaux par gel de canalisations', why: 'Nature du sinistre : c’est le cœur de la question.' },
+  { x: ', logement ' },
+  { r: 0, t: 'inoccupé depuis 30 jours', why: 'Durée d’inoccupation : fait décisif au regard de la clause d’exclusion.' },
+  { x: '. Remboursement demandé sur l’' },
+  { r: 1, t: 'IBAN FR76 3000 4000 0312 3456 7890 143', tag: '[IBAN]', why: 'IBAN : donnée bancaire identifiante, jamais dans un prompt.' },
+  { x: ' pour un montant de ' },
+  { r: 1, t: '8 437,52 €', tag: '[MONTANT]', why: 'Montant unique au centime : il suffit à retrouver le dossier.' },
+  { x: '.' },
+];
+const L2_SEGS = L2_TEXT.map((s, i) => ({ ...s, i })).filter(s => s.t);
+
+const L2_PTS = { s: 10, w: 4, b: 0 };
+const L2_QL = { s: 'Robuste', w: 'Faible', b: 'Défaillant' };
+const L2_BRICKS = [
+  { id: 'role', name: 'Rôle', chef: 'Le tablier du chef', hint: 'Qui le modèle doit-il incarner ?', opts: [
+    { q: 'w', t: 'Tu es un expert.', fb: '« Expert » sans métier ni situation n’oriente presque rien : expert de quoi, pour qui ?' },
+    { q: 's', t: 'Tu es gestionnaire sinistres senior en assurance habitation, habitué aux réclamations de sociétaires mécontents.', fb: 'Rôle précis : métier, séniorité, type de situation. Le modèle adopte le vocabulaire et les réflexes du gestionnaire.' },
+    { q: 'b', t: 'Tu es un ami qui veut faire plaisir au client.', fb: 'Ce rôle pousse à céder sur le fond pour plaire : l’inverse de ce qu’exige une réponse de refus motivée.' } ] },
+  { id: 'ctx', name: 'Contexte', chef: 'Les matières premières', hint: 'Quelle situation, quelles données ?', opts: [
+    { q: 'b', t: 'Voici tout le dossier : [copie intégrale avec nom, adresse, IBAN].', fb: 'Défaillant : riche en informations, mais le feutre noir n’est pas passé. C’est une fuite de données personnelles.' },
+    { q: 'w', t: 'Un client n’est pas content de notre décision.', fb: 'Trop pauvre : ni la garantie, ni la clause, ni les dates. Le modèle improvisera.' },
+    { q: 's', t: 'Refus d’indemnisation d’un dégât des eaux par gel de canalisations. Contrat souscrit le 12/03/2019, sinistre du 03/02/2025, logement inoccupé 30 jours. CG applicables, p. 42 : exclusion si inoccupation supérieure à 15 jours. Le sociétaire conteste vivement.', fb: 'Contexte complet et anonymisé : faits, dates utiles, clause en cause. Le modèle raisonne sur vos données, pas sur des généralités.' } ] },
+  { id: 'task', name: 'Tâche', chef: 'L’action de cuisson', hint: 'Quel verbe, quel livrable unique ?', opts: [
+    { q: 's', t: 'Rédige une réponse écrite qui explique la décision de refus et indique les voies de recours.', fb: 'Un verbe précis (rédige), un seul livrable, un contenu attendu clair.' },
+    { q: 'b', t: 'Trouve un moyen de l’indemniser quand même.', fb: 'Défaillant : la tâche contredit la décision et pousse le modèle à inventer une garantie.' },
+    { q: 'w', t: 'Réponds au client.', fb: 'Verbe vague : répondre comment, pour dire quoi ? Le livrable n’est pas défini.' } ] },
+  { id: 'cons', name: 'Contraintes', chef: 'Les garde-fous', hint: 'Quelles règles rendent la sortie sûre ?', opts: [
+    { q: 'b', t: 'Rassure-le au maximum, quitte à laisser entendre un geste commercial.', fb: 'Dangereux : une promesse non autorisée engage l’établissement.' },
+    { q: 's', t: 'Ton empathique et factuel, 200 mots maximum. Cite la clause exacte (CG, p. 42). N’invente aucun fait ni aucune promesse. Signale toute information manquante.', fb: 'Garde-fous vérifiables : ton, volume, source citée, interdiction d’inventer, droit de dire « il manque une information ».' },
+    { q: 'w', t: 'Sois gentil et professionnel.', fb: 'Invérifiable : aucune limite de volume, aucune interdiction d’inventer.' } ] },
+  { id: 'fmt', name: 'Format', chef: 'Le dressage', hint: 'À quoi doit ressembler le résultat ?', opts: [
+    { q: 'w', t: 'Fais un joli texte.', fb: '« Joli » est subjectif : la structure changera à chaque génération.' },
+    { q: 'b', t: 'Format libre.', fb: 'Aucune structure garantie : le courrier devra être réécrit.' },
+    { q: 's', t: 'Courrier en 3 paragraphes : rappel des faits, clause appliquée, voies de recours (médiateur de l’assurance). Objet en première ligne.', fb: 'Un résultat prêt à l’emploi, relu en une minute, identique d’un dossier à l’autre.' } ] },
+];
+
+let S2 = null;
+MODS[2] = {
+  progress() {
+    const s = S2, b = Object.keys(s.bricks).length;
+    const etape = s.redDone ? 3 : s.diagDone ? 2 : 1;
+    return { answered: s.diag.size + s.red.size + b, txt: `étape ${etape} sur 3 (diagnostic ${s.diagDone ? 'validé' : 'en cours'}, feutre noir ${s.redDone ? 'validé' : 'non validé'}, ${b} ingrédient${b > 1 ? 's' : ''} sur 5)` };
+  },
+  details() {
+    const s = S2;
+    return [
+      { title: 'Étape 1 · Diagnostic du prompt', items: L2_DIAG.map(d => { const on = s.diag.has(d.id);
+        return { label: d.t, ok: on === d.fault, given: on ? 'Cochée comme faille' : 'Non cochée', expected: d.fault ? 'C’est une faille : à cocher' : 'Fausse piste : à ne pas cocher', why: d.fb }; }) },
+      { title: 'Étape 2 · Règle du feutre noir', items: L2_SEGS.map(seg => { const on = s.red.has(seg.i);
+        return { label: seg.t, ok: on === !!seg.r, given: on ? 'Masqué' : 'Conservé', expected: seg.r ? 'À masquer' : 'À conserver', why: seg.why }; }) },
+      { title: 'Étape 3 · Les cinq ingrédients', items: L2_BRICKS.map(g => { const o = g.opts[s.bricks[g.id]], best = g.opts.find(x => x.q === 's');
+        return { label: `${g.name} (${g.chef})`, ok: o.q === 's', given: o.t, expected: best.t, why: o.fb }; }) },
+    ];
+  },
+  start() { S2 = { diag: new Set(), diagDone: false, red: new Set(), redDone: false, bricks: {}, evald: false, recorded: false }; },
+  view() {
+    const s = S2;
+    const diag = L2_DIAG.map(d => {
+      const on = s.diag.has(d.id); let c = 'opt', fb = '';
+      if (s.diagDone) {
+        if (on && d.fault) { c += ' ok'; fb = `<p class="opt-fb"><b>Faille identifiée.</b> ${d.fb}</p>`; }
+        else if (on && !d.fault) { c += ' bad'; fb = `<p class="opt-fb"><b>Fausse piste.</b> ${d.fb}</p>`; }
+        else if (!on && d.fault) { c += ' ok-reveal'; fb = `<p class="opt-fb"><b>Faille manquée.</b> ${d.fb}</p>`; }
+        else { c += ' fade'; fb = `<p class="opt-fb"><b>Bien écarté.</b> ${d.fb}</p>`; }
+      }
+      return `<button class="${c}" data-action="l2-diag" data-id="${d.id}" aria-pressed="${on}" ${s.diagDone ? 'disabled' : ''}><span class="check" aria-hidden="true">${on ? '✓' : ''}</span><span class="opt-body">${d.t}${fb}</span></button>`;
+    }).join('');
+
+    const text = L2_TEXT.map((seg, i) => {
+      if (!seg.t) return esc(seg.x);
+      const on = s.red.has(i); let c = 'rs' + (on ? ' on' : '');
+      if (s.redDone) c += (on === !!seg.r) ? ' good' : ' wrong';
+      return `<button class="${c}" data-action="l2-red" data-i="${i}" aria-pressed="${on}" ${!s.diagDone || s.redDone ? 'disabled' : ''}>${on && seg.r ? seg.tag : esc(seg.t)}</button>`;
+    }).join('');
+    const redReview = s.redDone ? `<div class="mt-4">${L2_SEGS.map(seg => {
+      const on = s.red.has(seg.i), ok = on === !!seg.r;
+      return `<div class="review"><span class="mark ${ok ? 'y' : 'n'}">${ok ? '✓' : '✗'}</span><div class="min-w-0"><b>${esc(seg.t)}</b> · ${seg.r ? 'à masquer' : 'à conserver'}${ok ? '' : (on ? ' <span class="pill pill-bad">masqué à tort</span>' : ' <span class="pill pill-bad">oublié</span>')}<p class="muted mt-1">${seg.why}</p></div></div>`;
+    }).join('')}</div>` : '';
+
+    const bricks = L2_BRICKS.map(g => {
+      const k = s.bricks[g.id];
+      return `<fieldset class="min-w-0" style="border:0;padding:0;margin:0">
+        <legend class="flex items-baseline gap-2 flex-wrap"><span class="h3">${g.name}</span><span class="small muted">${g.chef} · ${g.hint}</span></legend>
+        <div class="grid gap-2 mt-2">${g.opts.map((o, i) => {
+          let c = 'opt';
+          if (k === i) c += s.evald ? (o.q === 's' ? ' ok' : ' bad') : ' sel';
+          else if (s.evald) c += ' fade';
+          const fb = s.evald && k === i ? `<p class="opt-fb"><b>${L2_QL[o.q]} · ${L2_PTS[o.q]} pts.</b> ${o.fb}${o.q !== 's' ? `<br><b>Version robuste :</b> ${g.opts.find(x => x.q === 's').t}` : ''}</p>` : '';
+          return `<button class="${c}" data-action="l2-brick" data-g="${g.id}" data-i="${i}" ${(!s.redDone || s.evald) ? 'disabled' : ''}><span class="key">${'ABC'[i]}</span><span class="opt-body">${o.t}${fb}</span></button>`;
+        }).join('')}</div></fieldset>`;
+    }).join('');
+    const complete = L2_BRICKS.every(g => s.bricks[g.id] !== undefined);
+    const preview = L2_BRICKS.map(g => {
+      const k = s.bricks[g.id];
+      return `<span class="pk">${g.name}</span>\n${k === undefined ? `<span class="pe">[à choisir : ${g.hint.toLowerCase()}]</span>` : esc(g.opts[k].t)}`;
+    }).join('\n\n');
+
+    return `${LevelHeader(2)}
+    <section class="panel">
+      <div class="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div class="min-w-0">
+          <p class="eyebrow">Cas client · Le fil rouge du support</p>
+          <div class="flex flex-wrap gap-5 mt-3">${person('sophie', 48)}${person('jb', 48)}</div>
+          <p class="mt-4">M. Laurent conteste le refus d’indemnisation de son dégât des eaux : gel des canalisations alors que sa maison était inoccupée depuis 30 jours. Sophie doit lui répondre. Elle a écrit le prompt ci-contre ; le résultat est tiède, générique, et reprend l’IBAN du sociétaire.</p>
+        </div>
+        <div class="min-w-0">
+          <p class="eyebrow grey">Prompt de Sophie</p>
+          <div class="prompt-box mt-2">Réponds à ce client énervé :
+« Je suis M. Alexandre Laurent, 12 rue des Lilas à Quimper, contrat MRH n° 48-2291-A. Votre refus est scandaleux, remboursez-moi sur mon IBAN FR76 3000 4000 0312 3456 7890 143. »</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel mt-5">
+      <div class="flex items-baseline justify-between gap-3 flex-wrap">
+        <div><p class="eyebrow">Étape 1 sur 3 · Diagnostic</p><h2 class="h2 mt-1">Détectez les failles du prompt</h2></div>
+        ${s.diagDone ? `<span class="pill pill-o num">Diagnostic : ${L2DiagPts()} / 25 pts</span>` : '<span class="small muted">Plusieurs réponses possibles. Méfiez-vous des fausses pistes.</span>'}
+      </div>
+      <div class="grid gap-2 mt-4 md:grid-cols-2">${diag}</div>
+      ${s.diagDone ? '' : `<div class="flex justify-end mt-5"><button class="btn btn-primary" data-action="l2-diag-ok" ${s.diag.size ? '' : 'disabled'}>Valider le diagnostic</button></div>`}
+    </section>
+
+    <section class="panel mt-5" style="${s.diagDone ? '' : 'opacity:.55'}">
+      <div class="flex items-baseline justify-between gap-3 flex-wrap">
+        <div><p class="eyebrow">Étape 2 sur 3 · Règle du feutre noir</p><h2 class="h2 mt-1">Anonymisez le contexte avant de le donner à l’IA</h2></div>
+        ${s.redDone ? `<span class="pill pill-o num">Feutre noir : ${L2RedPts()} / 25 pts</span>` : `<span class="small muted">${s.diagDone ? 'Cliquez sur chaque élément à masquer. Gardez ce qui est utile et non identifiant.' : 'Validez d’abord le diagnostic.'}</span>`}
+      </div>
+      <div class="redact-text mt-4">${text}</div>
+      ${redReview}
+      ${s.diagDone && !s.redDone ? '<div class="flex justify-end mt-5"><button class="btn btn-primary" data-action="l2-red-ok">Valider l’anonymisation</button></div>' : ''}
+    </section>
+
+    <section class="panel mt-5" style="${s.redDone ? '' : 'opacity:.55'}">
+      <div class="flex items-baseline justify-between gap-3 flex-wrap">
+        <div><p class="eyebrow">Étape 3 sur 3 · La recette</p><h2 class="h2 mt-1">Assemblez les cinq ingrédients</h2></div>
+        <span class="small muted">${s.redDone ? 'Une brique par ingrédient. Chaque brique robuste vaut 10 points.' : 'Validez d’abord l’anonymisation.'}</span>
+      </div>
+      <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_370px] mt-5 items-start">
+        <div class="grid gap-6 min-w-0">${bricks}</div>
+        <div class="sticky-col min-w-0">
+          <p class="eyebrow grey">Prompt reconstruit</p>
+          <div class="prompt-box mt-2" aria-live="polite">${preview}</div>
+          <p class="small muted mt-3">Barème : diagnostic 25, feutre noir 25, recette 50. Seuil : ${SEUIL}/100.</p>
+          ${s.evald ? '' : `<button class="btn btn-primary w-full mt-4" data-action="l2-eval" ${complete && s.redDone ? '' : 'disabled'}>Évaluer la robustesse</button>`}
+        </div>
+      </div>
+    </section>
+    ${s.evald ? L2Result() : ''}`;
+  },
+  handle(a, d) {
+    const s = S2;
+    if (a === 'l2-diag') { s.diag.has(d.id) ? s.diag.delete(d.id) : s.diag.add(d.id); render(false); return true; }
+    if (a === 'l2-diag-ok') { s.diagDone = true; render(false); return true; }
+    if (a === 'l2-red') { const i = +d.i; s.red.has(i) ? s.red.delete(i) : s.red.add(i); render(false); return true; }
+    if (a === 'l2-red-ok') { s.redDone = true; render(false); return true; }
+    if (a === 'l2-brick') { s.bricks[d.g] = +d.i; render(false); return true; }
+    if (a === 'l2-eval') { s.evald = true; render(false); const r = $('#result'); if (r) r.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' }); return true; }
+    return false;
+  },
+};
+function L2DiagPts() {
+  let good = 0, bad = 0;
+  L2_DIAG.forEach(d => { if (S2.diag.has(d.id)) d.fault ? good++ : bad++; });
+  const faults = L2_DIAG.filter(d => d.fault).length;
+  return Math.round(Math.max(0, good - bad) / faults * 25);
+}
+function L2RedPts() {
+  const ok = L2_SEGS.filter(seg => S2.red.has(seg.i) === !!seg.r).length;
+  return Math.round(ok / L2_SEGS.length * 25);
+}
+function L2Result() {
+  const s = S2;
+  const dp = L2DiagPts(), rp = L2RedPts();
+  const bp = L2_BRICKS.reduce((acc, g) => acc + L2_PTS[g.opts[s.bricks[g.id]].q], 0);
+  const pct = dp + rp + bp, passed = pct >= SEUIL;
+  if (!s.recorded) {
+    s.recorded = true;
+    const errs = [];
+    L2_DIAG.forEach(d => { const on = s.diag.has(d.id); if (d.fault && !on) errs.push(`Diagnostic : faille manquée (${d.id === 'pii' ? 'données identifiantes' : d.id === 'cons' ? 'contraintes' : d.id === 'ctx' ? 'contexte' : d.id === 'fmt' ? 'format' : 'rôle'})`); if (!d.fault && on) errs.push('Diagnostic : fausse piste retenue'); });
+    L2_SEGS.forEach(seg => { const on = s.red.has(seg.i); if (seg.r && !on) errs.push(`Feutre noir : ${seg.tag.replace(/[\[\]]/g, '').toLowerCase()} non masqué`); if (!seg.r && on) errs.push('Feutre noir : information utile masquée'); });
+    L2_BRICKS.forEach(g => { if (g.opts[s.bricks[g.id]].q !== 's') errs.push(`Ingrédient ${g.name.toLowerCase()} fragile`); });
+    finishAttempt(2, pct, passed, [...new Set(errs)]);
+  }
+  const weak = L2_BRICKS.filter(g => g.opts[s.bricks[g.id]].q !== 's').map(g => g.name);
+  const extra = `<div class="grid gap-3 sm:grid-cols-3">
+      <div class="card"><p class="eyebrow grey">Diagnostic</p><p class="h3 num mt-1">${dp} / 25</p></div>
+      <div class="card"><p class="eyebrow grey">Feutre noir</p><p class="h3 num mt-1">${rp} / 25</p></div>
+      <div class="card"><p class="eyebrow grey">Recette</p><p class="h3 num mt-1">${bp} / 50</p><p class="xs muted mt-1">${weak.length ? 'À renforcer : ' + weak.join(', ') : 'Cinq ingrédients robustes'}</p></div>
+    </div>`;
+  return ResultCard({ n: 2, pct, passed,
+    headline: passed ? 'Un prompt prêt pour un dossier réel' : 'Le prompt n’est pas encore assez robuste',
+    text: passed ? 'Données anonymisées, cinq ingrédients robustes : le courrier produit est factuel, sourcé et prêt à relire. L’outil ne « vaut plus rien » ? Si : c’est la recette qui faisait défaut.'
+                 : `Il faut ${SEUIL} points au minimum. Chaque élément en rouge affiche la version attendue et la raison de l’écart.`,
+    extra });
+}
+
+COURSE[2] = {
+  title: 'La recette du bon prompt : l’essentiel',
+  banner: '<b>« Prépare-moi à manger » donne un plat passe-partout.</b> Un LLM n’est pas un devin : il prédit selon l’univers dans lequel on le plonge.',
+  cards: [
+    { h: 'Rôle · le tablier du chef', t: '« Tu es un analyste risques spécialisé PME industrielles. » Le rôle oriente le vocabulaire et les réflexes du métier.', src: 'Module 2' },
+    { h: 'Contexte · les matières premières', t: 'Situation du client, historique, clause en cause, dates utiles. Le contexte remplace l’incertitude par vos données.', src: 'Module 2' },
+    { h: 'Tâche · l’action de cuisson', t: 'Un verbe précis (rédige, extrais, compare) et un seul livrable.', src: 'Module 2' },
+    { h: 'Contraintes · les garde-fous', t: 'Ton, volume, « n’invente aucun chiffre ». L’ingrédient le plus oublié, celui qui évite l’invention.', src: 'Module 2' },
+    { h: 'Format · le dressage', t: 'Tableau, puces, plan, courrier structuré : un résultat prêt à l’emploi.', src: 'Module 2' },
+    { h: 'Anonymiser avant de coller', t: 'Le contexte vient de vos données réelles. Feutre noir : noms, adresses, numéros, IBAN, montants uniques retirés.', src: 'Module 3' },
+  ],
+  callouts: [
+    { e: 'Sans recette / avec recette', t: '« Analyse ce client » produit une réponse tiède à réécrire. Avec les cinq ingrédients : un tableau de points de vigilance exploitable tel quel.' },
+    { e: 'Kit de survie', t: 'Avant d’appuyer sur Entrée : canal validé ? zone rouge ? feutre noir passé ? cinq ingrédients présents ?' },
+  ],
+};
+
+/* =====================================================================
+   NIVEAU 3 — RAG ET GESTION DU CONTEXTE (assemblage du pipeline)
+   ===================================================================== */
+const STEPS3 = [
+  { id: 'select', name: 'Sélection des sources', desc: 'Retenir les documents officiels, chacun avec son statut et sa période de validité.', req: null },
+  { id: 'chunk', name: 'Découpage en fiches', desc: 'Couper chaque document en fiches thématiques qui gardent leur origine (document, page).', req: 'select', why: 'aucun document validé n’a encore été retenu : on découperait le grenier entier, brouillons compris.' },
+  { id: 'embed', name: 'Calcul des embeddings', desc: 'Traduire chaque fiche en vecteur qui encode son sens.', req: 'chunk', why: 'on ne vectorise pas des documents de 80 pages d’un bloc : il faut d’abord des fiches.' },
+  { id: 'index', name: 'Indexation avec droits', desc: 'Ranger les vecteurs avec leurs métadonnées : document, page, validité, habilitation requise.', req: 'embed', why: 'il n’existe encore aucun vecteur à indexer.' },
+  { id: 'search', name: 'Recherche par le sens, filtrée', desc: 'Lire l’habilitation de l’utilisateur, puis retrouver les fiches les plus proches de sa question.', req: 'index', why: 'l’index est vide : la recherche ne renvoie rien.' },
+  { id: 'inject', name: 'Injection dans le prompt système', desc: 'Placer les extraits retenus, avec leurs références, sous les yeux du modèle.', req: 'search', why: 'aucune fiche n’a été retrouvée : il n’y a rien à injecter.' },
+  { id: 'gen', name: 'Rédaction sous surveillance', desc: 'Répondre uniquement avec les extraits, citer la source, sinon dire « je ne sais pas ».', req: 'inject', why: 'le modèle rédige sans aucun extrait : c’est le collaborateur génie qui improvise.' },
+];
+const L3_CH = [
+  { id: 'versions', label: 'Le grenier poussiéreux', q: 'Le corpus contient les CG habitation 2017, 2021, un brouillon 2023 et la version officielle 2025. Que faites-vous ?', good: 2, critical: true, tag: 'Millésimes des documents', opts: [
+    { t: 'Tout indexer sans distinction : plus il y a de documents, mieux c’est.', fb: 'Garbage in, garbage out. Le brouillon 2023 peut remonter en premier et produire une réponse fausse.' },
+    { t: 'Ne garder que la version officielle 2025.', fb: 'Trop radical : un contrat souscrit en 2019 relève des CG en vigueur à cette date. La réponse citerait un texte non applicable.' },
+    { t: 'Indexer les versions officielles avec statut et période de validité, exclure le brouillon, filtrer selon la date du contrat.', fb: 'Correct. Chaque fiche porte son millésime ; la question précise les dates (« contrat souscrit le 12/03/2019 ») pour attraper le bon texte.' } ] },
+  { id: 'chunk', label: 'Taille des fiches', q: 'Comment découper les conditions générales ?', good: 1, tag: 'Taille des fiches', opts: [
+    { t: 'Une phrase par fiche, environ 60 tokens.', fb: 'Trop fin : une phrase isolée perd son contexte (« dans ce cas, la garantie ne s’applique pas » : quel cas ?).' },
+    { t: 'Des fiches thématiques de 500 à 800 tokens, avec un léger chevauchement, qui gardent document et page.', fb: 'Bon calibrage : une idée complète par fiche, sans couper une clause en deux, avec son origine pour la citer.' },
+    { t: 'Un document entier par fiche.', fb: 'Trop gros : un seul vecteur pour 80 pages mélange tous les sujets, et chaque extrait injecté coûte des milliers de tokens.' } ] },
+  { id: 'rights', label: 'Les droits d’accès', q: 'La base contient aussi des rapports d’expertise et des notes RH à accès restreint. Comment les protéger ?', good: 0, critical: true, tag: 'Droits d’accès', opts: [
+    { t: 'Le système lit l’habilitation de la personne qui pose la question et filtre les fiches avant la génération.', fb: 'Correct. Ce que je ne peux pas voir sur le dossier papier, l’IA ne doit pas me le faire deviner. Après la génération, il est trop tard.' },
+    { t: 'Ajouter au prompt système : « Ne révèle jamais les documents confidentiels. »', fb: 'Fuite à terme : une fois l’extrait dans le contexte, une question détournée suffit à le faire ressortir. Une consigne n’est pas un contrôle d’accès.' },
+    { t: 'Aucun filtre : c’est un outil interne sécurisé, nous sommes en famille.', fb: 'C’est le piège du cloître : les fiches de paie déposées par les RH ressurgissent chez un conseiller à 200 km.' } ] },
+  { id: 'ctx', label: 'Taille du contexte injecté', q: 'Combien d’extraits placer sous les yeux du modèle ?', good: 2, tag: 'Taille du contexte', opts: [
+    { t: 'Un seul extrait, le plus proche.', fb: 'Trop peu : si la clause d’exclusion est dans une autre fiche que la garantie, le modèle ne voit qu’une moitié du raisonnement.' },
+    { t: 'Trois cents extraits, pour remplir toute la fenêtre de contexte.', fb: 'Trop : l’information utile se noie au milieu, le coût et le temps de réponse explosent.' },
+    { t: 'Les 5 à 8 extraits les plus pertinents, avec leurs références.', fb: 'Bon dosage : assez de matière pour la garantie et ses exclusions, sans diluer l’attention du modèle.' } ] },
+  { id: 'ground', label: 'Consigne de rédaction', q: 'Quelle consigne donner au modèle dans le prompt système ?', good: 1, critical: true, tag: 'Rédaction sous surveillance', opts: [
+    { t: 'Réponds de la façon la plus complète possible, en t’appuyant sur les extraits et sur tes connaissances.', fb: 'Risque d’hallucination : vous mélangez vos documents et la mémoire statistique du modèle.' },
+    { t: 'Réponds uniquement avec ces extraits, sinon dis que tu ne sais pas. Cite le document et la page.', fb: 'Correct. C’est la consigne du support : rédiger sous surveillance, source citée, droit de ne pas savoir.' },
+    { t: 'Pas de consigne : les extraits suffisent.', fb: 'Risque d’hallucination : quand les extraits ne suffisent pas, le modèle comble le vide avec du plausible.' } ] },
+];
+const stepById = id => STEPS3.find(x => x.id === id);
+
+let S3 = null;
+MODS[3] = {
+  progress() {
+    const s = S3, k = Object.keys(s.pick).length;
+    return { answered: k + (s.moved ? 1 : 0), txt: `${k} choix sur 5, simulation ${s.running ? 'en cours' : 'non lancée'}` };
+  },
+  details() {
+    const s = S3, out = [];
+    if (s.incident) out.push({ title: 'Simulation', items: [{ label: s.incident.label, ok: false, given: '', expected: '', why: s.incident.why }] });
+    out.push({ title: 'Ordre du pipeline', items: STEPS3.map((st, i) => ({ label: `Étape ${i + 1}`, ok: s.order[i] === st.id, given: stepById(s.order[i]).name, expected: st.name, why: st.desc })) });
+    out.push({ title: 'Choix de conception', items: L3_CH.map(g => { const k = s.pick[g.id];
+      return { label: `${g.label} : ${g.q}`, ok: k === g.good, given: g.opts[k].t, expected: g.opts[g.good].t, why: k === g.good ? g.opts[k].fb : `${g.opts[k].fb} ${g.opts[g.good].fb}` }; }) });
+    return out;
+  },
+  start() {
+    let order = shuffle(STEPS3.map(x => x.id));
+    while (order.join() === STEPS3.map(x => x.id).join()) order = shuffle(order);
+    S3 = { order, pick: {}, running: false, log: [], active: -1, failStep: -1, result: null, recorded: false };
+  },
+  view() {
+    const s = S3, done = !!s.result, lock = s.running || done;
+    const rows = s.order.map((id, pos) => {
+      const st = stepById(id);
+      const cls = done ? (STEPS3[pos].id === id ? 'good' : 'wrong') : '';
+      return `<li class="order-row ${cls} ${lock ? '' : 'draggable'}" data-id="${id}" ${lock ? '' : `tabindex="0" aria-label="${st.name}, position ${pos + 1} sur ${s.order.length}. Glissez pour déplacer, ou utilisez les flèches haut et bas du clavier."`}>
+        ${lock ? '' : '<span class="grip" aria-hidden="true">⋮⋮</span>'}
+        <span class="num-circle sm">${pos + 1}</span>
+        <div class="min-w-0 flex-1"><b style="font-size:15px">${st.name}</b><p class="small muted">${st.desc}</p></div>
+      </li>`;
+    }).join('');
+    const groups = L3_CH.map((g, gi) => {
+      const k = s.pick[g.id];
+      return `<section class="panel min-w-0">
+        <p class="eyebrow">${'BCDEF'[gi]} · ${g.label}${g.critical ? ' <span class="pill pill-bad" style="margin-left:6px">critique</span>' : ''}</p>
+        <h3 class="h3 mt-2">${g.q}</h3>
+        <div class="grid gap-2 mt-3">${g.opts.map((o, i) => {
+          let c = 'opt';
+          if (k === i) c += done ? (i === g.good ? ' ok' : ' bad') : ' sel';
+          else if (done) c += i === g.good ? ' ok-reveal' : ' fade';
+          return `<button class="${c}" data-action="l3-pick" data-g="${g.id}" data-i="${i}" ${lock ? 'disabled' : ''}><span class="key">${i + 1}</span><span class="opt-body">${o.t}${done && k === i ? `<p class="opt-fb">${o.fb}</p>` : ''}</span></button>`;
+        }).join('')}</div></section>`;
+    }).join('');
+    const pipe = s.order.map((id, pos) => {
+      let c = 'chip';
+      if (s.failStep === pos) c += ' fail';
+      else if (pos < s.active || (done && s.failStep < 0)) c += ' done';
+      else if (pos === s.active) c += ' on';
+      return `<span class="${c}" data-chip="${pos}">${stepById(id).name}</span>`;
+    }).join('<span class="arrow" aria-hidden="true">→</span>');
+    const ready = L3_CH.every(g => s.pick[g.id] !== undefined);
+
+    return `${LevelHeader(3)}
+    <section class="panel">
+      <div class="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div class="min-w-0">
+          <p class="eyebrow">Problématique interne · L’assistant documentaire</p>
+          <p class="mt-3">Un collaborateur génie qui a tout lu a répondu « oui, sans franchise » à un sociétaire. Page 42 des conditions générales : exclusion si inoccupation supérieure à 15 jours. Le sociétaire était absent 30 jours. Il n’a pas voulu mal faire : il a improvisé.</p>
+          <p class="mt-3">Votre mission : construire l’assistant qui répond <b>à livre ouvert</b>, avec les documents de l’établissement.</p>
+        </div>
+        <div class="min-w-0">
+          <p class="eyebrow grey">Question test</p>
+          <div class="mt-2 mb-3">${person('thomas', 44)}</div>
+          <div class="prompt-box">« Contrat MRH souscrit le 12/03/2019, sinistre du 03/02/2025 : dégât des eaux par gel de canalisations, maison inoccupée 30 jours. La garantie joue-t-elle ? »
+<span class="pe">Habilitation : conseiller, sans accès aux expertises ni aux notes RH.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel mt-5">
+      <div class="flex items-baseline justify-between gap-3 flex-wrap">
+        <div><p class="eyebrow">A · Architecture</p><h2 class="h2 mt-1">Ordonnez les 7 étapes du pipeline</h2></div>
+        <span class="small muted">Glissez chaque étape à sa place (poignée ⋮⋮ sur mobile).</span>
+      </div>
+      <ol class="grid gap-2 mt-4" id="order-list">${rows}</ol>
+    </section>
+
+    <div class="grid gap-5 md:grid-cols-2 mt-5">${groups}</div>
+
+    <section class="panel mt-5">
+      <div class="flex items-baseline justify-between gap-3 flex-wrap">
+        <div><p class="eyebrow">Simulation</p><h2 class="h2 mt-1">Posez la question de Thomas à votre assistant</h2></div>
+        ${done ? '' : `<button class="btn btn-primary" data-action="l3-run" ${ready && !s.running ? '' : 'disabled'}>${s.running ? 'Simulation en cours…' : 'Lancer la simulation'}</button>`}
+      </div>
+      ${ready || s.running || done ? '' : '<p class="small muted mt-2">Répondez aux blocs B à F pour lancer la simulation.</p>'}
+      <div class="pipe mt-4">${pipe}</div>
+      <div class="console mt-4" id="console" aria-live="polite">${s.log.length ? s.log.map(lineHtml).join('') : '<div class="ln-idle">En attente du lancement…</div>'}</div>
+    </section>
+    ${done ? L3Result() : ''}`;
+  },
+  handle(a, d) {
+    const s = S3;
+    if (a === 'l3-pick') { s.pick[d.g] = +d.i; render(false); return true; }
+    if (a === 'l3-run') {
+      const sim = simulateL3(); s.active = -1; s.failStep = -1;
+      play(s, sim.ev, e => { if (e.step !== undefined) { s.active = e.step; if (e.fail) s.failStep = e.step; paintPipe3(); } },
+        () => { s.active = sim.fail ? sim.failStep : s.order.length; s.failStep = sim.fail ? sim.failStep : -1; s.result = { fail: sim.fail }; });
+      return true;
+    }
+    return false;
+  },
+};
+/* ---------- Cliquer-glisser du pipeline (souris, tactile et clavier) ---------- */
+let drag3 = null;
+function renumber3(list) { [...list.children].forEach((r, i) => { const c = r.querySelector('.num-circle'); if (c) c.textContent = i + 1; }); }
+document.addEventListener('pointerdown', e => {
+  const row = e.target.closest && e.target.closest('#order-list .order-row.draggable');
+  if (!row || !S3 || S3.running || S3.result) return;
+  if (e.pointerType !== 'mouse' && !e.target.closest('.grip')) return; // tactile : par la poignée, pour laisser défiler la page
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  e.preventDefault();
+  drag3 = { row, list: row.parentElement, moved: false };
+  row.classList.add('dragging');
+  try { row.setPointerCapture(e.pointerId); } catch (err) {}
+});
+document.addEventListener('pointermove', e => {
+  if (!drag3) return;
+  e.preventDefault();
+  const { row, list } = drag3;
+  let before = null;
+  for (const r of list.children) {
+    if (r === row) continue;
+    const b = r.getBoundingClientRect();
+    if (e.clientY < b.top + b.height / 2) { before = r; break; }
+  }
+  if (before) { if (row.nextElementSibling !== before) { list.insertBefore(row, before); drag3.moved = true; renumber3(list); } }
+  else if (list.lastElementChild !== row) { list.appendChild(row); drag3.moved = true; renumber3(list); }
+  if (e.clientY < 70) window.scrollBy(0, -14); else if (e.clientY > window.innerHeight - 70) window.scrollBy(0, 14);
+});
+function endDrag3() {
+  if (!drag3) return;
+  const { row, list, moved } = drag3; drag3 = null;
+  row.classList.remove('dragging');
+  if (moved) { S3.order = [...list.children].map(r => r.dataset.id); S3.moved = true; render(false); }
+}
+document.addEventListener('pointerup', endDrag3);
+document.addEventListener('pointercancel', endDrag3);
+document.addEventListener('keydown', e => {
+  const row = e.target.closest && e.target.closest('#order-list .order-row.draggable');
+  if (!row || !S3 || S3.running || S3.result || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+  e.preventDefault();
+  const i = S3.order.indexOf(row.dataset.id), j = i + (e.key === 'ArrowUp' ? -1 : 1);
+  if (j < 0 || j >= S3.order.length) return;
+  [S3.order[i], S3.order[j]] = [S3.order[j], S3.order[i]]; S3.moved = true;
+  const id = row.dataset.id; render(false);
+  const again = document.querySelector(`#order-list .order-row[data-id="${id}"]`); if (again) again.focus();
+});
+function paintPipe3() {
+  document.querySelectorAll('[data-chip]').forEach(el => {
+    const pos = +el.dataset.chip;
+    el.className = 'chip' + (S3.failStep === pos ? ' fail' : pos < S3.active ? ' done' : pos === S3.active ? ' on' : '');
+  });
+}
+function simulateL3() {
+  const s = S3, p = s.pick, ev = []; let fail = null, failStep = -1;
+  const good = id => p[id] === L3_CH.find(g => g.id === id).good;
+  ev.push({ k: 'info', t: 'Question de Thomas Bernard (habilitation conseiller) : gel de canalisations, contrat du 12/03/2019, sinistre du 03/02/2025, 30 jours d’inoccupation.' });
+  const doneSet = new Set();
+  for (let pos = 0; pos < s.order.length; pos++) {
+    const id = s.order[pos], st = stepById(id);
+    if (st.req && !doneSet.has(st.req)) { ev.push({ k: 'err', step: pos, fail: true, t: `« ${st.name} » lancée avant « ${stepById(st.req).name} » : ${st.why}` }); fail = 'order'; failStep = pos; break; }
+    doneSet.add(id);
+    if (id === 'select') {
+      if (p.versions === 2) ev.push({ k: 'ok', step: pos, t: 'CG 2017 (valides 2017-2021), CG 2021 (2021-2025), CG 2025 (en vigueur) retenues avec leur période de validité. Brouillon 2023 écarté.' });
+      else if (p.versions === 0) ev.push({ k: 'warn', step: pos, t: 'Quatre versions retenues sans statut ni date, brouillon 2023 compris.' });
+      else ev.push({ k: 'warn', step: pos, t: 'Seules les CG 2025 sont retenues. Les contrats antérieurs n’ont plus leur texte de référence.' });
+    }
+    if (id === 'chunk') {
+      if (p.chunk === 1) ev.push({ k: 'ok', step: pos, t: '1 240 fiches thématiques de 500 à 800 tokens, chacune avec document, version et page.' });
+      else if (p.chunk === 0) ev.push({ k: 'warn', step: pos, t: '14 800 micro-fiches d’une phrase : les clauses sont coupées de leurs conditions.' });
+      else ev.push({ k: 'warn', step: pos, t: '6 fiches, une par document : chaque vecteur mélange 80 pages de sujets.' });
+    }
+    if (id === 'embed') ev.push({ k: 'ok', step: pos, t: 'Embeddings calculés : « chaudière explosée » et « recours dégât des eaux » sont désormais proches par le sens.' });
+    if (id === 'index') ev.push({ k: 'ok', step: pos, t: 'Index créé avec métadonnées : document, version, page, période de validité, habilitation requise.' });
+    if (id === 'search') {
+      ev.push({ k: 'info', step: pos, t: 'Question vectorisée. Recherche des fiches les plus proches par le sens.' });
+      if (p.rights === 0) ev.push({ k: 'ok', step: pos, t: 'Habilitation « conseiller » lue : expertises médicales et notes RH exclues avant la recherche.' });
+      else ev.push({ k: 'warn', step: pos, t: 'Aucun filtre avant la recherche : un rapport d’expertise médicale d’un autre sociétaire remonte dans les résultats.' });
+      if (p.versions === 2) ev.push({ k: 'ok', step: pos, t: 'Filtre de date appliqué : contrat de 2019, donc CG 2017. Fiche remontée : « Exclusions gel », p. 42.' });
+      else if (p.versions === 0) ev.push({ k: 'warn', step: pos, t: 'Première fiche remontée : brouillon 2023, sans clause d’inoccupation.' });
+      else ev.push({ k: 'warn', step: pos, t: 'Fiche remontée : CG 2025, p. 44, texte différent de celui applicable au contrat.' });
+    }
+    if (id === 'inject') {
+      if (p.ctx === 2) ev.push({ k: 'ok', step: pos, t: '6 extraits injectés avec leurs références : garantie dégât des eaux, exclusion gel, condition d’inoccupation.' });
+      else if (p.ctx === 0) ev.push({ k: 'warn', step: pos, t: '1 extrait injecté : la garantie apparaît, pas la clause d’exclusion qui la limite.' });
+      else ev.push({ k: 'warn', step: pos, t: '300 extraits injectés : la clause utile est noyée au milieu, réponse lente et coûteuse.' });
+    }
+    if (id === 'gen') {
+      if (p.rights !== 0) { ev.push({ k: 'err', step: pos, fail: true, t: 'FUITE : la réponse mentionne des séquelles décrites dans le rapport d’expertise d’un autre sociétaire. Zone rouge santé franchie.' }); fail = 'leak'; failStep = pos; }
+      else if (p.versions !== 2) { ev.push({ k: 'err', step: pos, fail: true, t: p.versions === 0 ? 'RÉPONSE FAUSSE : « Oui, la garantie gel est acquise », tirée du brouillon 2023. Garbage in, garbage out.' : 'RÉPONSE NON OPPOSABLE : la clause citée vient des CG 2025, qui ne s’appliquent pas à un contrat souscrit en 2019.' }); fail = 'version'; failStep = pos; }
+      else if (p.ground !== 1) { ev.push({ k: 'err', step: pos, fail: true, t: 'HALLUCINATION : la réponse ajoute « une tolérance de 45 jours en période hivernale » qui n’existe dans aucun document.' }); fail = 'halluc'; failStep = pos; }
+      else {
+        ev.push({ k: 'final', step: pos, t: 'Non : l’exclusion s’applique. Le logement était inoccupé 30 jours, au-delà des 15 jours prévus. Source : CG habitation 2017, p. 42 (applicables au contrat du 12/03/2019). Réponse à vérifier et à signer par le conseiller.' });
+        if (p.chunk !== 1 || p.ctx !== 2) ev.push({ k: 'warn', step: pos, t: 'Réponse juste, mais le calibrage signalé plus haut la rend fragile sur d’autres questions.' });
+      }
+    }
+  }
+  return { ev, fail, failStep };
+}
+function L3Score() {
+  const s = S3;
+  const orderOk = s.order.filter((id, i) => STEPS3[i].id === id).length;
+  const orderPts = Math.round(orderOk / STEPS3.length * 20);
+  const choicePts = L3_CH.reduce((acc, g) => acc + (S3.pick[g.id] === g.good ? 16 : 0), 0);
+  return { orderOk, orderPts, choicePts, pct: orderPts + choicePts };
+}
+function L3Result() {
+  const s = S3, r = s.result, sc = L3Score();
+  const passed = !r.fail && sc.pct >= SEUIL;
+  const incident = { order: 'Pipeline interrompu', leak: 'Fuite de données', version: 'Mauvais millésime', halluc: 'Hallucination' };
+  const failWhy = { order: 'Une étape a été lancée avant celle dont elle dépend.', leak: 'La réponse a exposé une donnée de santé d’un autre sociétaire : le filtre des droits doit s’appliquer avant la génération.', version: 'La réponse s’appuie sur un texte qui ne s’applique pas à ce contrat (grenier poussiéreux).', halluc: 'Le modèle a comblé les manques avec une règle inventée.' };
+  s.incident = r.fail ? { label: `Incident : ${incident[r.fail]}`, why: failWhy[r.fail] } : null;
+  if (!s.recorded) {
+    s.recorded = true;
+    const errs = [];
+    if (sc.orderOk < STEPS3.length) errs.push('Ordre du pipeline');
+    L3_CH.forEach(g => { if (s.pick[g.id] !== g.good) errs.push(g.tag); });
+    if (r.fail === 'leak') errs.push('Fuite de données');
+    if (r.fail === 'halluc') errs.push('Hallucination');
+    finishAttempt(3, sc.pct, passed, [...new Set(errs)]);
+  }
+  const failText = {
+    order: 'Le pipeline s’est interrompu : une étape a été lancée avant celle dont elle dépend.',
+    leak: 'La réponse a exposé une donnée de santé d’un autre sociétaire. Le filtre des droits doit s’appliquer avant la génération.',
+    version: 'Le grenier poussiéreux a gagné : la réponse s’appuie sur un texte qui ne s’applique pas à ce contrat.',
+    halluc: 'Le pipeline fonctionne, mais le modèle a comblé les trous avec une règle inventée.',
+  };
+  const extra = `<div class="grid gap-3 sm:grid-cols-3">
+      <div class="card"><p class="eyebrow grey">Ordre du pipeline</p><p class="h3 num mt-1">${sc.orderOk} / 7 · ${sc.orderPts} pts</p></div>
+      <div class="card"><p class="eyebrow grey">Choix de conception</p><p class="h3 num mt-1">${sc.choicePts} / 80 pts</p></div>
+      <div class="card"><p class="eyebrow grey">Incident</p><p class="h3 mt-1">${r.fail ? incident[r.fail] : 'Aucun'}</p></div>
+    </div>
+    ${sc.orderOk < 7 ? `<p class="small mt-4"><b>Ordre attendu :</b> ${STEPS3.map(x => x.name).join(' → ')}</p>` : ''}`;
+  return ResultCard({ n: 3, pct: sc.pct, passed,
+    headline: passed ? 'Un assistant qui répond à livre ouvert' : (r.fail ? incident[r.fail] : 'Pipeline correct, mais sous le seuil'),
+    text: passed ? 'Bon millésime, droits respectés, source citée, droit de dire « je ne sais pas » : l’assistant réconcilie l’aisance de l’IA et la rigueur de nos métiers.'
+                 : (r.fail ? `${failText[r.fail]} Corrigez les éléments en rouge puis relancez.` : `Aucun incident, mais le calibrage fait passer le score sous ${SEUIL}. Revoyez les choix signalés.`),
+    extra });
+}
+
+COURSE[3] = {
+  title: 'Le RAG, la mémoire des dossiers : l’essentiel',
+  banner: '<b>Retrieval-Augmented Generation : le modèle rédige à partir de ce qu’on lui met sous les yeux.</b> Il réduit fortement les erreurs, sans les supprimer.',
+  cards: [
+    { h: '1. Découper', t: 'Les documents deviennent des fiches thématiques. Chaque fiche garde son origine : document, version, page.', src: 'Module 5' },
+    { h: '2. Retrouver', t: 'Recherche par le sens grâce aux embeddings : « chaudière explosée » retrouve « recours dégât des eaux ».', src: 'Module 5' },
+    { h: '3. Rédiger sous surveillance', t: '« Réponds uniquement avec ces extraits, sinon dis que tu ne sais pas. » Source citée.', src: 'Module 5' },
+    { h: 'Pourquoi pas réentraîner ?', t: 'Réentraîner : des semaines et des dizaines de milliers d’euros, un savoir figé. RAG : un nouveau PDF en quelques minutes, chaque réponse renvoie à son extrait.', src: 'Module 5' },
+    { h: 'Piège 1 : le grenier poussiéreux', t: 'CG 2017, 2021, brouillon 2023, officielle 2025 : laquelle est piochée ? Remède : statut et date de validité de chaque document.', src: 'Module 5' },
+    { h: 'Piège 2 : les droits d’accès', t: 'Le système lit l’habilitation de qui pose la question et filtre avant la génération : après, il est trop tard.', src: 'Modules 4 et 5' },
+  ],
+  callouts: [
+    { e: 'Trois réflexes de l’utilisateur averti', t: 'Ouvrir la source citée. Préciser le contexte temporel (« contrat souscrit le 12/03/2019, sinistre du 03/02/2025 »). Signaler les documents périmés à vos référents.' },
+    { e: 'Image à retenir', t: 'Une note de service de deux pages plutôt que cinq ans d’études de droit bancaire.' },
+  ],
+};
+
+/* =====================================================================
    NIVEAU 4 — CONCEPTION D'AGENTS IA (boucle ReAct, outils, AI Act)
    ===================================================================== */
 const TOOLS4 = [
@@ -1070,209 +1811,204 @@ COURSE[4] = {
 };
 
 /* =====================================================================
-   VERSION B — FICHIER D'UN SEUL NIVEAU, DÉVERROUILLÉ PAR CODE
+   VERSION A — PARCOURS CONTINU (4 niveaux dans une seule interface)
    ===================================================================== */
 const app = $('#app');
-let view = 'gate';
-function inLevelView() { return view === 'level'; }
-function isFinalLevel(n) { return n === 4; }
-
-/* ---------- Codes de passage (liés à l'adresse e-mail) ---------- */
-const normName = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
-function hash4(src) {
-  let h = 2166136261;
-  for (const ch of src) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
-  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let out = '';
-  for (let i = 0; i < 4; i++) { out += A[h % 32]; h = Math.floor(h / 32); }
-  return out;
-}
-const unlockCode = (email, lvl) => `NIV${lvl}-${hash4(`${normEmail(email)}|${lvl}|${CODE_SECRET}`)}`;
-const certCode = email => `CERT-${hash4(`${normEmail(email)}|certif|${CODE_SECRET}`)}`;
-// Ajoute à la fiche e-mail le code du niveau suivant (ou le code de certificat).
-function ficheExtra(n, passed) {
-  if (!passed) return '';
-  const code = n < 4 ? unlockCode(state.player.email, n + 1) : certCode(state.player.email);
-  const label = n < 4 ? `Votre code pour ouvrir le niveau ${n + 1}` : 'Code de vérification de votre certificat « Concepteur IA certifié »';
-  return `<tr><td style="padding:8px 0 4px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FDEEE3;border:2px dashed #EA6827;border-radius:8px"><tr><td style="padding:14px 18px;font-family:Calibri,'Segoe UI',Arial,sans-serif"><span style="font-size:13px;color:#666666">${label}</span><br><span style="font-family:Consolas,'Courier New',monospace;font-size:26px;font-weight:bold;letter-spacing:2px;color:#C4501A">${code}</span></td></tr></table></td></tr>`;
-}
-const cleanCode = s => String(s || '').toUpperCase().replace(/\s+/g, '');
+let view = 'home';
+function inLevelView() { return typeof view === 'number'; }
+const isUnlocked = n => n === 1 || !!state.levels[n - 1].passed;
+const allPassed = () => [1, 2, 3, 4].every(n => state.levels[n].passed);
+function isFinalLevel() { return allPassed(); }
 
 function onProgress() {
-  const L = state.levels[LEVEL];
-  $('#gp-label').textContent = `Niveau ${LEVEL} sur 4 · ${L.passed ? 'validé' : 'en cours'}`;
-  $('#gp-pct').textContent = `${L.best} %`;
-  $('#gp').setAttribute('aria-valuenow', L.best);
+  const passed = [1, 2, 3, 4].filter(n => state.levels[n].passed).length;
+  $('#gp-label').textContent = `${passed} / 4 niveaux validés`;
+  $('#gp-pct').textContent = `${passed * 25} %`;
+  $('#gp').setAttribute('aria-valuenow', passed * 25);
   $('#gp-bar').innerHTML = [1, 2, 3, 4].map(n => {
-    const w = n < LEVEL ? 100 : n === LEVEL ? (L.passed ? 100 : L.best) : 0;
-    return `<span class="seg ${n < LEVEL || (n === LEVEL && L.passed) ? 'ok' : ''}" title="Niveau ${n}"><i style="width:${w}%"></i></span>`;
+    const L = state.levels[n], w = L.passed ? 100 : (isUnlocked(n) ? L.best : 0);
+    return `<span class="seg ${L.passed ? 'ok' : ''}" title="Niveau ${n}"><i style="width:${w}%"></i></span>`;
   }).join('');
   const ses = currentSession();
-  $('#player').innerHTML = (state.player.prenom && state.gates[LEVEL] ? `<span class="muted">Joueur :</span> <b>${esc(playerName())}</b>` : '') + (ses ? ` <span class="pill">Session ${esc(ses)}</span>` : '');
+  $('#player').innerHTML = (state.player.prenom ? `<span class="muted">Joueur :</span> <b>${esc(playerName())}</b>` : '') + (ses ? ` <span class="pill">Session ${esc(ses)}</span>` : '');
 }
 function go(v) {
   playToken++;
-  if (v === 'level' && state.gates[LEVEL]) {
-    // Vérifie le groupe actif juste avant de lancer une partie.
-    syncGroup().then(reset => route(reset ? 'gate' : 'level'));
+  if (typeof v === 'number' && state.player.prenom) {
+    syncGroup().then(reset => route(reset ? 'start' : v));
     return;
   }
   route(v);
 }
 function route(v) {
-  if (!state.gates[LEVEL]) v = 'gate';
-  else if (v === 'summary' && !state.levels[LEVEL].passed) v = 'level';
+  if (typeof view === 'number' && view !== v && state.levels[view].inProgress) sendAbandon(view, 'retour au parcours');
+  if (!state.player.prenom) v = 'start';
+  else if (typeof v === 'number' && !isUnlocked(v)) v = 'home';
+  else if (typeof v === 'string' && v.startsWith('summary-') && !state.levels[+v.slice(8)].passed) v = 'home';
+  else if (v === 'cert' && !allPassed()) v = 'home';
   view = v;
-  if (v === 'level') { MODS[LEVEL].start(); sendStart(LEVEL); }
+  if (typeof v === 'number') { MODS[v].start(); sendStart(v); }
   render(true);
 }
 function render(top) {
   const y = window.scrollY;
-  if (view === 'gate') app.innerHTML = GateView();
-  else if (view === 'summary') app.innerHTML = SummaryView();
-  else app.innerHTML = MODS[LEVEL].view();
+  if (view === 'start') app.innerHTML = StartView();
+  else if (view === 'home') app.innerHTML = HomeView();
+  else if (view === 'cert') app.innerHTML = CertView();
+  else if (typeof view === 'string' && view.startsWith('summary-')) app.innerHTML = SummaryView(+view.slice(8));
+  else app.innerHTML = `<nav class="mt-6"><button class="link" data-action="home">← Retour au parcours</button></nav>${MODS[view].view()}`;
   onProgress(); updateChrono();
   if (top) { window.scrollTo(0, 0); const h = app.querySelector('h1'); if (h) h.focus({ preventScroll: true }); }
   else window.scrollTo(0, y);
 }
 
-function GateView() {
-  const M = LEVEL_META[LEVEL];
-  const needCode = LEVEL > 1;
-  return `<section class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_420px] items-start mt-10">
+function StartView() {
+  return `<section class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_400px] items-start mt-10">
     <div class="min-w-0">
-      <p class="eyebrow">Formation IA · Niveau ${LEVEL} sur 4 · ${M.short}</p>
-      <h1 tabindex="-1" class="title mt-2">${M.title}</h1>
-      <p class="lead mt-3">${M.intro}</p>
-      <div class="flex flex-wrap gap-2 mt-4"><span class="pill">${M.format}</span><span class="pill pill-o">Validation : ${M.rule}</span><span class="pill">${M.src}</span></div>
-      ${needCode ? `<div class="callout mt-6"><span class="eyebrow">Accès protégé</span><p>Ce niveau s’ouvre avec le code affiché à la fin du niveau ${LEVEL - 1}, dans le résumé de cours. Il vous a aussi été envoyé par e-mail. Le code est personnel : saisissez la même adresse e-mail qu’au niveau précédent.</p></div>`
-                 : '<div class="banner mt-6">Chaque niveau exige 90 % de réussite. À la fin, votre résumé de cours affiche le code qui ouvre le niveau suivant.</div>'}
+      <p class="eyebrow">Formation IA · Banque-assurance</p>
+      <h1 tabindex="-1" class="title mt-2">De l’utilisateur au concepteur de solutions IA</h1>
+      <p class="lead mt-3">Quatre niveaux tirés du support de formation : comprendre le LLM, réparer un prompt métier, assembler un pipeline RAG, concevoir un agent sous contrôle. Chaque niveau exige <b>90 %</b> de réussite pour débloquer le suivant.</p>
+      <div class="banner mt-6">Du mot suivant aux zones rouges, du prompt au RAG, puis aux agents.</div>
+      <div class="flex flex-wrap gap-5 mt-6">${person('sophie', 44)}${person('thomas', 44)}${person('claire', 44)}</div>
     </div>
-    <div class="panel min-w-0" id="gate-form">
-      <h2 class="h2">${needCode ? 'Déverrouiller le niveau' : 'Qui joue ?'}</h2>
-      <p class="small muted mt-1">Votre nom et votre adresse figurent dans le suivi de la formation.</p>
+    <div class="panel min-w-0" id="start-form">
+      <h2 class="h2">Qui joue ?</h2>
+      <p class="small muted mt-1">Votre nom figure sur le certificat et dans le suivi de la formation.</p>
       <div class="grid gap-4 mt-5">
-        <div><label class="lbl" for="f-prenom">Prénom</label><input class="field" id="f-prenom" autocomplete="given-name" maxlength="40" value="${esc(state.player.prenom)}"></div>
-        <div><label class="lbl" for="f-nom">Nom</label><input class="field" id="f-nom" autocomplete="family-name" maxlength="40" value="${esc(state.player.nom)}"></div>
-        <div><label class="lbl" for="f-email">Adresse e-mail professionnelle</label><input class="field" id="f-email" type="email" autocomplete="email" maxlength="80" spellcheck="false" placeholder="prenom.nom@${esc(DOMAINE_EMAIL || 'entreprise.fr')}" value="${esc(state.player.email)}"><p class="xs muted mt-1">${ENVOI_FICHE === 'jamais' ? 'Elle identifie votre parcours.' : 'Votre fiche de score détaillée y sera envoyée.'}</p></div>
-        ${needCode ? `<div><label class="lbl" for="f-code">Code du niveau ${LEVEL}</label><input class="field mono" id="f-code" placeholder="NIV${LEVEL}-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="80"></div>` : ''}
+        <div><label class="lbl" for="f-prenom">Prénom</label><input class="field" id="f-prenom" autocomplete="given-name" maxlength="40" required></div>
+        <div><label class="lbl" for="f-nom">Nom</label><input class="field" id="f-nom" autocomplete="family-name" maxlength="40" required></div>
+        <div><label class="lbl" for="f-email">Adresse e-mail professionnelle</label><input class="field" id="f-email" type="email" autocomplete="email" maxlength="80" spellcheck="false" placeholder="prenom.nom@${esc(DOMAINE_EMAIL || 'entreprise.fr')}"><p class="xs muted mt-1">Votre fiche de score détaillée y sera envoyée.</p></div>
         <p class="form-err" id="f-err" hidden></p>
-        <button class="btn btn-primary" type="button" data-action="gate-submit">${needCode ? 'Déverrouiller' : 'Commencer le niveau 1'}</button>
+        <button class="btn btn-primary" type="button" data-action="start-submit">Commencer le parcours</button>
       </div>
     </div>
   </section>`;
 }
-function SummaryView() {
-  const em = state.player.email;
-  let tail;
-  if (LEVEL < 4) {
-    const code = unlockCode(em, LEVEL + 1);
-    tail = `<section class="panel mt-8">
-      <div class="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-center">
-        <div class="min-w-0">
-          <p class="eyebrow">Accès au niveau ${LEVEL + 1}</p>
-          <h2 class="h2 mt-1">${LEVEL_META[LEVEL + 1].title}</h2>
-          <p class="mt-2">Ouvrez le fichier <b class="mono">niveau-${LEVEL + 1}.html</b>, puis saisissez vos prénom, nom, adresse e-mail et ce code. Il est personnel : il ne fonctionne qu’avec votre adresse.${ENVOI_FICHE === 'jamais' ? '' : ' Vous le retrouverez aussi dans l’e-mail de votre fiche de score.'}</p>
-        </div>
-        <div class="code-box"><p class="eyebrow grey">Votre code</p><p class="code-val mt-2" id="code-val">${code}</p>
-          <button class="btn btn-ghost mt-3" data-action="copy-code" data-code="${code}">Copier le code</button></div>
-      </div>
-    </section>`;
-  } else {
-    const cc = certCode(em);
-    const date = (() => { try { return new Date(state.completedAt || Date.now()).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return ''; } })();
-    tail = `<section class="cert mt-8">
-      <div class="relative flex flex-wrap items-start justify-between gap-6">
-        <div class="min-w-0" style="flex:1 1 320px">
-          <p class="eyebrow grey">Formation IA · Parcours terminé</p>
-          <p class="mt-4 muted">Certifie que</p>
-          <p class="mt-1" style="font-size:26px;font-weight:700">${esc(playerName())}</p>
-          <p class="mt-3 muted">a validé les quatre niveaux et obtient le titre de</p>
-          <p class="cert-title mt-1">Concepteur IA certifié</p>
-          <p class="small muted mt-5">Délivré le ${date} · Code de vérification <span class="mono">${cc}</span></p>
-        </div>
-        <div class="seal"><div><b>${state.levels[4].best}</b><span>score niveau 4</span></div></div>
-      </div>
-      <div class="relative mt-8"><p class="eyebrow">Compétences acquises</p>
-        <div class="mt-2">${[1, 2, 3, 4].map(k => `<div class="cert-skill"><span><b>Niveau ${k}</b> · ${LEVEL_META[k].title}</span><em>${k < 4 ? 'validé' : state.levels[4].best + ' %'}</em><small>${SKILLS[k]}</small></div>`).join('')}</div>
-      </div>
-      <div class="relative flex flex-wrap gap-3 mt-6"><button class="btn btn-primary" data-action="copy-cert">Copier mon résultat</button></div>
-    </section>`;
-  }
-  return `<nav class="mt-6"><button class="link" data-action="back">← Revenir au niveau</button></nav>
-    ${CourseSummary(LEVEL)}
-    ${tail}
-    <textarea id="share-fallback" class="field mt-4" readonly hidden aria-label="Texte à copier"></textarea>`;
+function HomeView() {
+  const passed = [1, 2, 3, 4].filter(n => state.levels[n].passed).length;
+  const next = [1, 2, 3, 4].find(n => isUnlocked(n) && !state.levels[n].passed);
+  const cards = [1, 2, 3, 4].map(n => {
+    const M = LEVEL_META[n], st = state.levels[n], un = isUnlocked(n);
+    const status = st.passed ? '<span class="pill pill-ok"><span class="dot"></span>Validé</span>'
+      : un ? `<span class="pill pill-o"><span class="dot"></span>${st.attempts ? `${st.attempts} essai${st.attempts > 1 ? 's' : ''}` : 'Disponible'}</span>` : '<span class="pill">Verrouillé</span>';
+    const btns = st.passed
+      ? `<button class="btn btn-ghost" data-action="open" data-n="${n}">Rejouer</button><button class="btn btn-ghost" data-action="summary" data-n="${n}">Résumé de cours</button>`
+      : un ? `<button class="btn btn-primary" data-action="open" data-n="${n}">${st.attempts ? 'Reprendre' : 'Commencer'} le niveau ${n}</button>`
+      : `<button class="btn btn-ghost" disabled>Validez le niveau ${n - 1} à 90 %</button>`;
+    return `<article class="lvl ${un ? '' : 'locked'}">
+      <div class="flex items-center justify-between gap-3"><span class="num-circle ${st.passed ? 'ok' : un ? '' : 'off'}">${n}</span>${status}</div>
+      <div><p class="eyebrow">${M.short}</p><h2 class="lvl-title mt-1">${M.title}</h2></div>
+      <p class="small muted">${M.intro}</p>
+      <div class="tagrow">${M.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+      <p class="small"><span class="muted">Format :</span> ${M.format}<br><span class="muted">Validation :</span> ${M.rule}</p>
+      <div class="mt-auto"><div class="flex justify-between small muted mb-1"><span>Meilleur score</span><span class="num">${st.best} %</span></div><div class="bar ${st.passed ? 'ok' : ''}"><span style="width:${st.best}%"></span></div></div>
+      <div class="flex flex-wrap gap-2">${btns}</div>
+    </article>`;
+  }).join('');
+  return `<section class="mt-8">
+    <p class="eyebrow">Bonjour ${esc(state.player.prenom)}</p>
+    <h1 tabindex="-1" class="title mt-1">Votre parcours de concepteur IA</h1>
+    <p class="lead mt-2">${passed === 4 ? 'Les quatre niveaux sont validés. Votre certification vous attend.' : `${passed} niveau${passed > 1 ? 'x' : ''} validé${passed > 1 ? 's' : ''} sur 4. Le seuil de validation est de 90 % à chaque niveau.`}</p>
+    <div class="flex flex-wrap gap-3 mt-5">
+      ${passed === 4 ? '<button class="btn btn-ok" data-action="cert">Voir ma certification</button>' : `<button class="btn btn-primary" data-action="open" data-n="${next}">${passed ? `Continuer : niveau ${next}` : 'Commencer le niveau 1'}</button>`}
+    </div>
+  </section>
+  <section class="grid gap-4 md:grid-cols-2 mt-8">${cards}</section>`;
 }
-function copyText(txt, okMsg) {
+function SummaryView(n) {
+  const next = n < 4
+    ? `<button class="btn btn-ok" data-action="open" data-n="${n + 1}">Passer au niveau ${n + 1} : ${LEVEL_META[n + 1].title}</button>`
+    : '<button class="btn btn-ok" data-action="cert">Obtenir ma certification</button>';
+  return `<nav class="mt-6"><button class="link" data-action="home">← Retour au parcours</button></nav>
+    ${CourseSummary(n)}
+    <div class="flex flex-wrap gap-3 mt-8">${next}<button class="btn btn-ghost" data-action="home">Retour au parcours</button></div>`;
+}
+function certId() {
+  const src = `${playerName()}|${state.completedAt || ''}`; let h = 2166136261;
+  for (const ch of src) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
+  return `CIA-${(state.completedAt || '2026').slice(0, 4)}-${h.toString(36).toUpperCase().slice(-5).padStart(5, '0')}`;
+}
+const avgScore = () => Math.round([1, 2, 3, 4].reduce((a, n) => a + state.levels[n].best, 0) / 4);
+const certDate = () => { try { return new Date(state.completedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return ''; } };
+function shareText() {
+  return [`Formation IA · Parcours Concepteur IA`, `${playerName()} : Concepteur IA certifié`, `Score global : ${avgScore()} %`, '',
+    ...[1, 2, 3, 4].map(n => `• Niveau ${n}, ${LEVEL_META[n].title} : ${state.levels[n].best} %`), '', `Certificat ${certId()} · ${certDate()}`].join('\n');
+}
+function CertView() {
+  return `<nav class="mt-6"><button class="link" data-action="home">← Retour au parcours</button></nav>
+  <section class="mt-4 mb-6"><p class="eyebrow">Parcours terminé</p><h1 tabindex="-1" class="title mt-1">Votre certification</h1></section>
+  <section class="cert">
+    <div class="relative flex flex-wrap items-start justify-between gap-6">
+      <div class="min-w-0" style="flex:1 1 320px">
+        <p class="eyebrow grey">Formation IA · Banque-assurance</p>
+        <p class="mt-4 muted">Certifie que</p>
+        <p class="mt-1" style="font-size:26px;font-weight:700">${esc(playerName())}</p>
+        <p class="mt-3 muted">a obtenu le titre de</p>
+        <p class="cert-title mt-1">Concepteur IA certifié</p>
+        <p class="small muted mt-5">Délivré le ${certDate()} · N° <span class="mono">${certId()}</span></p>
+      </div>
+      <div class="seal"><div><b>${avgScore()}</b><span>score global</span></div></div>
+    </div>
+    <div class="relative mt-8"><p class="eyebrow">Compétences acquises</p>
+      <div class="mt-2">${[1, 2, 3, 4].map(n => `<div class="cert-skill"><span><b>Niveau ${n}</b> · ${LEVEL_META[n].title}</span><em>${state.levels[n].best} %</em><small>${SKILLS[n]}</small></div>`).join('')}</div>
+    </div>
+  </section>
+  <section class="panel mt-6">
+    <h2 class="h3">Partager mon résultat</h2>
+    <p class="small muted mt-1">Copie un résumé texte prêt à coller dans un e-mail, Teams ou LinkedIn.</p>
+    <div class="flex flex-wrap gap-3 mt-3"><button class="btn btn-primary" data-action="copy">Copier mon score</button><button class="btn btn-ghost" data-action="ask-reset">Rejouer l’évaluation</button></div>
+    <textarea id="share-fallback" class="field mt-4" readonly hidden aria-label="Texte à copier"></textarea>
+  </section>`;
+}
+function copyShare() {
+  const txt = shareText();
   const fallback = () => { const t = $('#share-fallback'); t.value = txt; t.hidden = false; t.focus(); t.select(); toast('Texte sélectionné', 'Copiez-le avec Ctrl+C ou ⌘+C.'); };
-  try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(() => toast(okMsg, '')).catch(fallback); else fallback(); } catch (e) { fallback(); }
+  try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(() => toast('Score copié', 'Collez-le où vous voulez.')).catch(fallback); else fallback(); } catch (e) { fallback(); }
 }
 
-/* ---------- Réinitialisation (ce niveau uniquement) ---------- */
+/* ---------- Réinitialisation ---------- */
 function openModal() { const o = $('#overlay'); o.hidden = false; o.style.display = ''; $('#m-cancel').focus(); }
 function closeModal() { const o = $('#overlay'); o.hidden = true; o.style.display = 'none'; }
 
+/* ---------- Événements ---------- */
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-action]');
   if (!b || b.disabled) return;
   const a = b.dataset.action, d = b.dataset;
-  if (view === 'level' && MODS[LEVEL].handle(a, d, b)) return;
+  if (typeof view === 'number' && MODS[view].handle(a, d, b)) return;
   switch (a) {
-    case 'retry': case 'back': go('level'); break;
-    case 'summary': go('summary'); break;
-    case 'gate-submit': submitGate(); break;
-    case 'copy-code': copyText(d.code, 'Code copié'); break;
-    case 'copy-cert': copyText(`Formation IA : ${playerName()}, Concepteur IA certifié. Score niveau 4 : ${state.levels[4].best} %. Code de vérification ${certCode(state.player.email)}.`, 'Résultat copié'); break;
+    case 'home': go('home'); break;
+    case 'open': case 'retry': go(+d.n); break;
+    case 'summary': go(`summary-${d.n}`); break;
+    case 'cert': go('cert'); break;
+    case 'copy': copyShare(); break;
+    case 'start-submit': submitStart(); break;
     case 'ask-reset': openModal(); break;
     case 'cancel-reset': closeModal(); break;
-    case 'confirm-reset': {
-      if (state.levels[LEVEL].inProgress) sendAbandon(LEVEL, 'réinitialisation par l’apprenant');
-      // Le compteur de tentatives et l'historique des erreurs sont conservés : une réinitialisation ne doit pas effacer les essais.
-      { const old = state.levels[LEVEL]; state.levels[LEVEL] = Object.assign(lvState(), { attempts: old.attempts, errors: old.errors }); }
-      delete state.gates[LEVEL];
-      if (LEVEL === 4) state.completedAt = null;
-      saveState(); closeModal(); toast('Niveau réinitialisé', LEVEL > 1 ? 'Saisissez à nouveau votre code pour rejouer.' : 'Saisissez à nouveau votre nom pour rejouer.'); go('gate'); break;
-    }
+    case 'confirm-reset': { [1, 2, 3, 4].forEach(k => { if (state.levels[k].inProgress) sendAbandon(k, 'réinitialisation par l’apprenant'); }); const keep = state.session, prev = state.levels; state = freshState(); state.session = keep; [1, 2, 3, 4].forEach(k => { state.levels[k].attempts = prev[k].attempts; state.levels[k].errors = prev[k].errors; }); saveState(); } closeModal(); toast('Parcours réinitialisé', 'Saisissez à nouveau votre nom pour commencer.'); go('start'); break;
   }
 });
-function submitGate() {
+function submitStart() {
   const p = $('#f-prenom').value.trim(), n = $('#f-nom').value.trim(), em = normEmail($('#f-email').value);
   const err = $('#f-err');
   $('#f-prenom').classList.toggle('err', !p); $('#f-nom').classList.toggle('err', !n);
-  if (!p || !n) { err.textContent = 'Renseignez votre prénom et votre nom.'; err.hidden = false; return; }
+  if (!p || !n) { err.textContent = 'Renseignez votre prénom et votre nom pour commencer.'; err.hidden = false; return; }
   const emErr = emailError(em);
   $('#f-email').classList.toggle('err', !!emErr);
   if (emErr) { err.textContent = emErr; err.hidden = false; return; }
-  if (LEVEL > 1) {
-    const typed = cleanCode($('#f-code').value);
-    const ok = typed === cleanCode(unlockCode(em, LEVEL)) || typed === cleanCode(CODE_FORMATEUR);
-    $('#f-code').classList.toggle('err', !ok);
-    if (!ok) {
-      // Code valide pour ce joueur, mais d'un autre niveau : refusé avec un message explicite.
-      const other = [2, 3, 4].find(k => k !== LEVEL && typed === cleanCode(unlockCode(em, k)));
-      if (!typed) err.textContent = `Saisissez le code affiché à la fin du niveau ${LEVEL - 1}.`;
-      else if (other) err.textContent = `Ce code ouvre le niveau ${other}, pas le niveau ${LEVEL}. Le niveau ${LEVEL} s’ouvre uniquement avec le code obtenu en validant le niveau ${LEVEL - 1}.`;
-      else err.textContent = `Code incorrect pour ${em}. Vérifiez le code reçu à la fin du niveau ${LEVEL - 1} et votre adresse e-mail.`;
-      err.hidden = false; return;
-    }
-  }
-  const changed = em !== normEmail(state.player.email);
-  state.player = { prenom: p, nom: n, email: em };
-  if (changed) { state.levels = { 1: lvState(), 2: lvState(), 3: lvState(), 4: lvState() }; state.gates = {}; state.completedAt = null; state.satisfaction = null; }
-  state.gates[LEVEL] = true; saveState();
-  go(state.levels[LEVEL].passed ? 'summary' : 'level');
+  state.player = { prenom: p, nom: n, email: em }; saveState(); go('home');
 }
-document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.closest && e.target.closest('#gate-form')) { e.preventDefault(); submitGate(); } });
+function ficheExtra() { return ''; }
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.closest && e.target.closest('#start-form')) { e.preventDefault(); submitStart(); } });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#overlay').hidden) closeModal(); });
 $('#overlay').addEventListener('click', e => { if (e.target.id === 'overlay') closeModal(); });
 
-// Au retour sur l'onglet (poste partagé), vérifie si le formateur a changé de groupe.
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState !== 'visible' || view === 'level') return;
-  syncGroup().then(reset => { if (reset) route('gate'); });
+  if (document.visibilityState !== 'visible' || typeof view === 'number') return;
+  syncGroup().then(reset => { if (reset) route('start'); });
 });
 app.innerHTML = loadingView();
-syncGroup().then(() => route(state.gates[LEVEL] ? (state.levels[LEVEL].passed ? 'summary' : 'level') : 'gate'));
+syncGroup().then(() => route(state.player.prenom ? 'home' : 'start'));
 
 </script>
 </body>

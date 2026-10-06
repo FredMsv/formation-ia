@@ -264,12 +264,23 @@ textarea.field{font-family:var(--mono);font-size:13px;min-height:190px;resize:ve
 @media (max-width:1023px){.sticky-col{position:static}}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 
+/* Question de satisfaction */
+.sat-scale{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.sat-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px;border:1px solid #CFCFCF;border-radius:8px;background:var(--white);cursor:pointer;min-height:64px}
+.sat-btn b{font-size:22px;line-height:1}
+.sat-btn small{font-size:11px;color:#666;text-align:center;line-height:1.2}
+.sat-btn:hover{border-color:var(--orange)}
+.sat-btn.on{background:var(--orange-deep);border-color:var(--orange-deep);color:#fff}
+.sat-btn.on small{color:#fff}
+textarea.field.sat-comment{font-family:inherit;font-size:14px;min-height:72px}
+@media (max-width:520px){.sat-btn small{display:none}}
+
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="wrap topbar-in">
-    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Espace formateur</small></span></div>
+    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Espace formateur · v2026-10-06.1</small></span></div>
   </div>
 </header>
 <main id="app" class="wrap"></main>
@@ -282,6 +293,7 @@ textarea.field{font-family:var(--mono);font-size:13px;min-height:190px;resize:ve
 // commencé, une ligne quand il est terminé et une ligne s'il est abandonné. Champs : horodatage, evenement, session,
 // version, prenom, nom, joueur, niveau, titre_niveau, niveau_valide, score, seuil,
 // tentative, erreurs_tentative, erreurs_frequentes, email, duree_secondes, avancement,
+// note_satisfaction, commentaire_satisfaction (événement « satisfaction », fin du niveau 4),
 // puis envoyer_fiche, fiche_sujet, fiche_html, fiche_taille (pour l'e-mail, à ne pas mettre dans la feuille).
 // La session vient du lien envoyé aux apprenants : niveau-1.html?session=Groupe-A
 const WEBHOOK_URL = "https://hook.eu2.make.com/nfuswd0gqqz4kv7vrs2lid42tnilpf4v";
@@ -310,7 +322,7 @@ const CODE_FORMATEUR = "Lendys_FormateurAI2026";
 // Lien de votre Google Sheet de résultats (bouton « Ouvrir le tableau de bord »). Facultatif.
 const DASHBOARD_URL = "https://docs.google.com/spreadsheets/d/1S52PhvxFnaAFzeoWvoybTruQdamwzl0L_ZvcJHFHvPU/edit";
 const STORAGE_KEY = "formation-ia-espace-formateur-etat";
-const VERSION_LABEL = "Page formateur";
+const VERSION_LABEL = "Page formateur · v2026-10-06.1";
 
 /* =====================================================================
    NOYAU COMMUN : outils, état, suivi webhook, personnages, composants
@@ -354,6 +366,7 @@ function loadState() {
       for (const n of [1, 2, 3, 4]) { b.levels[n] = Object.assign(lvState(), (s.levels || {})[n] || {}); b.levels[n].errors = b.levels[n].errors || {}; }
       b.gates = s.gates || {};
       b.completedAt = s.completedAt || null;
+      b.satisfaction = s.satisfaction || null;
       b.session = typeof s.session === 'string' ? s.session : '';
       return b;
     }
