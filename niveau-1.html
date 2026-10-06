@@ -274,12 +274,33 @@ textarea.field{font-family:var(--mono);font-size:13px;min-height:190px;resize:ve
 textarea.field.sat-comment{font-family:inherit;font-size:14px;min-height:72px}
 @media (max-width:520px){.sat-btn small{display:none}}
 
+/* Vrai ou faux éclair */
+.tf-card{border:2px solid var(--orange);border-radius:12px;background:var(--peach);padding:28px 24px;min-height:120px;display:flex;align-items:center;justify-content:center;text-align:center;transition:background .2s,border-color .2s}
+.tf-card p{font-size:21px;line-height:1.45;font-weight:600;margin:0;max-width:720px}
+.tf-card.is-ok{border-color:var(--ok);background:var(--ok-soft)}
+.tf-card.is-bad{border-color:var(--bad);background:var(--bad-soft)}
+.tf-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tf-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:18px 10px;border-radius:10px;border:2px solid #CFCFCF;background:var(--white);cursor:pointer;transition:transform .1s,border-color .15s,background .15s}
+.tf-btn b{font-size:22px}
+.tf-btn small{font-size:11px;color:#777}
+.tf-btn.tf-true:hover:not(:disabled){border-color:var(--ok);transform:translateY(-2px)}
+.tf-btn.tf-false:hover:not(:disabled){border-color:var(--bad);transform:translateY(-2px)}
+.tf-btn:disabled{cursor:default}
+.tf-btn.ok{border-color:var(--ok);background:var(--ok-soft)}
+.tf-btn.bad{border-color:var(--bad);background:var(--bad-soft)}
+.tf-btn.ok-reveal{border-color:var(--ok);border-style:dashed}
+.tf-btn.fade{opacity:.5}
+.tf-streak{transition:background .2s,color .2s}
+.tf-streak.hot{background:var(--orange-deep);color:#fff}
+.tf-recap{display:flex;gap:6px;flex-wrap:wrap}
+@media (prefers-reduced-motion:reduce){.tf-btn,.tf-card{transition:none}.tf-btn:hover{transform:none!important}}
+
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="wrap topbar-in">
-    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Niveau 1 sur 4 · Démystifier l’IA générative · v2026-10-06.1</small></span></div>
+    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Niveau 1 sur 4 · Démystifier l’IA générative · v2026-10-06.2</small></span></div>
     <div class="gp" id="gp" role="progressbar" aria-label="Progression" aria-valuemin="0" aria-valuemax="100">
       <div class="gp-top"><span id="gp-label"></span><strong class="num" id="gp-pct"></strong></div>
       <div class="gp-bar" id="gp-bar"></div>
@@ -338,7 +359,7 @@ const CODE_FORMATEUR = "Lendys_FormateurAI2026";
 // Numéro du niveau contenu dans ce fichier (ne pas modifier).
 const LEVEL = 1;
 const STORAGE_KEY = "formation-ia-parcours-B";
-const VERSION_LABEL = "B - fichier niveau 1 · v2026-10-06.1";
+const VERSION_LABEL = "B - fichier niveau 1 · v2026-10-06.2";
 
 /* =====================================================================
    NOYAU COMMUN : outils, état, suivi webhook, personnages, composants
@@ -350,16 +371,16 @@ const reduceMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-r
 
 /* ---------- Métadonnées des niveaux ---------- */
 const LEVEL_META = {
-  1: { title: 'Démystifier l’IA générative', short: 'Fondations', format: 'Quiz · 10 situations métier', rule: '9 bonnes réponses sur 10', src: 'Modules 1, 3 et 4 du support',
+  1: { title: 'Démystifier l’IA générative', short: 'Fondations', format: 'Vrai ou faux + quiz de 10 situations', rule: 'score ≥ 90/100', src: 'Modules 1, 3 et 4 du support',
        intro: 'Un LLM ne comprend pas : il prédit le mot suivant. Dix situations tirées de nos métiers pour maîtriser tokens, probabilités, température, hallucinations et limites d’usage.',
        tags: ['Tokens', 'Probabilités', 'Température', 'Hallucinations', 'Feutre noir', 'Zones rouges'] },
-  2: { title: 'Prompt engineering avancé', short: 'L’artisan', format: 'Atelier « Répare le prompt »', rule: 'robustesse ≥ 90/100', src: 'Modules 2 et 3 du support',
+  2: { title: 'Prompt engineering avancé', short: 'L’artisan', format: 'Vrai ou faux + atelier « Répare le prompt »', rule: 'robustesse ≥ 90/100', src: 'Modules 2 et 3 du support',
        intro: 'Le fil rouge : la réponse au sociétaire furieux après un refus d’indemnisation. Diagnostiquez le prompt, passez le feutre noir, puis reconstruisez-le avec les cinq ingrédients.',
        tags: ['Rôle', 'Contexte', 'Tâche', 'Contraintes', 'Format', 'Anonymisation'] },
-  3: { title: 'RAG et gestion du contexte', short: 'L’architecte de données', format: 'Assemblage du pipeline RAG', rule: 'pipeline sans fuite ni hallucination, ≥ 90/100', src: 'Modules 4 et 5 du support',
+  3: { title: 'RAG et gestion du contexte', short: 'L’architecte de données', format: 'Vrai ou faux + assemblage du pipeline RAG', rule: 'pipeline sans fuite ni hallucination, ≥ 90/100', src: 'Modules 4 et 5 du support',
        intro: 'Construisez l’assistant documentaire qui répond « à livre ouvert » sur les conditions générales, sans tomber dans le grenier poussiéreux ni percer les droits d’accès.',
        tags: ['Découpage', 'Embeddings', 'Recherche par le sens', 'Millésimes', 'Droits d’accès'] },
-  4: { title: 'Conception d’agents IA', short: 'Le concepteur', format: 'Simulateur ReAct + AI Act', rule: 'mission sans boucle ni débordement, ≥ 90/100', src: 'Modules 4, 5 et 6 du support, appliqués aux agents',
+  4: { title: 'Conception d’agents IA', short: 'Le concepteur', format: 'Vrai ou faux + simulateur ReAct et AI Act', rule: 'mission sans boucle ni débordement, ≥ 90/100', src: 'Modules 4, 5 et 6 du support, appliqués aux agents',
        intro: 'Équipez un agent de traitement des réclamations : outils au moindre privilège, garde-fous, validation humaine. Puis classez des usages selon l’AI Act.',
        tags: ['ReAct', 'Outils', 'Moindre privilège', 'Garde-fous', 'Contrôle humain', 'AI Act'] },
 };
@@ -693,6 +714,7 @@ function ResultCard({ n, pct, passed, headline, text, extra }) {
         <p class="mt-2 prose">${text}</p>
       </div>
     </div>
+    ${tfBreakdown(n)}
     ${extra ? `<div class="mt-6">${extra}</div>` : ''}
     <div class="flex flex-wrap gap-3 mt-6">
       ${passed ? `<button class="btn btn-ok" data-action="summary" data-n="${n}">Voir le résumé de cours</button>
@@ -744,6 +766,125 @@ function play(sess, events, onStep, onDone) {
 /* ---------- Registre des niveaux ---------- */
 const MODS = {};
 const COURSE = {};
+
+/* =====================================================================
+   VRAI OU FAUX ÉCLAIR — échauffement de chaque niveau (20 % du score)
+   ===================================================================== */
+const TF_WEIGHT = 20; // part du vrai/faux dans le score du niveau, en %
+const TF_DATA = {
+  1: [
+    { t: 'Un LLM vérifie ses informations sur Internet avant de répondre.', v: false, tag: 'Prédiction du mot suivant', fb: 'Faux. Un LLM seul ne vérifie rien : il calcule la suite la plus probable, token après token. Il n’a pas accès au web par défaut.' },
+    { t: 'Le mot « surassurance » peut être découpé en plusieurs tokens.', v: true, tag: 'Tokenisation', fb: 'Vrai. « sur », « assur », « ance » : trois blocs, trois numéros. Le modèle ne calcule que sur ces numéros.' },
+    { t: 'Une température basse donne des réponses plus sobres et reproductibles.', v: true, tag: 'Température', fb: 'Vrai. C’est le réglage des écrits contractuels. Une température haute apporte de la variété, et plus d’invention.' },
+    { t: 'Une référence juridique précise, citée avec aplomb par l’IA, est forcément exacte.', v: false, tag: 'Hallucination', fb: 'Faux. Plausible n’est pas exact : le modèle peut citer un article ou un arrêt qui n’existe pas. On vérifie à la source.' },
+    { t: 'Sur un outil gratuit grand public, ce que vous collez peut servir à réentraîner le modèle.', v: true, tag: 'Outil non homologué', fb: 'Vrai, selon le service et ses réglages. Un outil gratuit se paie souvent en données : zéro donnée professionnelle sur un outil non homologué.' },
+    { t: 'Sur l’outil interne sécurisé, on peut résumer une analyse Tracfin si le client est anonymisé.', v: false, tag: 'Zones rouges', fb: 'Faux. Tracfin est une zone rouge absolue, comme le secret médical et l’information privilégiée : l’IA reste éteinte, même sur l’outil interne.' },
+  ],
+  2: [
+    { t: 'Remplacer « M. Dupont » par « M. X » suffit à anonymiser un dossier.', v: false, tag: 'Pseudonymisation vs anonymisation', fb: 'Faux. C’est de la pseudonymisation : profession, ville, âge ou montant suffisent à réidentifier la personne. Règle du feutre noir.' },
+    { t: 'Les contraintes sont l’ingrédient du prompt le plus souvent oublié.', v: true, tag: 'Contraintes', fb: 'Vrai. Ton, volume, « n’invente aucun chiffre » : les garde-fous que 9 personnes sur 10 oublient.' },
+    { t: 'Une donnée pseudonymisée reste une donnée personnelle soumise au RGPD.', v: true, tag: 'RGPD', fb: 'Vrai. Tant que la réidentification est possible, le RGPD et le secret bancaire s’appliquent (RGPD, art. 4 et considérant 26).' },
+    { t: 'Un bon prompt demande plusieurs livrables d’un coup pour gagner du temps.', v: false, tag: 'Tâche', fb: 'Faux. La tâche, c’est un verbe précis (rédige, extrais, compare) et un seul livrable.' },
+    { t: 'Le format peut être laissé de côté : on remettra en forme après.', v: false, tag: 'Format', fb: 'Faux. Tableau, puces, plan : préciser le format donne un résultat prêt à l’emploi, sans réécriture.' },
+    { t: 'Un arrêt de travail mentionné dans un dossier touche à une donnée de santé.', v: true, tag: 'Données de santé', fb: 'Vrai. Une pathologie ou un arrêt maladie relève des données de santé (RGPD, art. 9) : à retirer avant tout prompt.' },
+  ],
+  3: [
+    { t: 'Le RAG supprime totalement les hallucinations.', v: false, tag: 'Hallucination', fb: 'Faux. Le RAG réduit fortement les erreurs, sans les supprimer. On vérifie toujours la source citée.' },
+    { t: 'Chaque fiche découpée doit garder son origine : document et page.', v: true, tag: 'Découpage', fb: 'Vrai. C’est ce qui permet de citer la source et de vérifier l’extrait utilisé.' },
+    { t: 'Ajouter un nouveau document dans un RAG prend des semaines de calcul.', v: false, tag: 'Mise à jour', fb: 'Faux. Un nouveau PDF s’intègre en quelques secondes ou minutes. C’est le réentraînement du modèle qui prend des semaines.' },
+    { t: 'La recherche par le sens peut retrouver un texte qui n’emploie pas les mots de la question.', v: true, tag: 'Embeddings', fb: 'Vrai. « La chaudière a explosé » retrouve la fiche « recours dégât des eaux » grâce aux embeddings.' },
+    { t: 'Si plusieurs versions des conditions générales sont indexées, le RAG prend toujours la plus récente.', v: false, tag: 'Millésimes des documents', fb: 'Faux. C’est le grenier poussiéreux : sans statut ni date de validité, il peut piocher le brouillon 2023. Précisez aussi les dates dans la question.' },
+    { t: 'Le filtre des droits d’accès doit s’appliquer avant la génération de la réponse.', v: true, tag: 'Droits d’accès', fb: 'Vrai. Après la génération, il est trop tard : la donnée a déjà été lue et reformulée.' },
+  ],
+  4: [
+    { t: 'Le niveau de risque AI Act se juge par outil : un LLM est soit à haut risque, soit non.', v: false, tag: 'AI Act : niveau de risque', fb: 'Faux. Il se juge par cas d’usage : le même LLM peut servir un usage minimal ou à haut risque.' },
+    { t: 'Un chatbot d’accueil client doit indiquer qu’il s’agit d’une IA.', v: true, tag: 'AI Act : transparence', fb: 'Vrai. Obligation de transparence (art. 50), applicable depuis le 2 août 2026.' },
+    { t: 'Le score de crédit d’un particulier est un usage à haut risque.', v: true, tag: 'AI Act : haut risque', fb: 'Vrai. Annexe III, point 5. Obligations applicables au 2 décembre 2027 depuis l’omnibus numérique.' },
+    { t: 'L’obligation de littératie IA (art. 4) ne s’appliquera qu’en 2027.', v: false, tag: 'AI Act : calendrier', fb: 'Faux. Elle s’applique depuis le 2 février 2025 : cette formation en fait partie.' },
+    { t: 'Donner à un agent tous les outils disponibles le rend plus sûr.', v: false, tag: 'Moindre privilège', fb: 'Faux. Un outil disponible finit toujours par être utilisé : uniquement les outils utiles à la mission, en lecture seule si possible.' },
+    { t: 'Sans plafond d’itérations, un agent en échec peut tourner en boucle.', v: true, tag: 'Boucle ReAct', fb: 'Vrai. Pensée, action, observation : sans plafond ni règle d’arrêt, un échec devient une boucle infinie.' },
+  ],
+};
+const TF = {};
+function tfReset(n) { TF[n] = { order: shuffle(TF_DATA[n].map((_, k) => k)), i: 0, picks: {}, streak: 0, best: 0, done: false, mainPct: null }; }
+const tfGood = n => Object.entries(TF[n].picks).filter(([k, v]) => TF_DATA[n][k].v === v).length;
+const tfPct = n => Math.round(tfGood(n) / TF_DATA[n].length * 100);
+// Score final du niveau : 80 % défi principal, 20 % vrai ou faux.
+function tfMix(n, mainPct) { TF[n].mainPct = mainPct; return Math.round(mainPct * (100 - TF_WEIGHT) / 100 + tfPct(n) * TF_WEIGHT / 100); }
+const tfErrs = n => TF_DATA[n].filter((q, k) => TF[n].picks[k] !== q.v).map(q => q.tag);
+function tfBreakdown(n) {
+  const t = TF[n]; if (!t || t.mainPct === null) return '';
+  return `<p class="small muted mt-3">Calcul : défi principal ${t.mainPct}/100 × ${100 - TF_WEIGHT} % + vrai ou faux ${tfGood(n)}/${TF_DATA[n].length} × ${TF_WEIGHT} %. Meilleure série : ${t.best}.</p>`;
+}
+function TFView(n) {
+  const t = TF[n], D = TF_DATA[n];
+  if (t.i >= D.length) {
+    const g = tfGood(n);
+    return `${LevelHeader(n)}<section class="panel tf-end" id="tf-stage">
+      <p class="eyebrow">Échauffement terminé</p>
+      <h2 class="h2 mt-2">${g} sur ${D.length} en vrai ou faux</h2>
+      <p class="mt-2">Meilleure série : <b>${t.best}</b> bonne${t.best > 1 ? 's' : ''} réponse${t.best > 1 ? 's' : ''} d’affilée. Ce résultat compte pour ${TF_WEIGHT} % du score du niveau.</p>
+      <div class="tf-recap mt-4">${t.order.map(k => `<span class="qdot ${t.picks[k] === D[k].v ? 'y' : 'n'}" title="${esc(D[k].tag)}"></span>`).join('')}</div>
+      <div class="flex justify-end mt-6"><button class="btn btn-primary" data-action="tf-go">Passer au défi principal</button></div>
+    </section>`;
+  }
+  const k = t.order[t.i], q = D[k], ans = t.picks[k], answered = ans !== undefined, ok = answered && ans === q.v;
+  const dots = t.order.map((kk, p) => `<span class="qdot ${p < t.i || (p === t.i && answered) ? (t.picks[kk] === D[kk].v ? 'y' : 'n') : (p === t.i ? 'cur' : '')}"></span>`).join('');
+  const btn = (val, label, key) => {
+    let c = `tf-btn tf-${val ? 'true' : 'false'}`;
+    if (answered) c += ans === val ? (ok ? ' ok' : ' bad') : (q.v === val ? ' ok-reveal' : ' fade');
+    return `<button class="${c}" data-action="tf-pick" data-v="${val ? 1 : 0}" ${answered ? 'disabled' : ''}><b>${label}</b><small>touche ${key}</small></button>`;
+  };
+  return `${LevelHeader(n)}
+  <section class="panel min-w-0" id="tf-stage">
+    <div class="flex items-center justify-between gap-3 flex-wrap">
+      <p class="eyebrow">Échauffement · Vrai ou faux éclair · ${t.i + 1} sur ${D.length}</p>
+      <div class="flex items-center gap-3"><span class="pill tf-streak ${t.streak >= 3 ? 'hot' : ''}">Série : ${t.streak}</span><div class="qdots" aria-hidden="true">${dots}</div></div>
+    </div>
+    <div class="tf-card mt-4 ${answered ? (ok ? 'is-ok' : 'is-bad') : ''}"><p>${q.t}</p></div>
+    <div class="tf-actions mt-4">${btn(true, 'Vrai', 'V')}${btn(false, 'Faux', 'F')}</div>
+    ${answered ? `<div class="fb ${ok ? 'fb-ok' : 'fb-bad'} mt-5" role="status"><div class="fb-head">${ok ? '✓ Bien vu' : '✗ Raté'}${ok && t.streak >= 3 ? ` · série de ${t.streak} !` : ''}</div><p>${q.fb}</p></div>
+      <div class="flex justify-end mt-5"><button class="btn btn-primary" data-action="tf-next">${t.i < D.length - 1 ? 'Affirmation suivante' : 'Voir mon échauffement'}</button></div>` : ''}
+  </section>`;
+}
+function TFHandle(n, a, d) {
+  const t = TF[n];
+  if (a === 'tf-pick') {
+    const k = t.order[t.i]; if (t.picks[k] !== undefined) return true;
+    const v = d.v === '1'; t.picks[k] = v;
+    if (v === TF_DATA[n][k].v) { t.streak++; t.best = Math.max(t.best, t.streak); } else t.streak = 0;
+    render(false); return true;
+  }
+  if (a === 'tf-next') { t.i++; render(false); return true; }
+  if (a === 'tf-go') { t.done = true; render(true); return true; }
+  return false;
+}
+// Ajoute l'échauffement vrai/faux devant le défi principal d'un niveau.
+function withTF(n) {
+  const M = MODS[n], o = { start: M.start, view: M.view, handle: M.handle, progress: M.progress, details: M.details };
+  M.start = function () { tfReset(n); return o.start.apply(M, arguments); };
+  M.view = function () { return TF[n].done ? o.view.apply(M, arguments) : TFView(n); };
+  M.handle = function (a, d, b) { return a.startsWith('tf-') ? TFHandle(n, a, d) : o.handle.call(M, a, d, b); };
+  M.progress = function () {
+    const nb = Object.keys(TF[n].picks).length;
+    if (!TF[n].done) return { answered: nb, txt: `vrai ou faux : ${nb} affirmation${nb > 1 ? 's' : ''} sur ${TF_DATA[n].length}, dont ${tfGood(n)} juste${tfGood(n) > 1 ? 's' : ''}, défi principal non commencé` };
+    const p = o.progress.call(M);
+    return { answered: nb + (p.answered || 0), txt: `vrai ou faux ${tfGood(n)}/${TF_DATA[n].length} · ${p.txt}` };
+  };
+  M.details = function () {
+    const D = TF_DATA[n];
+    return [{ title: `Vrai ou faux (${TF_WEIGHT} % du score)`, items: D.map((q, k) => {
+      const g = TF[n].picks[k], ok = g === q.v;
+      return { label: q.t, ok, given: g === undefined ? 'sans réponse' : (g ? 'Vrai' : 'Faux'), expected: q.v ? 'Vrai' : 'Faux', why: q.fb };
+    }) }, ...o.details.call(M)];
+  };
+}
+document.addEventListener('keydown', e => {
+  if (!$('#tf-stage') || e.ctrlKey || e.metaKey || e.altKey || /input|textarea/i.test((e.target.tagName || ''))) return;
+  const key = e.key.toLowerCase();
+  const b = key === 'v' ? $('[data-action="tf-pick"][data-v="1"]') : key === 'f' ? $('[data-action="tf-pick"][data-v="0"]') : null;
+  if (b && !b.disabled) { e.preventDefault(); b.click(); }
+});
 
 /* =====================================================================
    NIVEAU 1 — DÉMYSTIFIER L'IA GÉNÉRATIVE (quiz, 10 situations)
@@ -903,7 +1044,7 @@ MODS[1] = {
       </section>
       <aside class="card sticky-col min-w-0">
         <p class="eyebrow">Règle du niveau</p>
-        <p class="mt-1 small">Dix situations. Il faut au moins <b>9 bonnes réponses</b> (90 %) pour valider. Chaque réponse est expliquée.</p>
+        <p class="mt-1 small">Dix situations, chaque réponse est expliquée. Score : situations 80 %, vrai ou faux 20 %. Il faut <b>${SEUIL}/100</b> pour valider.</p>
         <hr class="divider my-4">
         <p class="eyebrow grey">Bonnes réponses</p>
         <p class="num mt-1" style="font-size:30px;font-weight:700">${score}<span class="muted" style="font-size:18px"> / ${L1Q.length}</span></p>
@@ -922,15 +1063,15 @@ MODS[1] = {
 function L1Result() {
   const s = S1;
   const good = s.picks.filter((p, k) => L1Q[k].opts[p].ok).length;
-  const pct = Math.round(good / L1Q.length * 100), passed = pct >= SEUIL;
-  if (!s.recorded) { s.recorded = true; finishAttempt(1, pct, passed, L1Q.filter((q, k) => !q.opts[s.picks[k]].ok).map(q => q.tag)); }
+  const pct = tfMix(1, Math.round(good / L1Q.length * 100)), passed = pct >= SEUIL;
+  if (!s.recorded) { s.recorded = true; finishAttempt(1, pct, passed, [...tfErrs(1), ...L1Q.filter((q, k) => !q.opts[s.picks[k]].ok).map(q => q.tag)]); }
   const extra = `<p class="eyebrow grey">Détail de vos réponses</p>
     <div class="mt-2">${L1Q.map((q, k) => {
       const ok = q.opts[s.picks[k]].ok;
       return `<div class="review"><span class="mark ${ok ? 'y' : 'n'}">${ok ? '✓' : '✗'}</span><div class="min-w-0"><b>${q.tag}</b> <span class="muted">· ${q.mod}</span>${ok ? '' : `<p class="mt-1">${q.concept}</p>`}</div></div>`;
     }).join('')}</div>`;
   return `${LevelHeader(1)}${ResultCard({ n: 1, pct, passed,
-    headline: passed ? `${good} sur 10 : vous savez ce que fait vraiment un LLM` : `${good} sur 10 : il en faut au moins 9`,
+    headline: passed ? `${good} sur 10 et ${tfGood(1)} sur 6 : vous savez ce que fait vraiment un LLM` : `${good} sur 10 et ${tfGood(1)} sur 6 : pas encore ${SEUIL}`,
     text: passed ? 'Tokens, probabilités, température, hallucinations, zones rouges : vous avez les bases pour conseiller un métier sans surpromettre.'
                  : 'Relisez les notions signalées en rouge, puis rejouez le niveau. Ces fondations conditionnent tous les niveaux suivants.',
     extra })}`;
@@ -952,6 +1093,7 @@ COURSE[1] = {
     { e: 'Règle du feutre noir', t: '« M. X » n’anonymise rien. Retirer noms, localisation fine, dates de naissance, numéros de contrat et de sinistre, IBAN, montants uniques.' },
   ],
 };
+withTF(1);
 
 /* =====================================================================
    VERSION B — FICHIER D'UN SEUL NIVEAU, DÉVERROUILLÉ PAR CODE

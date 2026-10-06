@@ -275,12 +275,33 @@ textarea.field{font-family:var(--mono);font-size:13px;min-height:190px;resize:ve
 textarea.field.sat-comment{font-family:inherit;font-size:14px;min-height:72px}
 @media (max-width:520px){.sat-btn small{display:none}}
 
+/* Vrai ou faux éclair */
+.tf-card{border:2px solid var(--orange);border-radius:12px;background:var(--peach);padding:28px 24px;min-height:120px;display:flex;align-items:center;justify-content:center;text-align:center;transition:background .2s,border-color .2s}
+.tf-card p{font-size:21px;line-height:1.45;font-weight:600;margin:0;max-width:720px}
+.tf-card.is-ok{border-color:var(--ok);background:var(--ok-soft)}
+.tf-card.is-bad{border-color:var(--bad);background:var(--bad-soft)}
+.tf-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tf-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:18px 10px;border-radius:10px;border:2px solid #CFCFCF;background:var(--white);cursor:pointer;transition:transform .1s,border-color .15s,background .15s}
+.tf-btn b{font-size:22px}
+.tf-btn small{font-size:11px;color:#777}
+.tf-btn.tf-true:hover:not(:disabled){border-color:var(--ok);transform:translateY(-2px)}
+.tf-btn.tf-false:hover:not(:disabled){border-color:var(--bad);transform:translateY(-2px)}
+.tf-btn:disabled{cursor:default}
+.tf-btn.ok{border-color:var(--ok);background:var(--ok-soft)}
+.tf-btn.bad{border-color:var(--bad);background:var(--bad-soft)}
+.tf-btn.ok-reveal{border-color:var(--ok);border-style:dashed}
+.tf-btn.fade{opacity:.5}
+.tf-streak{transition:background .2s,color .2s}
+.tf-streak.hot{background:var(--orange-deep);color:#fff}
+.tf-recap{display:flex;gap:6px;flex-wrap:wrap}
+@media (prefers-reduced-motion:reduce){.tf-btn,.tf-card{transition:none}.tf-btn:hover{transform:none!important}}
+
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="wrap topbar-in">
-    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Espace formateur · v2026-10-06.1</small></span></div>
+    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Espace formateur · v2026-10-06.2</small></span></div>
   </div>
 </header>
 <main id="app" class="wrap"></main>
@@ -322,7 +343,7 @@ const CODE_FORMATEUR = "Lendys_FormateurAI2026";
 // Lien de votre Google Sheet de résultats (bouton « Ouvrir le tableau de bord »). Facultatif.
 const DASHBOARD_URL = "https://docs.google.com/spreadsheets/d/1S52PhvxFnaAFzeoWvoybTruQdamwzl0L_ZvcJHFHvPU/edit";
 const STORAGE_KEY = "formation-ia-espace-formateur-etat";
-const VERSION_LABEL = "Page formateur · v2026-10-06.1";
+const VERSION_LABEL = "Page formateur · v2026-10-06.2";
 
 /* =====================================================================
    NOYAU COMMUN : outils, état, suivi webhook, personnages, composants
@@ -334,16 +355,16 @@ const reduceMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-r
 
 /* ---------- Métadonnées des niveaux ---------- */
 const LEVEL_META = {
-  1: { title: 'Démystifier l’IA générative', short: 'Fondations', format: 'Quiz · 10 situations métier', rule: '9 bonnes réponses sur 10', src: 'Modules 1, 3 et 4 du support',
+  1: { title: 'Démystifier l’IA générative', short: 'Fondations', format: 'Vrai ou faux + quiz de 10 situations', rule: 'score ≥ 90/100', src: 'Modules 1, 3 et 4 du support',
        intro: 'Un LLM ne comprend pas : il prédit le mot suivant. Dix situations tirées de nos métiers pour maîtriser tokens, probabilités, température, hallucinations et limites d’usage.',
        tags: ['Tokens', 'Probabilités', 'Température', 'Hallucinations', 'Feutre noir', 'Zones rouges'] },
-  2: { title: 'Prompt engineering avancé', short: 'L’artisan', format: 'Atelier « Répare le prompt »', rule: 'robustesse ≥ 90/100', src: 'Modules 2 et 3 du support',
+  2: { title: 'Prompt engineering avancé', short: 'L’artisan', format: 'Vrai ou faux + atelier « Répare le prompt »', rule: 'robustesse ≥ 90/100', src: 'Modules 2 et 3 du support',
        intro: 'Le fil rouge : la réponse au sociétaire furieux après un refus d’indemnisation. Diagnostiquez le prompt, passez le feutre noir, puis reconstruisez-le avec les cinq ingrédients.',
        tags: ['Rôle', 'Contexte', 'Tâche', 'Contraintes', 'Format', 'Anonymisation'] },
-  3: { title: 'RAG et gestion du contexte', short: 'L’architecte de données', format: 'Assemblage du pipeline RAG', rule: 'pipeline sans fuite ni hallucination, ≥ 90/100', src: 'Modules 4 et 5 du support',
+  3: { title: 'RAG et gestion du contexte', short: 'L’architecte de données', format: 'Vrai ou faux + assemblage du pipeline RAG', rule: 'pipeline sans fuite ni hallucination, ≥ 90/100', src: 'Modules 4 et 5 du support',
        intro: 'Construisez l’assistant documentaire qui répond « à livre ouvert » sur les conditions générales, sans tomber dans le grenier poussiéreux ni percer les droits d’accès.',
        tags: ['Découpage', 'Embeddings', 'Recherche par le sens', 'Millésimes', 'Droits d’accès'] },
-  4: { title: 'Conception d’agents IA', short: 'Le concepteur', format: 'Simulateur ReAct + AI Act', rule: 'mission sans boucle ni débordement, ≥ 90/100', src: 'Modules 4, 5 et 6 du support, appliqués aux agents',
+  4: { title: 'Conception d’agents IA', short: 'Le concepteur', format: 'Vrai ou faux + simulateur ReAct et AI Act', rule: 'mission sans boucle ni débordement, ≥ 90/100', src: 'Modules 4, 5 et 6 du support, appliqués aux agents',
        intro: 'Équipez un agent de traitement des réclamations : outils au moindre privilège, garde-fous, validation humaine. Puis classez des usages selon l’AI Act.',
        tags: ['ReAct', 'Outils', 'Moindre privilège', 'Garde-fous', 'Contrôle humain', 'AI Act'] },
 };
@@ -677,6 +698,7 @@ function ResultCard({ n, pct, passed, headline, text, extra }) {
         <p class="mt-2 prose">${text}</p>
       </div>
     </div>
+    ${tfBreakdown(n)}
     ${extra ? `<div class="mt-6">${extra}</div>` : ''}
     <div class="flex flex-wrap gap-3 mt-6">
       ${passed ? `<button class="btn btn-ok" data-action="summary" data-n="${n}">Voir le résumé de cours</button>
