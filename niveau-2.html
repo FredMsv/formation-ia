@@ -295,12 +295,56 @@ textarea.field.sat-comment{font-family:inherit;font-size:14px;min-height:72px}
 .tf-recap{display:flex;gap:6px;flex-wrap:wrap}
 @media (prefers-reduced-motion:reduce){.tf-btn,.tf-card{transition:none}.tf-btn:hover{transform:none!important}}
 
+/* Étoiles, badges, vies */
+.stars{display:inline-flex;gap:2px;vertical-align:middle;color:#D0D0D0;font-size:14px;line-height:1}
+.stars .on{color:var(--orange)}
+.stars.big{font-size:26px;gap:4px}
+.badge-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.badge{display:flex;gap:10px;align-items:center;padding:10px;border:1px solid #E2E2E2;border-radius:10px;background:var(--white);opacity:.55;filter:grayscale(1)}
+.badge.on{opacity:1;filter:none;border-color:var(--orange);background:var(--peach)}
+.badge b{display:block;font-size:14px}
+.badge small{display:block;font-size:11.5px;color:#666;line-height:1.35}
+.badge-medal{flex:0 0 40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:17px;background:#E6E6E6;color:#777}
+.badge.on .badge-medal{background:var(--orange-deep);color:#fff;box-shadow:0 0 0 3px #F7C9AE}
+.lives{gap:2px;color:#D0D0D0;font-size:15px;letter-spacing:1px}
+.lives .on{color:#C62828}
+/* Tri express */
+.tri-zone{display:flex;justify-content:center;min-height:150px}
+.tri-card{width:min(520px,100%);border:2px solid var(--ink);border-radius:14px;background:var(--white);padding:22px 20px;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.08);cursor:grab;touch-action:none;user-select:none;transition:border-color .15s,background .15s}
+.tri-card p{font-size:19px;font-weight:600;line-height:1.4;margin:6px 0 0}
+.tri-card.dragging{cursor:grabbing;box-shadow:0 14px 30px rgba(0,0,0,.18);transition:none;position:relative;z-index:5}
+.tri-card.is-ok{border-color:var(--ok);background:var(--ok-soft);cursor:default}
+.tri-card.is-bad{border-color:var(--bad);background:var(--bad-soft);cursor:default}
+.tri-bins{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.tri-bin{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:16px 8px 14px;border-radius:12px;border:2px dashed #BDBDBD;background:var(--white);cursor:pointer;min-height:96px;text-align:center}
+.tri-bin b{font-size:16px}
+.tri-bin small{font-size:12px;color:#666;line-height:1.3}
+.tri-bin .key{position:absolute;top:6px;right:8px;font-size:11px;color:#999}
+.tri-vert{border-color:#7DB592}.tri-feutre{border-color:#555}.tri-rouge{border-color:#D9786F}
+.tri-bin:hover:not(:disabled),.tri-bin.hover{border-style:solid;background:var(--peach)}
+.tri-bin.ok{border-style:solid;border-color:var(--ok);background:var(--ok-soft)}
+.tri-bin.bad{border-style:solid;border-color:var(--bad);background:var(--bad-soft)}
+.tri-bin.fade{opacity:.5}
+.tri-bin:disabled{cursor:default}
+@media (max-width:560px){.tri-bin small{display:none}.tri-bin{min-height:70px}.tri-card p{font-size:17px}}
+/* Détecteur d'hallucination */
+.det-text{line-height:1.9}
+.det-seg{display:inline;font:inherit;text-align:left;background:none;border:none;padding:2px 3px;margin:0;border-radius:4px;cursor:pointer;color:inherit;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.det-seg:hover:not(:disabled){background:var(--peach)}
+.det-seg.flagged{background:#FFE08A;box-shadow:inset 0 -2px 0 #C79A00}
+.det-seg.hit{background:var(--ok-soft);box-shadow:inset 0 -2px 0 var(--ok)}
+.det-seg.missed{background:var(--bad-soft);box-shadow:inset 0 -2px 0 var(--bad)}
+.det-seg.false{background:#EEE;text-decoration:line-through;text-decoration-color:var(--bad)}
+.det-seg:disabled{cursor:default}
+.det-timer.urgent{background:var(--bad);color:#fff}
+@media (max-width:560px){.tri-bin .key{display:none}}
+
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="wrap topbar-in">
-    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Niveau 2 sur 4 · Prompt engineering avancé · v2026-10-06.2</small></span></div>
+    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Niveau 2 sur 4 · Prompt engineering avancé · v2026-10-06.3</small></span></div>
     <div class="gp" id="gp" role="progressbar" aria-label="Progression" aria-valuemin="0" aria-valuemax="100">
       <div class="gp-top"><span id="gp-label"></span><strong class="num" id="gp-pct"></strong></div>
       <div class="gp-bar" id="gp-bar"></div>
@@ -359,7 +403,7 @@ const CODE_FORMATEUR = "Lendys_FormateurAI2026";
 // Numéro du niveau contenu dans ce fichier (ne pas modifier).
 const LEVEL = 2;
 const STORAGE_KEY = "formation-ia-parcours-B";
-const VERSION_LABEL = "B - fichier niveau 2 · v2026-10-06.2";
+const VERSION_LABEL = "B - fichier niveau 2 · v2026-10-06.3";
 
 /* =====================================================================
    NOYAU COMMUN : outils, état, suivi webhook, personnages, composants
@@ -371,8 +415,8 @@ const reduceMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-r
 
 /* ---------- Métadonnées des niveaux ---------- */
 const LEVEL_META = {
-  1: { title: 'Démystifier l’IA générative', short: 'Fondations', format: 'Vrai ou faux + quiz de 10 situations', rule: 'score ≥ 90/100', src: 'Modules 1, 3 et 4 du support',
-       intro: 'Un LLM ne comprend pas : il prédit le mot suivant. Dix situations tirées de nos métiers pour maîtriser tokens, probabilités, température, hallucinations et limites d’usage.',
+  1: { title: 'Démystifier l’IA générative', short: 'Fondations', format: '4 épreuves : vrai ou faux, situations, tri express, détecteur d’hallucination', rule: '3 vies, score ≥ 90/100', src: 'Modules 1, 3 et 4 du support',
+       intro: 'Un LLM ne comprend pas : il prédit le mot suivant. Quatre épreuves pour maîtriser tokens, température et hallucinations, et savoir ce qui peut (ou non) entrer dans un prompt. Trois vies : chaque erreur en coûte une.',
        tags: ['Tokens', 'Probabilités', 'Température', 'Hallucinations', 'Feutre noir', 'Zones rouges'] },
   2: { title: 'Prompt engineering avancé', short: 'L’artisan', format: 'Vrai ou faux + atelier « Répare le prompt »', rule: 'robustesse ≥ 90/100', src: 'Modules 2 et 3 du support',
        intro: 'Le fil rouge : la réponse au sociétaire furieux après un refus d’indemnisation. Diagnostiquez le prompt, passez le feutre noir, puis reconstruisez-le avec les cinq ingrédients.',
@@ -392,7 +436,7 @@ const SKILLS = {
 };
 
 /* ---------- État et sauvegarde ---------- */
-const lvState = () => ({ best: 0, passed: false, attempts: 0, errors: {} });
+const lvState = () => ({ best: 0, passed: false, attempts: 0, errors: {}, stars: 0 });
 function freshState() { return { player: { prenom: '', nom: '', email: '' }, levels: { 1: lvState(), 2: lvState(), 3: lvState(), 4: lvState() }, gates: {}, completedAt: null, session: '' }; }
 function loadState() {
   try {
@@ -404,6 +448,7 @@ function loadState() {
       b.gates = s.gates || {};
       b.completedAt = s.completedAt || null;
       b.satisfaction = s.satisfaction || null;
+      b.badges = s.badges || {};
       b.session = typeof s.session === 'string' ? s.session : '';
       return b;
     }
@@ -643,6 +688,7 @@ function finishAttempt(n, pct, passed, errs) {
   errs.forEach(t => { L.errors[t] = (L.errors[t] || 0) + 1; });
   if (passed) L.passed = true;
   if (passed && isFinalLevel(n) && !state.completedAt) state.completedAt = new Date().toISOString();
+  updateRewards(n, pct, passed);
   saveState();
   sendTracking(n, pct, passed, errs);
   if (passed) toast(`Niveau ${n} validé`, `Score ${pct} %. Votre résumé de cours est prêt.`);
@@ -696,7 +742,7 @@ function LevelHeader(n) {
       <span class="pill">${M.format}</span>
       <span class="pill pill-o">Validation : ${M.rule}</span>
       <span class="pill">${M.src}</span>
-      ${st.passed ? `<span class="pill pill-ok">Déjà validé · meilleur score ${st.best} %</span>` : ''}
+      ${st.passed ? `<span class="pill pill-ok">Déjà validé · meilleur score ${st.best} % · ${'★'.repeat(st.stars || 1)}${'☆'.repeat(3 - (st.stars || 1))}</span>` : ''}
     </div>
   </section>`;
 }
@@ -710,6 +756,7 @@ function ResultCard({ n, pct, passed, headline, text, extra }) {
       </div>
       <div class="min-w-0">
         <span class="pill ${passed ? 'pill-ok' : 'pill-bad'}"><span class="dot"></span>${passed ? 'Niveau validé' : 'Niveau non validé'}</span>
+        <div class="mt-3">${starRow(starsFor(pct, passed), true)}${passed && pct < 100 ? `<span class="xs muted" style="margin-left:8px">${pct >= 95 ? '100/100 pour la 3e étoile' : '95 pour la 2e étoile'}</span>` : ''}</div>
         <h2 class="h2 mt-3">${headline}</h2>
         <p class="mt-2 prose">${text}</p>
       </div>
@@ -768,6 +815,60 @@ const MODS = {};
 const COURSE = {};
 
 /* =====================================================================
+   RÉCOMPENSES — étoiles par niveau et badges (enregistrés sur l'appareil)
+   ===================================================================== */
+// Étoiles : 1 = niveau validé, 2 = score ≥ 95, 3 = score parfait (100).
+const starsFor = (pct, passed) => !passed ? 0 : pct >= 100 ? 3 : pct >= 95 ? 2 : 1;
+const starRow = (k, big) => `<span class="stars ${big ? 'big' : ''}" aria-label="${k} étoile${k > 1 ? 's' : ''} sur 3">${[1, 2, 3].map(i => `<span class="${i <= k ? 'on' : ''}">★</span>`).join('')}</span>`;
+const BADGES = [
+  { id: 'premier', g: '1', name: 'Du premier coup', how: 'Valider un niveau à la première tentative.' },
+  { id: 'serie6', g: '6', name: 'Série parfaite', how: 'Répondre juste aux 6 affirmations d’un vrai ou faux.' },
+  { id: 'intact', g: '♥', name: 'Sans égratignure', how: 'Valider le niveau 1 sans perdre une seule vie.' },
+  { id: 'lynx', g: '◉', name: 'Œil de lynx', how: 'Trouver les 3 erreurs du détecteur d’hallucination sans fausse alerte.' },
+  { id: 'tri', g: '⚡', name: 'Tri éclair', how: 'Réussir le tri express sans faute en moins de 45 secondes.' },
+  { id: 'feutre', g: '▮', name: 'Feutre noir infaillible', how: 'Masquer parfaitement le courrier au niveau 2.' },
+  { id: 'archi', g: '⌂', name: 'Architecte sans fuite', how: 'Valider le niveau 3 sans incident à la première tentative.' },
+  { id: 'pilote', g: '⚙', name: 'Pilote d’agent', how: 'Valider le niveau 4 à la première tentative.' },
+  { id: 'certif', g: '✓', name: 'Concepteur certifié', how: 'Valider les quatre niveaux.' },
+  { id: 'parfait', g: '★', name: 'Sans fausse note', how: 'Obtenir 3 étoiles aux quatre niveaux.' },
+];
+// Les niveaux renseignent ici les exploits propres à leur partie (détecteur, tri, feutre noir…).
+const FEATS = {};
+function earnBadge(id) {
+  if (!state.badges) state.badges = {};
+  if (state.badges[id]) return false;
+  state.badges[id] = new Date().toISOString();
+  const b = BADGES.find(x => x.id === id);
+  if (b) toast(`Badge débloqué : ${b.name}`, b.how);
+  return true;
+}
+// Appelé à chaque tentative terminée (voir finishAttempt).
+function updateRewards(n, pct, passed) {
+  const L = state.levels[n], st = starsFor(pct, passed);
+  L.stars = Math.max(L.stars || 0, st);
+  const f = FEATS[n] || {};
+  if (passed && L.attempts === 1) earnBadge('premier');
+  if (TF[n] && tfGood(n) === TF_DATA[n].length) earnBadge('serie6');
+  if (n === 1 && passed && f.intact) earnBadge('intact');
+  if (n === 1 && f.lynx) earnBadge('lynx');
+  if (n === 1 && f.tri) earnBadge('tri');
+  if (n === 2 && f.feutre) earnBadge('feutre');
+  if (n === 3 && passed && L.attempts === 1 && f.clean) earnBadge('archi');
+  if (n === 4 && passed && L.attempts === 1) earnBadge('pilote');
+  if (passed && isFinalLevel(n)) earnBadge('certif');
+  if ([1, 2, 3, 4].every(k => (state.levels[k].stars || 0) >= 3)) earnBadge('parfait');
+  FEATS[n] = {};
+}
+function BadgeShelf(title = 'Vos badges') {
+  const got = state.badges || {}, nb = BADGES.filter(b => got[b.id]).length;
+  return `<section class="panel mt-6">
+    <div class="flex items-center justify-between gap-3 flex-wrap"><h2 class="h3">${title}</h2><span class="pill">${nb} sur ${BADGES.length}</span></div>
+    <div class="badge-grid mt-4">${BADGES.map(b => `<div class="badge ${got[b.id] ? 'on' : ''}" title="${esc(b.how)}"><span class="badge-medal" aria-hidden="true">${b.g}</span><div class="min-w-0"><b>${b.name}</b><small>${b.how}</small></div></div>`).join('')}</div>
+    <p class="xs muted mt-3">Étoiles par niveau : 1 étoile au seuil de ${SEUIL}, 2 à partir de 95, 3 pour un score parfait. Badges et étoiles sont enregistrés sur cet appareil.</p>
+  </section>`;
+}
+
+/* =====================================================================
    VRAI OU FAUX ÉCLAIR — échauffement de chaque niveau (20 % du score)
    ===================================================================== */
 const TF_WEIGHT = 20; // part du vrai/faux dans le score du niveau, en %
@@ -806,12 +907,13 @@ const TF_DATA = {
   ],
 };
 const TF = {};
+const TF_EXTRA = {}, TF_HOOK = {}; // compléments optionnels par niveau (vies du niveau 1)
 function tfReset(n) { TF[n] = { order: shuffle(TF_DATA[n].map((_, k) => k)), i: 0, picks: {}, streak: 0, best: 0, done: false, mainPct: null }; }
 const tfGood = n => Object.entries(TF[n].picks).filter(([k, v]) => TF_DATA[n][k].v === v).length;
 const tfPct = n => Math.round(tfGood(n) / TF_DATA[n].length * 100);
 // Score final du niveau : 80 % défi principal, 20 % vrai ou faux.
 function tfMix(n, mainPct) { TF[n].mainPct = mainPct; return Math.round(mainPct * (100 - TF_WEIGHT) / 100 + tfPct(n) * TF_WEIGHT / 100); }
-const tfErrs = n => TF_DATA[n].filter((q, k) => TF[n].picks[k] !== q.v).map(q => q.tag);
+const tfErrs = n => TF_DATA[n].filter((q, k) => TF[n].picks[k] !== undefined && TF[n].picks[k] !== q.v).map(q => q.tag);
 function tfBreakdown(n) {
   const t = TF[n]; if (!t || t.mainPct === null) return '';
   return `<p class="small muted mt-3">Calcul : défi principal ${t.mainPct}/100 × ${100 - TF_WEIGHT} % + vrai ou faux ${tfGood(n)}/${TF_DATA[n].length} × ${TF_WEIGHT} %. Meilleure série : ${t.best}.</p>`;
@@ -839,11 +941,11 @@ function TFView(n) {
   <section class="panel min-w-0" id="tf-stage">
     <div class="flex items-center justify-between gap-3 flex-wrap">
       <p class="eyebrow">Échauffement · Vrai ou faux éclair · ${t.i + 1} sur ${D.length}</p>
-      <div class="flex items-center gap-3"><span class="pill tf-streak ${t.streak >= 3 ? 'hot' : ''}">Série : ${t.streak}</span><div class="qdots" aria-hidden="true">${dots}</div></div>
+      <div class="flex items-center gap-3">${TF_EXTRA[n] ? TF_EXTRA[n]() : ''}<span class="pill tf-streak ${t.streak >= 3 ? 'hot' : ''}">Série : ${t.streak}</span><div class="qdots" aria-hidden="true">${dots}</div></div>
     </div>
     <div class="tf-card mt-4 ${answered ? (ok ? 'is-ok' : 'is-bad') : ''}"><p>${q.t}</p></div>
     <div class="tf-actions mt-4">${btn(true, 'Vrai', 'V')}${btn(false, 'Faux', 'F')}</div>
-    ${answered ? `<div class="fb ${ok ? 'fb-ok' : 'fb-bad'} mt-5" role="status"><div class="fb-head">${ok ? '✓ Bien vu' : '✗ Raté'}${ok && t.streak >= 3 ? ` · série de ${t.streak} !` : ''}</div><p>${q.fb}</p></div>
+    ${answered ? `<div class="fb ${ok ? 'fb-ok' : 'fb-bad'} mt-5" role="status"><div class="fb-head">${ok ? '✓ Bien vu' : (TF_EXTRA[n] ? '✗ Raté · une vie en moins' : '✗ Raté')}${ok && t.streak >= 3 ? ` · série de ${t.streak} !` : ''}</div><p>${q.fb}</p></div>
       <div class="flex justify-end mt-5"><button class="btn btn-primary" data-action="tf-next">${t.i < D.length - 1 ? 'Affirmation suivante' : 'Voir mon échauffement'}</button></div>` : ''}
   </section>`;
 }
@@ -853,6 +955,7 @@ function TFHandle(n, a, d) {
     const k = t.order[t.i]; if (t.picks[k] !== undefined) return true;
     const v = d.v === '1'; t.picks[k] = v;
     if (v === TF_DATA[n][k].v) { t.streak++; t.best = Math.max(t.best, t.streak); } else t.streak = 0;
+    if (TF_HOOK[n]) TF_HOOK[n]();
     render(false); return true;
   }
   if (a === 'tf-next') { t.i++; render(false); return true; }
@@ -873,7 +976,7 @@ function withTF(n) {
   };
   M.details = function () {
     const D = TF_DATA[n];
-    return [{ title: `Vrai ou faux (${TF_WEIGHT} % du score)`, items: D.map((q, k) => {
+    return [{ title: "Vrai ou faux éclair", items: D.map((q, k) => {
       const g = TF[n].picks[k], ok = g === q.v;
       return { label: q.t, ok, given: g === undefined ? 'sans réponse' : (g ? 'Vrai' : 'Faux'), expected: q.v ? 'Vrai' : 'Faux', why: q.fb };
     }) }, ...o.details.call(M)];
@@ -1104,6 +1207,7 @@ function L2Result() {
     L2_DIAG.forEach(d => { const on = s.diag.has(d.id); if (d.fault && !on) errs.push(`Diagnostic : faille manquée (${d.id === 'pii' ? 'données identifiantes' : d.id === 'cons' ? 'contraintes' : d.id === 'ctx' ? 'contexte' : d.id === 'fmt' ? 'format' : 'rôle'})`); if (!d.fault && on) errs.push('Diagnostic : fausse piste retenue'); });
     L2_SEGS.forEach(seg => { const on = s.red.has(seg.i); if (seg.r && !on) errs.push(`Feutre noir : ${seg.tag.replace(/[\[\]]/g, '').toLowerCase()} non masqué`); if (!seg.r && on) errs.push('Feutre noir : information utile masquée'); });
     L2_BRICKS.forEach(g => { if (g.opts[s.bricks[g.id]].q !== 's') errs.push(`Ingrédient ${g.name.toLowerCase()} fragile`); });
+    FEATS[2] = { feutre: rp === 25 };
     finishAttempt(2, pct, passed, [...new Set([...tfErrs(2), ...errs])]);
   }
   const weak = L2_BRICKS.filter(g => g.opts[s.bricks[g.id]].q !== 's').map(g => g.name);
@@ -1269,6 +1373,7 @@ function SummaryView() {
   return `<nav class="mt-6"><button class="link" data-action="back">← Revenir au niveau</button></nav>
     ${CourseSummary(LEVEL)}
     ${tail}
+    ${BadgeShelf()}
     <textarea id="share-fallback" class="field mt-4" readonly hidden aria-label="Texte à copier"></textarea>`;
 }
 function copyText(txt, okMsg) {
@@ -1326,7 +1431,7 @@ function submitGate() {
   }
   const changed = em !== normEmail(state.player.email);
   state.player = { prenom: p, nom: n, email: em };
-  if (changed) { state.levels = { 1: lvState(), 2: lvState(), 3: lvState(), 4: lvState() }; state.gates = {}; state.completedAt = null; state.satisfaction = null; }
+  if (changed) { state.levels = { 1: lvState(), 2: lvState(), 3: lvState(), 4: lvState() }; state.gates = {}; state.completedAt = null; state.satisfaction = null; state.badges = {}; }
   state.gates[LEVEL] = true; saveState();
   go(state.levels[LEVEL].passed ? 'summary' : 'level');
 }
