@@ -348,13 +348,69 @@ body.game-paused #app{filter:grayscale(1) blur(2px);opacity:.35;pointer-events:n
 #pause-veil{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:rgba(40,40,40,.25);padding:16px}
 #pause-veil[hidden]{display:none!important}
 .pause-card{background:var(--white);border-radius:12px;padding:28px 28px 24px;max-width:420px;width:100%;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.2)}
+.lives .half{background:linear-gradient(90deg,#C62828 50%,#D0D0D0 50%);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* ===== Application unique ===== */
+/* Points en direct dans le bandeau */
+#pts{display:inline-flex;align-items:baseline;gap:2px;padding:4px 10px;border-radius:99px;background:var(--peach);color:var(--orange-deep);white-space:nowrap}
+#pts b{font-size:16px}
+#pts small{font-size:12px;color:var(--orange-deep)}
+#pts.bump{animation:ptsbump .5s ease}
+@keyframes ptsbump{0%{transform:scale(1)}40%{transform:scale(1.15);background:var(--orange);color:#fff}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){#pts.bump{animation:none}}
+.pts-won{display:inline-block;font-weight:700;color:var(--orange-deep);background:var(--peach);border-radius:99px;padding:4px 12px}
+/* Fil des épreuves */
+.rail{display:flex;flex-wrap:wrap;gap:6px;counter-reset:r}
+.rail li{font-size:12.5px;padding:3px 10px;border-radius:99px;background:var(--card);color:var(--muted)}
+.rail li.done{background:var(--ok-soft);color:var(--ok)}
+.rail li.cur{background:var(--orange);color:#fff;font-weight:700}
+/* En savoir plus */
+details.more{margin-top:6px}
+details.more>summary{cursor:pointer;color:var(--orange-deep);font-weight:700;font-size:14px;list-style:none;display:inline-flex;align-items:center;gap:6px}
+details.more>summary::-webkit-details-marker{display:none}
+details.more>summary::before{content:'+';display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;border:1.5px solid currentColor;font-size:13px;line-height:1}
+details.more[open]>summary::before{content:'–'}
+details.more>p{margin-top:6px}
+/* Grille de résultat */
+.res-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+/* Tri à 4 bacs */
+.tri-bins.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:640px){.tri-bins.four{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tri-int{border-color:#8FA9C7}
+/* Curseur de température */
+.temp-row{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--white)}
+.temp-row.is-ok{border-color:var(--ok)}
+.temp-row.is-bad{border-color:var(--bad)}
+.temp-ctl{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:10px}
+.temp-range{flex:1 1 220px;accent-color:var(--orange);height:28px;background:linear-gradient(90deg,#CFE3F7,#FBE3D2 50%,#F6B08A);border-radius:99px}
+.temp-val{min-width:210px;justify-content:center}
+.temp-scale{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding-inline:16px}
+/* Frise de l'AI Act */
+.frise{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;border-top:3px solid var(--orange);padding-top:10px}
+.frise-col{display:flex;flex-direction:column;gap:6px;min-width:0}
+.frise-date{font-weight:700;font-size:13.5px;color:var(--orange-deep);position:relative}
+.frise-date::before{content:'';position:absolute;top:-17px;left:0;width:11px;height:11px;border-radius:50%;background:var(--orange)}
+.frise-item{font-size:12.5px;line-height:1.3;padding:5px 8px;border-radius:6px;background:var(--card)}
+.frise-item.ok{background:var(--ok-soft);color:var(--ok)}
+.frise-item.bad{background:var(--bad-soft);color:var(--bad)}
+@media (max-width:560px){.frise{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:22px}}
+/* Atelier CADRE et agent */
+.cadre-tag{display:inline-block;font-size:11.5px;font-weight:700;color:#fff;background:var(--orange-deep);border-radius:4px;padding:1px 6px}
+.tool.good{box-shadow:inset 0 0 0 2px var(--ok)}
+.tool.wrong{box-shadow:inset 0 0 0 2px var(--bad)}
+.det-timer.urgent{background:var(--bad);color:#fff}
+@media (max-width:1320px){.topbar .player .muted{display:none}}
+.temp-range{-webkit-appearance:none;appearance:none;height:10px;margin:9px 0;border-radius:99px;background:linear-gradient(90deg,#CFE3F7 0%,#F3F3F3 50%,#F6B08A 100%);outline-offset:6px}
+.temp-range::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--orange);border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3);cursor:pointer}
+.temp-range::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--orange);border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3);cursor:pointer}
+.temp-range:disabled::-webkit-slider-thumb{background:#999}
 
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="wrap topbar-in">
-    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Espace formateur · v2026-10-07.2</small></span></div>
+    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Espace formateur · v2026-10-07.u1</small></span></div>
   </div>
 </header>
 <main id="app" class="wrap"></main>
@@ -363,40 +419,38 @@ body.game-paused #app{filter:grayscale(1) blur(2px);opacity:.35;pointer-events:n
 /* =====================================================================
    CONFIGURATION — À MODIFIER
    ===================================================================== */
-// URL du webhook (Make, Zapier…). Le jeu envoie une ligne quand un niveau est
-// commencé, une ligne quand il est terminé et une ligne s'il est abandonné. Champs : horodatage, evenement, session,
-// version, prenom, nom, joueur, niveau, titre_niveau, niveau_valide, score, seuil,
-// tentative, erreurs_tentative, erreurs_frequentes, email, duree_secondes, avancement,
-// note_satisfaction, commentaire_satisfaction (événement « satisfaction », fin du niveau 4),
+// URL du webhook Make. Le jeu envoie une ligne par événement :
+//   « niveau commencé », « niveau terminé », « niveau abandonné », « rattrapage terminé »,
+//   « satisfaction », puis « parcours terminé » (ou « parcours interrompu » si l'apprenant s'arrête en route).
+// Champs : horodatage, evenement, session, version, prenom, nom, joueur, niveau, titre_niveau, niveau_valide,
+// score, seuil, tentative, erreurs_tentative, erreurs_frequentes, email, duree_secondes, avancement,
+// note_satisfaction, commentaire_satisfaction, score_global (points sur 1 000), rattrapage (oui / non),
 // puis envoyer_fiche, fiche_sujet, fiche_html, fiche_taille (pour l'e-mail, à ne pas mettre dans la feuille).
-// La session vient du lien envoyé aux apprenants : niveau-1.html?session=Groupe-A
+// La fiche e-mail n'est jointe qu'aux événements « parcours terminé » et « parcours interrompu ».
 const WEBHOOK_URL = "https://hook.eu2.make.com/nfuswd0gqqz4kv7vrs2lid42tnilpf4v";
 
-// Identifiant de la petite Google Sheet « Config Formation IA » (partagée en lecture par lien).
-// C'est la partie de son adresse entre /d/ et /edit. Elle contient le groupe actif en Config!A2.
+// Identifiant de la petite Google Sheet « Config Formation IA » (groupe actif en Config!A2).
 const CONFIG_SHEET_ID = "1-v3PQq4ukj73AeewDwqHIKomZx3ESaBKMBarJJq83nc";
 
-// Seuil de validation d'un niveau, en pourcentage.
-const SEUIL = 90;
+// Seuil de validation de chaque niveau, en pourcentage.
+const SEUIL = 85;
 
 // Seules les adresses de ce domaine peuvent jouer. Mettez "" pour accepter toute adresse (tests externes).
 const DOMAINE_EMAIL = "lendys.fr";
 
-// Envoi de la fiche de score par e-mail : "validation" (niveau validé uniquement),
-// "toujours" (chaque niveau terminé, validé ou non) ou "jamais".
-const ENVOI_FICHE = "validation";
+// Fiche de parcours par e-mail : "fin" (fin de parcours, ou arrêt volontaire) ou "jamais".
+const ENVOI_FICHE = "fin";
 
-// Sel des codes de passage : il doit être IDENTIQUE dans les 4 fichiers de la version B.
-// Changez-le avant diffusion pour que vos codes ne soient pas devinables.
+// Sel des clés de reprise (NIV2-XXXX…) et du code de certificat. Changez-le avant diffusion.
 const CODE_SECRET = "Lendys_AI2026";
 
-// Code formateur : ouvre n'importe quel niveau, pour les tests et le support. À garder confidentiel.
+// Code formateur : ouvre les quatre niveaux (tests, support). À garder confidentiel.
 const CODE_FORMATEUR = "Lendys_FormateurAI2026";
 
 // Lien de votre Google Sheet de résultats (bouton « Ouvrir le tableau de bord »). Facultatif.
 const DASHBOARD_URL = "https://docs.google.com/spreadsheets/d/1S52PhvxFnaAFzeoWvoybTruQdamwzl0L_ZvcJHFHvPU/edit";
 const STORAGE_KEY = "formation-ia-espace-formateur-etat";
-const VERSION_LABEL = "Page formateur · v2026-10-07.2";
+const VERSION_LABEL = "Page formateur · v2026-10-07.u1";
 
 /* =====================================================================
    NOYAU COMMUN : outils, état, suivi webhook, personnages, composants
@@ -408,29 +462,33 @@ const reduceMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-r
 
 /* ---------- Métadonnées des niveaux ---------- */
 const LEVEL_META = {
-  1: { title: 'Démystifier l’IA générative', short: 'Fondations', format: '4 épreuves : vrai ou faux, situations, tri express, détecteur d’hallucination', rule: '3 vies, score ≥ 90/100', src: 'Bloc 1, séquences 01 à 04 du support Lendys',
-       intro: 'Un LLM ne « sait » pas : il prédit le mot suivant. Quatre épreuves pour distinguer les familles de l’IA, comprendre tokens, température et entraînement, situer la frontière irrégulière et savoir quand vérifier. Trois vies : chaque erreur en coûte une.',
-       tags: ['Familles de l’IA', 'Tokens', 'Température', 'Entraînement et inférence', 'Frontière irrégulière', 'Vérification'] },
-  2: { title: 'Prompt engineering avancé', short: 'L’artisan', format: 'Vrai ou faux + atelier « Répare le prompt »', rule: 'robustesse ≥ 90/100', src: 'Bloc 1, séquences 06 à 08 du support Lendys',
-       intro: 'Le fil rouge : la réponse au sociétaire furieux après un refus d’indemnisation. Diagnostiquez le prompt, passez le feutre noir, puis reconstruisez-le avec les cinq ingrédients.',
-       tags: ['Rôle', 'Contexte', 'Tâche', 'Contraintes', 'Format', 'Anonymisation'] },
-  3: { title: 'RAG et gestion du contexte', short: 'L’architecte de données', format: 'Vrai ou faux + assemblage du pipeline RAG', rule: 'pipeline sans fuite ni hallucination, ≥ 90/100', src: 'Bloc 1, séquences 08 et 10 du support Lendys',
-       intro: 'Construisez l’assistant documentaire qui répond « à livre ouvert » sur les conditions générales, sans tomber dans le grenier poussiéreux ni percer les droits d’accès.',
-       tags: ['Découpage', 'Embeddings', 'Recherche par le sens', 'Millésimes', 'Droits d’accès'] },
-  4: { title: 'Conception d’agents IA', short: 'Le concepteur', format: 'Vrai ou faux + simulateur ReAct et AI Act', rule: 'mission sans boucle ni débordement, ≥ 90/100', src: 'Bloc 1, séquences 07 à 09 du support Lendys',
-       intro: 'Équipez un agent de traitement des réclamations : outils au moindre privilège, garde-fous, validation humaine. Puis classez des usages selon l’AI Act.',
-       tags: ['ReAct', 'Outils', 'Moindre privilège', 'Garde-fous', 'Contrôle humain', 'AI Act'] },
+  1: { title: 'Démystifier l’IA générative', short: 'Fondations', mins: 9, src: 'Bloc 1, séquences 01 à 04',
+       format: 'Vrai ou faux, situations, curseur de température, tri express, détecteur d’hallucination',
+       intro: 'Un LLM ne « sait » pas : il prédit le mot suivant. Familles de l’IA, tokens, température, frontière irrégulière, hallucinations : de quoi savoir quand faire confiance et quand vérifier.',
+       tags: ['Familles de l’IA', 'Tokens', 'Température', 'Frontière irrégulière', 'Hallucinations', 'Niveau de contrôle'] },
+  2: { title: 'Prompt et données', short: 'L’artisan', mins: 10, src: 'Bloc 1, séquences 06 à 08',
+       format: 'Vrai ou faux, tri des données, atelier « Répare le prompt » (diagnostic, feutre noir, recette CADRE)',
+       intro: 'Le fil rouge : la réponse à M. Laurent, sociétaire furieux après un refus d’indemnisation. Classez les données, diagnostiquez le prompt, passez le feutre noir, puis reconstruisez-le avec la méthode CADRE.',
+       tags: ['Méthode CADRE', 'Cinq ingrédients', 'Niveaux de données', 'Feutre noir', 'RGPD'] },
+  3: { title: 'RAG et contexte', short: 'L’architecte de données', mins: 9, src: 'Bloc 1, séquences 08 et 10',
+       format: 'Vrai ou faux, « sourcée mais fausse ? », atelier pipeline RAG et simulation',
+       intro: 'Construisez l’assistant documentaire qui répond « à livre ouvert », sans tomber dans le grenier poussiéreux ni laisser les portes mal fermées.',
+       tags: ['Livre ouvert', 'Découpage', 'Recherche par le sens', 'Grenier poussiéreux', 'Droits d’accès'] },
+  4: { title: 'Agents et cadre réglementaire', short: 'Le concepteur', mins: 10, src: 'Bloc 1, séquences 07 à 09',
+       format: 'Vrai ou faux, frise de l’AI Act, atelier agent (outils, garde-fous, AI Act, simulation), boss final',
+       intro: 'Équipez un agent de traitement des réclamations au moindre privilège, bornez sa boucle, classez des usages selon l’AI Act, puis affrontez le boss final : le kit de survie.',
+       tags: ['Assistant ou agent', 'Moindre privilège', 'Zones rouges', 'AI Act', 'Kit de survie'] },
 };
 const SKILLS = {
   1: 'Distinguer les familles de l’IA, expliquer comment un LLM produit une réponse, repérer une réponse à vérifier et adapter le contrôle à l’enjeu',
-  2: 'Écrire un prompt métier complet (rôle, contexte, tâche, contraintes, format) à partir de données anonymisées',
-  3: 'Concevoir un assistant RAG fiable : sources datées, recherche par le sens filtrée par habilitation, réponses sourcées',
-  4: 'Spécifier un agent ReAct au moindre privilège, avec garde-fous, validation humaine et lecture AI Act des usages',
+  2: 'Écrire un prompt métier selon la méthode CADRE, à partir de données classées et passées au feutre noir',
+  3: 'Concevoir un assistant RAG fiable : sources datées, droits d’accès appliqués avant la génération, réponses sourcées et vérifiées',
+  4: 'Spécifier un agent au moindre privilège, avec garde-fous et validation humaine, et situer un usage dans l’AI Act',
 };
 
 /* ---------- État et sauvegarde ---------- */
-const lvState = () => ({ best: 0, passed: false, attempts: 0, errors: {}, stars: 0 });
-function freshState() { return { player: { prenom: '', nom: '', email: '' }, levels: { 1: lvState(), 2: lvState(), 3: lvState(), 4: lvState() }, gates: {}, completedAt: null, session: '' }; }
+const lvState = () => ({ best: 0, passed: false, attempts: 0, errors: {}, stars: 0, pts: 0, rattrapage: false, restored: false, review: null, parts: null, secs: 0 });
+function freshState() { return { player: { prenom: '', nom: '', email: '' }, levels: { 1: lvState(), 2: lvState(), 3: lvState(), 4: lvState() }, gates: {}, completedAt: null, session: '', unlockAll: false, ficheSent: false }; }
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -443,6 +501,7 @@ function loadState() {
       b.satisfaction = s.satisfaction || null;
       b.badges = s.badges || {};
       b.session = typeof s.session === 'string' ? s.session : '';
+      b.unlockAll = !!s.unlockAll; b.ficheSent = !!s.ficheSent;
       return b;
     }
   } catch (e) {}
@@ -527,7 +586,9 @@ function basePayload(n, evenement) {
     nom: state.player.nom,
     joueur: playerName(),
     niveau: String(n),
-    titre_niveau: LEVEL_META[n].title,
+    titre_niveau: n === 'tous' ? 'Parcours complet' : LEVEL_META[n].title,
+    score_global: String(totalPts()),
+    rattrapage: 'non',
   };
 }
 const levelStart = {};
@@ -562,6 +623,7 @@ function sendAbandon(n, raison, sansDetail) {
   const fin = sansDetail && ip.snapshot ? ip.snapshot.at : Date.now();
   const duree = Math.max(0, Math.round((fin - ip.start - (typeof attemptPausedMs === 'number' && !sansDetail ? attemptPausedMs : 0)) / 1000));
   delete L.inProgress;
+  L.secs = (L.secs || 0) + duree;
   saveState();
   if (chrono.n === n) chrono = { n: null, start: 0, end: 0 };
   postWebhook(Object.assign(basePayload(n, 'niveau abandonné'), {
@@ -602,13 +664,13 @@ function updateChrono() {
   el.classList.toggle('pill-ok', !!chrono.end);
 }
 setInterval(updateChrono, 1000);
-// Envoyé à la fin d'un niveau, qu'il soit validé ou non. Contient la fiche de score à envoyer par e-mail.
-function sendTracking(n, pct, passed, errs) {
+// Envoyé à la fin d'un niveau, qu'il soit validé ou non. La fiche e-mail part une seule fois, en fin de parcours.
+function attemptSecs(n) {
+  return levelStart[n] ? Math.max(0, Math.round((Date.now() - levelStart[n] - (typeof attemptPausedMs === 'number' ? attemptPausedMs : 0)) / 1000)) : 0;
+}
+function sendTracking(n, pct, passed, errs, duree) {
   if (chrono.n === n) chrono.end = Date.now();
   if (typeof cdStop === 'function') cdStop(n);
-  const duree = levelStart[n] ? Math.max(0, Math.round((Date.now() - levelStart[n] - (typeof attemptPausedMs === 'number' ? attemptPausedMs : 0)) / 1000)) : '';
-  const envoyer = ENVOI_FICHE === 'toujours' || (ENVOI_FICHE === 'validation' && passed);
-  const fiche = envoyer ? buildFiche(n, pct, passed, duree) : { sujet: '', html: '' };
   postWebhook(Object.assign(basePayload(n, 'niveau terminé'), {
     niveau_valide: passed ? 'oui' : 'non',
     score: String(pct),
@@ -619,78 +681,137 @@ function sendTracking(n, pct, passed, errs) {
     email: normEmail(state.player.email),
     duree_secondes: String(duree),
     avancement: 'terminé',
-    envoyer_fiche: envoyer && state.player.email ? 'oui' : 'non',
+    envoyer_fiche: 'non', fiche_sujet: '', fiche_html: '', fiche_taille: '0',
+  }));
+}
+// Rattrapage ciblé : une ligne dédiée, rattachée à la même tentative.
+function sendRattrapage(n, ok, nbOk, nb, errs) {
+  postWebhook(Object.assign(basePayload(n, 'rattrapage terminé'), {
+    niveau_valide: ok ? 'oui' : 'non',
+    score: String(ok ? SEUIL : state.levels[n].lastPct || ''),
+    seuil: String(SEUIL),
+    tentative: String(state.levels[n].attempts),
+    erreurs_tentative: errs.length ? errs.join(' ; ') : 'aucune',
+    erreurs_frequentes: topErrors(n) || 'aucune',
+    email: normEmail(state.player.email),
+    duree_secondes: '',
+    avancement: `rattrapage ${ok ? 'réussi' : 'non réussi'} (${nbOk}/${nb})`,
+    rattrapage: 'oui',
+    envoyer_fiche: 'non', fiche_sujet: '', fiche_html: '', fiche_taille: '0',
+  }));
+}
+const passedLevels = () => [1, 2, 3, 4].filter(k => state.levels[k].passed);
+const avgScore = () => Math.round([1, 2, 3, 4].reduce((a, k) => a + state.levels[k].best, 0) / 4);
+const totalSecs = () => [1, 2, 3, 4].reduce((a, k) => a + (state.levels[k].secs || 0), 0);
+// Fin de parcours (ou arrêt volontaire) : une seule ligne, avec la fiche récapitulative à envoyer par e-mail.
+function sendParcours(kind) {
+  const done = passedLevels(), all = done.length === 4;
+  const ratt = [1, 2, 3, 4].filter(k => state.levels[k].rattrapage);
+  const envoyer = ENVOI_FICHE !== 'jamais' && !!state.player.email;
+  const fiche = envoyer ? buildFiche(kind) : { sujet: '', html: '' };
+  const top = [1, 2, 3, 4].map(k => topErrors(k, 2)).filter(Boolean).join(' ; ');
+  postWebhook(Object.assign(basePayload('tous', kind), {
+    niveau_valide: all ? 'oui' : 'non',
+    score: String(avgScore()),
+    seuil: String(SEUIL),
+    tentative: String([1, 2, 3, 4].reduce((a, k) => a + state.levels[k].attempts, 0)),
+    erreurs_tentative: '',
+    erreurs_frequentes: top || 'aucune',
+    email: normEmail(state.player.email),
+    duree_secondes: String(totalSecs()),
+    avancement: `${done.length}/4 niveaux validés`,
+    rattrapage: ratt.length ? `oui (niveau${ratt.length > 1 ? 'x' : ''} ${ratt.join(', ')})` : 'non',
+    envoyer_fiche: envoyer ? 'oui' : 'non',
     fiche_sujet: fiche.sujet,
     fiche_html: fiche.html,
     fiche_taille: String(fiche.html.length),
   }));
 }
 
-/* ---------- Fiche de score envoyée par e-mail (HTML compatible messageries) ---------- */
-function buildFiche(n, pct, passed, duree) {
-  const M = LEVEL_META[n], L = state.levels[n];
+/* ---------- Fiche récapitulative envoyée par e-mail (une seule, en fin de parcours) ---------- */
+function buildFiche(kind) {
   const C = { or: '#EA6827', ord: '#C4501A', ink: '#333333', mut: '#666666', card: '#F3F3F3', peach: '#FDEEE3', ok: '#2C7A4B', oks: '#E3F2E8', bad: '#B3261E', bads: '#FBE5E3', line: '#E2E2E2' };
   const F = "font-family:Calibri,'Segoe UI',Arial,sans-serif;";
   const date = (() => { try { return new Date().toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Europe/Paris' }); } catch (e) { return new Date().toISOString(); } })();
-  const dureeTxt = duree === '' ? '' : `${Math.floor(duree / 60)} min ${String(duree % 60).padStart(2, '0')} s`;
-  const sections = MODS[n] && MODS[n].details ? MODS[n].details() : [];
-  const nbItems = sections.reduce((a, s) => a + s.items.length, 0);
-  const nbOk = sections.reduce((a, s) => a + s.items.filter(i => i.ok).length, 0);
+  const secs = totalSecs(), dureeTxt = `${Math.floor(secs / 60)} min ${String(secs % 60).padStart(2, '0')} s`;
+  const all = passedLevels().length === 4, pts = totalPts();
   const row = (k, v) => `<tr><td style="padding:3px 12px 3px 0;color:${C.mut};font-size:13px;white-space:nowrap">${k}</td><td style="padding:3px 0;font-size:14px;color:${C.ink}">${v}</td></tr>`;
-  const item = it => `<tr>
-    <td style="padding:10px 10px 10px 0;border-top:1px solid ${C.line};vertical-align:top;width:26px"><span style="display:inline-block;width:22px;height:22px;line-height:22px;border-radius:11px;text-align:center;color:#ffffff;font-weight:bold;font-size:13px;background:${it.ok ? C.ok : C.bad}">${it.ok ? '&#10003;' : '&#10007;'}</span></td>
-    <td style="padding:10px 0;border-top:1px solid ${C.line};font-size:14px;line-height:1.5;color:${C.ink}">
-      <b>${esc(it.label)}</b><br>
-      ${it.given ? `<span style="color:${C.mut}">Votre réponse :</span> ${esc(it.given)}<br>` : ''}
-      ${!it.ok && it.expected ? `<span style="color:${C.ok};font-weight:bold">Réponse attendue :</span> ${esc(it.expected)}<br>` : ''}
-      ${it.why ? `<span style="color:${C.mut}">Explication :</span> ${esc(it.why)}` : ''}
-    </td></tr>`;
-  const parcours = [1, 2, 3, 4].filter(k => state.levels[k].attempts > 0).map(k =>
-    `<tr><td style="padding:4px 12px 4px 0;font-size:14px;color:${C.ink}">Niveau ${k} · ${esc(LEVEL_META[k].title)}</td><td style="padding:4px 0;font-size:14px;font-weight:bold;color:${state.levels[k].passed ? C.ok : C.bad};text-align:right">${state.levels[k].best} %${state.levels[k].passed ? ' · validé' : ''}</td></tr>`).join('');
-  const extra = typeof ficheExtra === 'function' ? ficheExtra(n, passed) : '';
-  // Fragment HTML (sans <html>/<body>) : Make et Gmail l'insèrent tel quel dans le corps du message.
+  const stars = k => `<span style="color:${C.or};font-size:15px;letter-spacing:1px">${'&#9733;'.repeat(k)}</span><span style="color:#CCCCCC;font-size:15px;letter-spacing:1px">${'&#9733;'.repeat(3 - k)}</span>`;
+  const lvRow = k => { const L = state.levels[k];
+    const st = L.passed ? (L.restored ? 'validé sur un autre poste' : L.rattrapage ? 'validé après rattrapage' : 'validé') : L.attempts ? 'non validé' : 'non commencé';
+    return `<tr><td style="padding:8px 10px 8px 0;border-top:1px solid ${C.line};font-size:14px;color:${C.ink}"><b>Niveau ${k}</b> · ${esc(LEVEL_META[k].title)}<br><span style="font-size:12px;color:${L.passed ? C.ok : C.mut}">${st}${L.attempts ? ` · ${L.attempts} tentative${L.attempts > 1 ? 's' : ''}` : ''}</span></td>
+      <td style="padding:8px 0;border-top:1px solid ${C.line};font-size:14px;text-align:right;white-space:nowrap;color:${C.ink}">${L.attempts || L.restored ? `<b>${L.best}</b>/100<br>${stars(L.stars || 0)}` : '–'}</td></tr>`; };
+  const review = k => { const L = state.levels[k], items = L.review || [];
+    if (!L.attempts) return '';
+    const head = `<tr><td style="padding:18px 0 4px 0"><p style="margin:0;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:${C.ord};font-weight:bold">Niveau ${k} · notions à revoir</p>`;
+    if (!items.length) return `${head}<p style="margin:6px 0 0 0;font-size:14px;color:${C.ok}">Aucune erreur sur votre meilleure tentative. Bravo !</p></td></tr>`;
+    return `${head}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:6px">${items.slice(0, 12).map(it => `<tr><td style="padding:9px 0;border-top:1px solid ${C.line};font-size:14px;line-height:1.5;color:${C.ink}"><b>${esc(it.label)}</b><br>${it.expected ? `<span style="color:${C.ok};font-weight:bold">À retenir :</span> ${esc(it.expected)}<br>` : ''}${it.why ? `<span style="color:${C.mut}">${esc(it.why)}</span>` : ''}</td></tr>`).join('')}</table>${items.length > 12 ? `<p style="margin:6px 0 0 0;font-size:12px;color:${C.mut}">… et ${items.length - 12} autre(s) point(s), à revoir dans le résumé de cours.</p>` : ''}</td></tr>`; };
+  const code = all && typeof certCode === 'function' ? certCode(state.player.email) : '';
   const html = (`<div style="margin:0;padding:0;background:#ffffff">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;${F}"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;${F}">
   <tr><td style="padding:0 0 16px 0;border-bottom:3px solid ${C.or}">
     <span style="display:inline-block;width:34px;height:34px;line-height:34px;border-radius:17px;background:${C.or};color:#ffffff;font-weight:bold;text-align:center;font-size:14px">IA</span>
-    <span style="font-size:16px;font-weight:bold;color:${C.ink};vertical-align:middle;padding-left:8px">Formation IA · Fiche de score</span>
+    <span style="font-size:16px;font-weight:bold;color:${C.ink};vertical-align:middle;padding-left:8px">Formation IA · Votre fiche de parcours</span>
   </td></tr>
   <tr><td style="padding:20px 0 6px 0">
-    <p style="margin:0;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:${C.ord};font-weight:bold">Niveau ${n} sur 4 · ${esc(M.short)}</p>
-    <p style="margin:4px 0 0 0;font-size:24px;color:${C.ink}">${esc(M.title)}</p>
+    <p style="margin:0;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:${C.ord};font-weight:bold">${all ? 'Parcours terminé' : 'Parcours en cours'}</p>
+    <p style="margin:4px 0 0 0;font-size:24px;color:${C.ink}">${all ? 'Concepteur IA certifié' : `${passedLevels().length} niveau${passedLevels().length > 1 ? 'x' : ''} validé${passedLevels().length > 1 ? 's' : ''} sur 4`}</p>
   </td></tr>
   <tr><td style="padding:12px 0">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${passed ? C.oks : C.bads};border-radius:6px"><tr>
-      <td style="padding:16px 20px;width:140px"><span style="font-size:40px;font-weight:bold;color:${passed ? C.ok : C.bad}">${pct}</span><span style="font-size:18px;color:${passed ? C.ok : C.bad}">/100</span></td>
-      <td style="padding:16px 20px 16px 0;font-size:15px;color:${C.ink}"><b style="color:${passed ? C.ok : C.bad}">${passed ? 'Niveau validé' : 'Niveau non validé'}</b><br>Seuil de validation : ${SEUIL}/100<br>${nbOk} élément${nbOk > 1 ? 's' : ''} juste${nbOk > 1 ? 's' : ''} sur ${nbItems}</td>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${all ? C.oks : C.peach};border-radius:6px"><tr>
+      <td style="padding:16px 20px;width:170px"><span style="font-size:40px;font-weight:bold;color:${all ? C.ok : C.ord}">${pts}</span><span style="font-size:18px;color:${all ? C.ok : C.ord}">/1000</span></td>
+      <td style="padding:16px 20px 16px 0;font-size:15px;color:${C.ink}"><b>Score du parcours</b><br>Moyenne des niveaux : ${avgScore()}/100<br>Seuil de validation par niveau : ${SEUIL}/100</td>
     </tr></table>
   </td></tr>
   <tr><td style="padding:4px 0 12px 0"><table role="presentation" cellpadding="0" cellspacing="0">
-    ${row('Apprenant', `<b>${esc(playerName())}</b>`)}${row('E-mail', esc(normEmail(state.player.email)))}${row('Groupe', esc(currentSession() || 'non renseigné'))}${row('Date', esc(date))}${row('Tentative', String(L.attempts))}${dureeTxt ? row('Durée', dureeTxt) : ''}
+    ${row('Apprenant', `<b>${esc(playerName())}</b>`)}${row('E-mail', esc(normEmail(state.player.email)))}${row('Groupe', esc(currentSession() || 'non renseigné'))}${row('Date', esc(date))}${secs ? row('Temps de jeu', dureeTxt) : ''}${code ? row('Code de vérification', `<b style="font-family:Consolas,'Courier New',monospace;color:${C.ord}">${code}</b>`) : ''}
   </table></td></tr>
-  ${extra}
-  ${sections.map(s => `<tr><td style="padding:18px 0 4px 0"><p style="margin:0;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:${C.ord};font-weight:bold">${esc(s.title)}</p>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:6px">${s.items.map(item).join('')}</table></td></tr>`).join('')}
-  ${parcours ? `<tr><td style="padding:22px 0 4px 0"><p style="margin:0;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:${C.ord};font-weight:bold">Votre parcours sur ce poste</p>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:6px;background:${C.card};border-radius:6px;padding:8px 12px">${parcours}</table></td></tr>` : ''}
+  <tr><td style="padding:10px 0 4px 0"><p style="margin:0;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:${C.ord};font-weight:bold">Vos quatre niveaux</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:6px">${[1, 2, 3, 4].map(lvRow).join('')}</table></td></tr>
+  ${[1, 2, 3, 4].map(review).join('')}
   <tr><td style="padding:24px 0 0 0;font-size:12px;color:${C.mut};border-top:1px solid ${C.line}">Fiche générée automatiquement par le jeu de la Formation IA. Les explications reprennent le support de formation ; les références juridiques sont indicatives et à confirmer avec votre conformité.</td></tr>
 </table></td></tr></table></div>`).replace(/>\s+</g, '><').replace(/\s{2,}/g, ' ');
-  const sujet = `Formation IA · Niveau ${n} ${passed ? 'validé' : 'non validé'} · ${pct}/100`;
+  const sujet = all ? `Formation IA · Parcours terminé · ${pts}/1000` : `Formation IA · Votre fiche de parcours · ${passedLevels().length}/4 niveaux validés`;
   return { sujet, html };
 }
-function finishAttempt(n, pct, passed, errs) {
+function maybeComplete() {
+  if (passedLevels().length !== 4) return;
+  if (!state.completedAt) state.completedAt = new Date().toISOString();
+  earnBadge('certif');
+  if (!state.ficheSent) { state.ficheSent = true; saveState(); sendParcours('parcours terminé'); }
+}
+// info : { review: éléments ratés (pour la fiche et le rattrapage) }
+function finishAttempt(n, pct, passed, errs, info) {
   const L = state.levels[n];
   delete L.inProgress;
+  const duree = attemptSecs(n);
+  L.secs = (L.secs || 0) + duree;
   L.attempts += 1;
+  L.lastPct = pct;
+  if (!L.passed || (passed && pct >= L.best)) L.review = (info && info.review || []).map(i => ({ label: i.label, expected: i.expected, why: i.why }));
   L.best = Math.max(L.best, pct);
   errs.forEach(t => { L.errors[t] = (L.errors[t] || 0) + 1; });
   if (passed) L.passed = true;
-  if (passed && isFinalLevel(n) && !state.completedAt) state.completedAt = new Date().toISOString();
   updateRewards(n, pct, passed);
+  if (passed) L.pts = Math.max(L.pts || 0, ptsFor(pct, starsFor(pct, true)));
   saveState();
-  sendTracking(n, pct, passed, errs);
-  if (passed) toast(`Niveau ${n} validé`, `Score ${pct} %. Votre résumé de cours est prêt.`);
+  sendTracking(n, pct, passed, errs, duree);
+  maybeComplete();
+  saveState();
+  onProgress();
+}
+function finishRattrapage(n, ok, nbOk, nb, errs) {
+  const L = state.levels[n];
+  if (ok && !L.passed) {
+    L.passed = true; L.rattrapage = true; L.best = Math.max(L.best, SEUIL);
+    L.stars = Math.max(L.stars || 0, 1); L.pts = Math.max(L.pts || 0, ptsFor(SEUIL, 1));
+    toast(`Niveau ${n} validé après rattrapage`, `Score retenu : ${SEUIL}/100.`);
+  }
+  saveState();
+  sendRattrapage(n, ok, nbOk, nb, errs);
+  maybeComplete();
+  saveState();
   onProgress();
 }
 
@@ -733,40 +854,11 @@ function nextToast() {
 /* ---------- Composants partagés ---------- */
 function LevelHeader(n) {
   const M = LEVEL_META[n], st = state.levels[n];
-  return `<section class="mt-6 mb-6">
-    <p class="eyebrow">Niveau ${n} sur 4 · ${M.short}</p>
+  return `<section class="mt-5 mb-5">
+    <p class="eyebrow">Niveau ${n} sur 4 · ${M.short} · environ ${M.mins} min</p>
     <h1 tabindex="-1" class="title mt-1">${M.title}</h1>
-    <p class="lead mt-2">${M.intro}</p>
-    <div class="flex flex-wrap gap-2 mt-4">
-      <span class="pill">${M.format}</span>
-      <span class="pill pill-o">Validation : ${M.rule}</span>
-      <span class="pill">${M.src}</span>
-      ${st.passed ? `<span class="pill pill-ok">Déjà validé · meilleur score ${st.best} % · ${'★'.repeat(st.stars || 1)}${'☆'.repeat(3 - (st.stars || 1))}</span>` : ''}
-    </div>
-  </section>`;
-}
-function ResultCard({ n, pct, passed, headline, text, extra }) {
-  return `<section class="panel mt-6" id="result">
-    <div class="grid gap-6 md:grid-cols-[220px_minmax(0,1fr)] items-start">
-      <div>
-        <p class="eyebrow grey">Score du niveau</p>
-        <div class="score-big mt-2" style="color:var(${passed ? '--ok' : '--bad'})">${pct}<span style="font-size:24px">/100</span></div>
-        <div class="gauge" aria-hidden="true"><div class="gauge-fill ${passed ? 'ok' : ''}" style="width:${pct}%"></div><div class="gauge-mark" style="left:${SEUIL}%"><span>seuil ${SEUIL}</span></div></div>
-      </div>
-      <div class="min-w-0">
-        <span class="pill ${passed ? 'pill-ok' : 'pill-bad'}"><span class="dot"></span>${passed ? 'Niveau validé' : 'Niveau non validé'}</span>
-        <div class="mt-3">${starRow(starsFor(pct, passed), true)}${passed && pct < 100 ? `<span class="xs muted" style="margin-left:8px">${pct >= 95 ? '100/100 pour la 3e étoile' : '95 pour la 2e étoile'}</span>` : ''}</div>
-        <h2 class="h2 mt-3">${headline}</h2>
-        <p class="mt-2 prose">${text}</p>
-      </div>
-    </div>
-    ${tfBreakdown(n)}
-    ${extra ? `<div class="mt-6">${extra}</div>` : ''}
-    <div class="flex flex-wrap gap-3 mt-6">
-      ${passed ? `<button class="btn btn-ok" data-action="summary" data-n="${n}">Voir le résumé de cours</button>
-                  <button class="btn btn-ghost" data-action="retry" data-n="${n}">Rejouer ce niveau</button>`
-               : `<button class="btn btn-primary" data-action="retry" data-n="${n}">Réessayer le niveau</button>`}
-    </div>
+    ${typeof stageRail === 'function' ? stageRail(n) : ''}
+    ${st.passed ? `<p class="small muted mt-2">Déjà validé · meilleur score ${st.best}/100 · ${starRow(st.stars || 1)}</p>` : ''}
   </section>`;
 }
 function CourseSummary(n) {
@@ -814,20 +906,25 @@ const MODS = {};
 const COURSE = {};
 
 /* =====================================================================
-   RÉCOMPENSES — étoiles par niveau et badges (enregistrés sur l'appareil)
+   RÉCOMPENSES — points (sur 1 000), étoiles par niveau et badges
    ===================================================================== */
 // Étoiles : 1 = niveau validé, 2 = score ≥ 95, 3 = score parfait (100).
 const starsFor = (pct, passed) => !passed ? 0 : pct >= 100 ? 3 : pct >= 95 ? 2 : 1;
 const starRow = (k, big) => `<span class="stars ${big ? 'big' : ''}" aria-label="${k} étoile${k > 1 ? 's' : ''} sur 3">${[1, 2, 3].map(i => `<span class="${i <= k ? 'on' : ''}">★</span>`).join('')}</span>`;
+// Points d'un niveau validé : 2 points par point de score (200 au maximum) + bonus d'étoiles (10, 25 ou 50).
+// Quatre niveaux parfaits = 1 000 points. Les points n'interviennent pas dans la validation.
+const STAR_BONUS = [0, 10, 25, 50];
+const ptsFor = (pct, stars) => Math.round(pct * 2) + STAR_BONUS[stars || 0];
+const totalPts = () => [1, 2, 3, 4].reduce((a, k) => a + (state.levels[k].pts || 0), 0);
 const BADGES = [
   { id: 'premier', g: '1', name: 'Du premier coup', how: 'Valider un niveau à la première tentative.' },
-  { id: 'serie6', g: '6', name: 'Série parfaite', how: 'Répondre juste aux 6 affirmations d’un vrai ou faux.' },
-  { id: 'intact', g: '♥', name: 'Sans égratignure', how: 'Valider le niveau 1 sans perdre une seule vie.' },
+  { id: 'serie', g: '4', name: 'Série parfaite', how: 'Répondre juste aux 4 affirmations d’un échauffement.' },
+  { id: 'intact', g: '♥', name: 'Sans égratignure', how: 'Valider un niveau sans perdre la moindre vie.' },
   { id: 'lynx', g: '◉', name: 'Œil de lynx', how: 'Trouver les 3 erreurs du détecteur d’hallucination, sans fausse alerte, en moins de 90 secondes.' },
-  { id: 'tri', g: '⚡', name: 'Tri éclair', how: 'Réussir le tri express sans faute en moins de 45 secondes.' },
+  { id: 'tri', g: '⚡', name: 'Tri éclair', how: 'Réussir le tri express du niveau 1 sans faute en moins de 30 secondes.' },
   { id: 'feutre', g: '▮', name: 'Feutre noir infaillible', how: 'Masquer parfaitement le courrier au niveau 2.' },
   { id: 'archi', g: '⌂', name: 'Architecte sans fuite', how: 'Valider le niveau 3 sans incident à la première tentative.' },
-  { id: 'pilote', g: '⚙', name: 'Pilote d’agent', how: 'Valider le niveau 4 à la première tentative.' },
+  { id: 'boss', g: '⚔', name: 'Réflexes de survie', how: 'Battre le boss final sans faute en moins de 2 minutes.' },
   { id: 'certif', g: '✓', name: 'Concepteur certifié', how: 'Valider les quatre niveaux.' },
   { id: 'parfait', g: '★', name: 'Sans fausse note', how: 'Obtenir 3 étoiles aux quatre niveaux.' },
 ];
@@ -847,14 +944,13 @@ function updateRewards(n, pct, passed) {
   L.stars = Math.max(L.stars || 0, st);
   const f = FEATS[n] || {};
   if (passed && L.attempts === 1) earnBadge('premier');
-  if (TF[n] && tfGood(n) === TF_DATA[n].length) earnBadge('serie6');
-  if (n === 1 && passed && f.intact) earnBadge('intact');
-  if (n === 1 && f.lynx) earnBadge('lynx');
-  if (n === 1 && f.tri) earnBadge('tri');
-  if (n === 2 && f.feutre) earnBadge('feutre');
+  if (f.serie) earnBadge('serie');
+  if (passed && f.intact) earnBadge('intact');
+  if (f.lynx) earnBadge('lynx');
+  if (f.tri) earnBadge('tri');
+  if (f.feutre) earnBadge('feutre');
   if (n === 3 && passed && L.attempts === 1 && f.clean) earnBadge('archi');
-  if (n === 4 && passed && L.attempts === 1) earnBadge('pilote');
-  if (passed && isFinalLevel(n)) earnBadge('certif');
+  if (f.boss) earnBadge('boss');
   if ([1, 2, 3, 4].every(k => (state.levels[k].stars || 0) >= 3)) earnBadge('parfait');
   FEATS[n] = {};
 }
@@ -863,7 +959,7 @@ function BadgeShelf(title = 'Vos badges') {
   return `<section class="panel mt-6">
     <div class="flex items-center justify-between gap-3 flex-wrap"><h2 class="h3">${title}</h2><span class="pill">${nb} sur ${BADGES.length}</span></div>
     <div class="badge-grid mt-4">${BADGES.map(b => `<div class="badge ${got[b.id] ? 'on' : ''}" title="${esc(b.how)}"><span class="badge-medal" aria-hidden="true">${b.g}</span><div class="min-w-0"><b>${b.name}</b><small>${b.how}</small></div></div>`).join('')}</div>
-    <p class="xs muted mt-3">Étoiles par niveau : 1 étoile au seuil de ${SEUIL}, 2 à partir de 95, 3 pour un score parfait. Badges et étoiles sont enregistrés sur cet appareil.</p>
+    <p class="xs muted mt-3">Points : 2 par point de score d’un niveau validé, plus un bonus de 10, 25 ou 50 selon les étoiles (1 étoile au seuil de ${SEUIL}, 2 à partir de 95, 3 pour un score parfait). Badges et étoiles sont enregistrés sur cet appareil.</p>
   </section>`;
 }
 
@@ -878,7 +974,7 @@ let unlocked = false;
 try { unlocked = sessionStorage.getItem(ADMIN_KEY) === '1'; } catch (e) {}
 let draft = '', activeGroup = null, lastCheck = null, checking = false, pollTimer = null, statusMsg = '', statusKind = '';
 
-const levelUrl = n => { const u = new URL(`niveau-${n}.html`, window.location.href); u.search = ''; u.hash = ''; return u.href; };
+const levelUrl = () => { const u = new URL('formation-ia.html', window.location.href); u.search = ''; u.hash = ''; return u.href; };
 function todayTagInit() { return todayTag(); }
 const todayTag = () => { const d = new Date(); const p = x => String(x).padStart(2, '0'); return `Groupe-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`; };
 draft = todayTag();
@@ -924,7 +1020,7 @@ function MainView() {
     </div>
     <div class="panel min-w-0" id="activate-form">
       <h2 class="h2">Activer un nouveau groupe</h2>
-      <p class="small muted mt-1">À faire avant que les apprenants ouvrent le niveau 1. Lettres, chiffres et tirets, sans espace.</p>
+      <p class="small muted mt-1">À faire avant que les apprenants ouvrent le parcours. Lettres, chiffres et tirets, sans espace.</p>
       <label class="lbl mt-4" for="a-group">Nom du groupe</label>
       <input class="field mono" id="a-group" maxlength="60" value="${esc(draft)}" autocomplete="off" spellcheck="false">
       <button class="btn btn-primary w-full mt-4" type="button" data-action="admin-activate" ${configured() && !pollTimer ? '' : 'disabled'}>Activer ce groupe</button>
@@ -935,14 +1031,15 @@ function MainView() {
     <h2 class="h2">Ce qui se passe à l’activation</h2>
     <ul class="mt-3 grid gap-2 small">
       <li>• Make inscrit le nouveau groupe dans la feuille Config ; la page le confirme dès qu’il est lisible, en général sous 15 secondes.</li>
-      <li>• Chaque poste qui ouvre ensuite un niveau lit ce groupe. Si le poste servait à un autre groupe, il est remis à zéro et redemande prénom et nom.</li>
+      <li>• Chaque poste qui ouvre ensuite le parcours lit ce groupe. Si le poste servait à un autre groupe, il est remis à zéro et redemande prénom et nom.</li>
       <li>• Les résultats déjà envoyés restent dans la feuille, rattachés à leur ancien groupe.</li>
     </ul>
   </section>
   <section class="panel mt-5">
-    <h2 class="h2">Liens des niveaux</h2>
-    <p class="small muted mt-1">Ces liens ne changent jamais : ce sont ceux du support apprenant.</p>
-    <div class="mt-3">${[1, 2, 3, 4].map(n => `<div class="review" style="align-items:center;flex-wrap:wrap"><span class="num-circle sm">${n}</span><div class="min-w-0" style="flex:1 1 240px"><b>${LEVEL_META[n].title}</b><p class="mono xs muted" style="word-break:break-all">${esc(levelUrl(n))}</p></div><button class="btn btn-ghost" type="button" data-action="admin-copy" data-n="${n}">Copier</button></div>`).join('')}</div>
+    <h2 class="h2">Lien du parcours</h2>
+    <p class="small muted mt-1">Un seul lien pour les quatre niveaux. Il ne change jamais : c’est celui du support apprenant.</p>
+    <div class="mt-3"><div class="review" style="align-items:center;flex-wrap:wrap"><span class="num-circle sm">1</span><div class="min-w-0" style="flex:1 1 240px"><b>Formation IA · parcours complet (4 niveaux)</b><p class="mono xs muted" style="word-break:break-all">${esc(levelUrl())}</p></div><button class="btn btn-ghost" type="button" data-action="admin-copy" data-n="1">Copier</button></div></div>
+    <p class="small muted mt-3">Code formateur : saisi dans « J’ai déjà commencé sur un autre poste », il ouvre les quatre niveaux pour vos tests.</p>
     ${DASHBOARD_URL && DASHBOARD_URL !== 'LIEN_A_REMPLACER' ? `<a class="btn btn-ok mt-5" href="${esc(DASHBOARD_URL)}" target="_blank" rel="noopener">Ouvrir le tableau de bord</a>` : ''}
   </section>
   <textarea id="share-fallback" class="field mt-4" readonly hidden aria-label="Texte à copier"></textarea>`;
@@ -970,7 +1067,7 @@ function activate() {
     tries++;
     const cur = await fetchActiveGroup();
     activeGroup = cur; lastCheck = new Date();
-    if (cur === g) { clearTimeout(pollTimer); pollTimer = null; statusMsg = `Groupe « ${g} » actif. Vous pouvez envoyer le niveau 1.`; statusKind = 'ok'; toast('Groupe activé', g); render(); return; }
+    if (cur === g) { clearTimeout(pollTimer); pollTimer = null; statusMsg = `Groupe « ${g} » actif. Vous pouvez envoyer le lien du parcours.`; statusKind = 'ok'; toast('Groupe activé', g); render(); return; }
     if (tries >= 12) { pollTimer = null; statusMsg = `Make n’a pas confirmé après 40 secondes. Vérifiez que le scénario est sur ON et que l’aiguillage « groupe activé » écrit bien dans la feuille Config, puis cliquez sur Actualiser.`; statusKind = 'bad'; render(); return; }
     render(); pollTimer = setTimeout(tick, 3500);
   };
@@ -980,7 +1077,7 @@ function activate() {
 function copy(n) {
   const txt = levelUrl(n);
   const fallback = () => { const t = $('#share-fallback'); t.value = txt; t.hidden = false; t.focus(); t.select(); toast('Lien sélectionné', 'Copiez-le avec Ctrl+C ou ⌘+C.'); };
-  try { navigator.clipboard.writeText(txt).then(() => toast('Lien copié', `Niveau ${n}`)).catch(fallback); } catch (e) { fallback(); }
+  try { navigator.clipboard.writeText(txt).then(() => toast('Lien copié', 'Parcours complet')).catch(fallback); } catch (e) { fallback(); }
 }
 function login() {
   const ok = cleanCode($('#a-code').value) === cleanCode(CODE_FORMATEUR);
