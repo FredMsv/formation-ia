@@ -48,7 +48,8 @@ main.wrap{padding-block:8px 72px}
 
 /* Bandeau supérieur */
 .topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--white);border-bottom:1px solid var(--line)}
-.topbar-in{display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;padding-block:12px}
+.topbar-in{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding-block:12px}
+@media (max-width:1320px){.player>span:first-child{display:none}}
 .brand{display:flex;align-items:center;gap:10px}
 .logo{width:34px;height:34px;border-radius:50%;background:var(--orange);color:#fff;display:grid;place-items:center;font-weight:700;font-size:14px;flex:none}
 .brand b{display:block;font-size:15px;line-height:1.15}
@@ -339,17 +340,26 @@ textarea.field.sat-comment{font-family:inherit;font-size:14px;min-height:72px}
 .det-timer.urgent{background:var(--bad);color:#fff}
 @media (max-width:560px){.tri-bin .key{display:none}}
 
+/* Compte à rebours et pause */
+#chrono.cd-warn{background:#FFF1D6;color:#8A5300}
+#chrono.cd-urgent{background:var(--bad);color:#fff}
+body.game-paused #app{filter:grayscale(1) blur(2px);opacity:.35;pointer-events:none;user-select:none}
+#pause-veil{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:rgba(40,40,40,.25);padding:16px}
+#pause-veil[hidden]{display:none!important}
+.pause-card{background:var(--white);border-radius:12px;padding:28px 28px 24px;max-width:420px;width:100%;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.2)}
+
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="wrap topbar-in">
-    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Parcours Concepteur IA · 4 niveaux · v2026-10-06.3</small></span></div>
+    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Parcours Concepteur IA · 4 niveaux · v2026-10-07.2</small></span></div>
     <div class="gp" id="gp" role="progressbar" aria-label="Progression" aria-valuemin="0" aria-valuemax="100">
       <div class="gp-top"><span id="gp-label"></span><strong class="num" id="gp-pct"></strong></div>
       <div class="gp-bar" id="gp-bar"></div>
     </div>
     <span class="pill num" id="chrono" hidden aria-live="off"></span>
+    <button class="btn-top" id="pause-btn" data-action="pause" hidden aria-pressed="false">Pause</button>
     <div class="player" id="player"></div>
     <button class="btn-top" data-action="ask-reset">Réinitialiser</button>
   </div>
@@ -394,7 +404,7 @@ const DOMAINE_EMAIL = "lendys.fr";
 const ENVOI_FICHE = "validation";
 
 const STORAGE_KEY = "formation-ia-parcours-A";
-const VERSION_LABEL = "A - parcours continu · v2026-10-06.3";
+const VERSION_LABEL = "A - parcours continu · v2026-10-07.2";
 
 /* =====================================================================
    NOYAU COMMUN : outils, état, suivi webhook, personnages, composants
@@ -406,21 +416,21 @@ const reduceMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-r
 
 /* ---------- Métadonnées des niveaux ---------- */
 const LEVEL_META = {
-  1: { title: 'Démystifier l’IA générative', short: 'Fondations', format: '4 épreuves : vrai ou faux, situations, tri express, détecteur d’hallucination', rule: '3 vies, score ≥ 90/100', src: 'Modules 1, 3 et 4 du support',
-       intro: 'Un LLM ne comprend pas : il prédit le mot suivant. Quatre épreuves pour maîtriser tokens, température et hallucinations, et savoir ce qui peut (ou non) entrer dans un prompt. Trois vies : chaque erreur en coûte une.',
-       tags: ['Tokens', 'Probabilités', 'Température', 'Hallucinations', 'Feutre noir', 'Zones rouges'] },
-  2: { title: 'Prompt engineering avancé', short: 'L’artisan', format: 'Vrai ou faux + atelier « Répare le prompt »', rule: 'robustesse ≥ 90/100', src: 'Modules 2 et 3 du support',
+  1: { title: 'Démystifier l’IA générative', short: 'Fondations', format: '4 épreuves : vrai ou faux, situations, tri express, détecteur d’hallucination', rule: '3 vies, score ≥ 90/100', src: 'Bloc 1, séquences 01 à 04 du support Lendys',
+       intro: 'Un LLM ne « sait » pas : il prédit le mot suivant. Quatre épreuves pour distinguer les familles de l’IA, comprendre tokens, température et entraînement, situer la frontière irrégulière et savoir quand vérifier. Trois vies : chaque erreur en coûte une.',
+       tags: ['Familles de l’IA', 'Tokens', 'Température', 'Entraînement et inférence', 'Frontière irrégulière', 'Vérification'] },
+  2: { title: 'Prompt engineering avancé', short: 'L’artisan', format: 'Vrai ou faux + atelier « Répare le prompt »', rule: 'robustesse ≥ 90/100', src: 'Bloc 1, séquences 06 à 08 du support Lendys',
        intro: 'Le fil rouge : la réponse au sociétaire furieux après un refus d’indemnisation. Diagnostiquez le prompt, passez le feutre noir, puis reconstruisez-le avec les cinq ingrédients.',
        tags: ['Rôle', 'Contexte', 'Tâche', 'Contraintes', 'Format', 'Anonymisation'] },
-  3: { title: 'RAG et gestion du contexte', short: 'L’architecte de données', format: 'Vrai ou faux + assemblage du pipeline RAG', rule: 'pipeline sans fuite ni hallucination, ≥ 90/100', src: 'Modules 4 et 5 du support',
+  3: { title: 'RAG et gestion du contexte', short: 'L’architecte de données', format: 'Vrai ou faux + assemblage du pipeline RAG', rule: 'pipeline sans fuite ni hallucination, ≥ 90/100', src: 'Bloc 1, séquences 08 et 10 du support Lendys',
        intro: 'Construisez l’assistant documentaire qui répond « à livre ouvert » sur les conditions générales, sans tomber dans le grenier poussiéreux ni percer les droits d’accès.',
        tags: ['Découpage', 'Embeddings', 'Recherche par le sens', 'Millésimes', 'Droits d’accès'] },
-  4: { title: 'Conception d’agents IA', short: 'Le concepteur', format: 'Vrai ou faux + simulateur ReAct et AI Act', rule: 'mission sans boucle ni débordement, ≥ 90/100', src: 'Modules 4, 5 et 6 du support, appliqués aux agents',
+  4: { title: 'Conception d’agents IA', short: 'Le concepteur', format: 'Vrai ou faux + simulateur ReAct et AI Act', rule: 'mission sans boucle ni débordement, ≥ 90/100', src: 'Bloc 1, séquences 07 à 09 du support Lendys',
        intro: 'Équipez un agent de traitement des réclamations : outils au moindre privilège, garde-fous, validation humaine. Puis classez des usages selon l’AI Act.',
        tags: ['ReAct', 'Outils', 'Moindre privilège', 'Garde-fous', 'Contrôle humain', 'AI Act'] },
 };
 const SKILLS = {
-  1: 'Expliquer qu’un LLM prédit des tokens, régler la température selon l’enjeu, repérer une hallucination et respecter zones rouges et feutre noir',
+  1: 'Distinguer les familles de l’IA, expliquer comment un LLM produit une réponse, repérer une réponse à vérifier et adapter le contrôle à l’enjeu',
   2: 'Écrire un prompt métier complet (rôle, contexte, tâche, contraintes, format) à partir de données anonymisées',
   3: 'Concevoir un assistant RAG fiable : sources datées, recherche par le sens filtrée par habilitation, réponses sourcées',
   4: 'Spécifier un agent ReAct au moindre privilège, avec garde-fous, validation humaine et lecture AI Act des usages',
@@ -536,6 +546,7 @@ function sendStart(n) {
   if (state.levels[n].inProgress) sendAbandon(n, 'page fermée ou rechargée en cours de partie', true);
   levelStart[n] = Date.now();
   chrono = { n, start: levelStart[n], end: 0 };
+  if (typeof cdReset === 'function') cdReset(n);
   state.levels[n].inProgress = { start: levelStart[n] };
   saveState();
   updateChrono();
@@ -557,7 +568,7 @@ function sendAbandon(n, raison, sansDetail) {
   if (!sansDetail && MODS[n] && MODS[n].progress) { try { prog = MODS[n].progress(); } catch (e) {} }
   if (prog.answered > 0) L.attempts += 1;
   const fin = sansDetail && ip.snapshot ? ip.snapshot.at : Date.now();
-  const duree = Math.round((fin - ip.start) / 1000);
+  const duree = Math.max(0, Math.round((fin - ip.start - (typeof attemptPausedMs === 'number' && !sansDetail ? attemptPausedMs : 0)) / 1000));
   delete L.inProgress;
   saveState();
   if (chrono.n === n) chrono = { n: null, start: 0, end: 0 };
@@ -590,7 +601,11 @@ function updateChrono() {
   const el = document.getElementById('chrono'); if (!el) return;
   const show = !!chrono.n && typeof inLevelView === 'function' && inLevelView();
   el.hidden = !show; if (!show) return;
-  const s = Math.max(0, Math.round(((chrono.end || Date.now()) - chrono.start) / 1000));
+  const cd = typeof cdLabel === 'function' ? cdLabel() : null;
+  el.classList.remove('cd-warn', 'cd-urgent');
+  if (cd) { el.textContent = cd.txt; if (cd.cls) el.classList.add(cd.cls); el.classList.remove('pill-ok'); return; }
+  const paused = typeof attemptPausedMs === 'number' ? attemptPausedMs : 0;
+  const s = Math.max(0, Math.round(((chrono.end || Date.now()) - chrono.start - paused) / 1000));
   el.textContent = `${chrono.end ? 'Durée' : 'Temps'} ${fmtDur(s)}`;
   el.classList.toggle('pill-ok', !!chrono.end);
 }
@@ -598,7 +613,8 @@ setInterval(updateChrono, 1000);
 // Envoyé à la fin d'un niveau, qu'il soit validé ou non. Contient la fiche de score à envoyer par e-mail.
 function sendTracking(n, pct, passed, errs) {
   if (chrono.n === n) chrono.end = Date.now();
-  const duree = levelStart[n] ? Math.round((Date.now() - levelStart[n]) / 1000) : '';
+  if (typeof cdStop === 'function') cdStop(n);
+  const duree = levelStart[n] ? Math.max(0, Math.round((Date.now() - levelStart[n] - (typeof attemptPausedMs === 'number' ? attemptPausedMs : 0)) / 1000)) : '';
   const envoyer = ENVOI_FICHE === 'toujours' || (ENVOI_FICHE === 'validation' && passed);
   const fiche = envoyer ? buildFiche(n, pct, passed, duree) : { sujet: '', html: '' };
   postWebhook(Object.assign(basePayload(n, 'niveau terminé'), {
@@ -815,7 +831,7 @@ const BADGES = [
   { id: 'premier', g: '1', name: 'Du premier coup', how: 'Valider un niveau à la première tentative.' },
   { id: 'serie6', g: '6', name: 'Série parfaite', how: 'Répondre juste aux 6 affirmations d’un vrai ou faux.' },
   { id: 'intact', g: '♥', name: 'Sans égratignure', how: 'Valider le niveau 1 sans perdre une seule vie.' },
-  { id: 'lynx', g: '◉', name: 'Œil de lynx', how: 'Trouver les 3 erreurs du détecteur d’hallucination sans fausse alerte.' },
+  { id: 'lynx', g: '◉', name: 'Œil de lynx', how: 'Trouver les 3 erreurs du détecteur d’hallucination, sans fausse alerte, en moins de 90 secondes.' },
   { id: 'tri', g: '⚡', name: 'Tri éclair', how: 'Réussir le tri express sans faute en moins de 45 secondes.' },
   { id: 'feutre', g: '▮', name: 'Feutre noir infaillible', how: 'Masquer parfaitement le courrier au niveau 2.' },
   { id: 'archi', g: '⌂', name: 'Architecte sans fuite', how: 'Valider le niveau 3 sans incident à la première tentative.' },
@@ -865,40 +881,40 @@ function BadgeShelf(title = 'Vos badges') {
 const TF_WEIGHT = 20; // part du vrai/faux dans le score du niveau, en %
 const TF_DATA = {
   1: [
-    { t: 'Un LLM vérifie ses informations sur Internet avant de répondre.', v: false, tag: 'Prédiction du mot suivant', fb: 'Faux. Un LLM seul ne vérifie rien : il calcule la suite la plus probable, token après token. Il n’a pas accès au web par défaut.' },
-    { t: 'Le mot « surassurance » peut être découpé en plusieurs tokens.', v: true, tag: 'Tokenisation', fb: 'Vrai. « sur », « assur », « ance » : trois blocs, trois numéros. Le modèle ne calcule que sur ces numéros.' },
-    { t: 'Une température basse donne des réponses plus sobres et reproductibles.', v: true, tag: 'Température', fb: 'Vrai. C’est le réglage des écrits contractuels. Une température haute apporte de la variété, et plus d’invention.' },
-    { t: 'Une référence juridique précise, citée avec aplomb par l’IA, est forcément exacte.', v: false, tag: 'Hallucination', fb: 'Faux. Plausible n’est pas exact : le modèle peut citer un article ou un arrêt qui n’existe pas. On vérifie à la source.' },
-    { t: 'Sur un outil gratuit grand public, ce que vous collez peut servir à réentraîner le modèle.', v: true, tag: 'Outil non homologué', fb: 'Vrai, selon le service et ses réglages. Un outil gratuit se paie souvent en données : zéro donnée professionnelle sur un outil non homologué.' },
-    { t: 'Sur l’outil interne sécurisé, on peut résumer une analyse Tracfin si le client est anonymisé.', v: false, tag: 'Zones rouges', fb: 'Faux. Tracfin est une zone rouge absolue, comme le secret médical et l’information privilégiée : l’IA reste éteinte, même sur l’outil interne.' },
+    { t: 'Thomas pose deux fois la même question à l’outil validé et obtient deux formulations différentes : c’est un fonctionnement normal, pas une panne.', v: true, tag: 'Variabilité', fb: 'Vrai. Le choix de chaque token comporte une part de tirage : la même question peut donner deux réponses différentes. C’est la limite « variabilité », à connaître pour ne pas prendre une réponse comme la seule possible (séquence 03).' },
+    { t: 'Claire colle un rapport actuariel de 300 pages : au-delà d’une certaine taille, mesurée en tokens, le modèle ne peut pas tout prendre en compte en une fois.', v: true, tag: 'Tokenisation', fb: 'Vrai. Le texte est découpé en tokens (mot, morceau de mot ou signe), et la taille du contexte d’un modèle se mesure en tokens. Au-delà, des passages sont ignorés : on découpe ou on cible les parties utiles (séquence 03).' },
+    { t: 'Sophie joint le rapport annuel du client à sa conversation : le modèle l’a appris et s’en souviendra lors de la prochaine mission.', v: false, tag: 'Entraînement vs inférence', fb: 'Faux. Un document joint enrichit le contexte de cet échange, il n’entraîne pas le modèle. Entraînement = apprendre, en amont, chez l’éditeur ; inférence = répondre à chaque demande. Dans une nouvelle conversation, il faut rejoindre le document (séquence 03).' },
+    { t: 'Pour fiabiliser une extraction de chiffres dans Copilot, Julien écrit « mets ta température à 0 » dans son prompt : le réglage est appliqué.', v: false, tag: 'Température', fb: 'Faux. Le modèle ne peut pas modifier ses propres réglages de tirage : il imitera tout au plus un ton plus sobre. Dans un assistant de chat, le levier est la consigne ; le curseur n’existe que dans des outils comme Copilot Studio (0 à 1) ou par API (séquence 03).' },
+    { t: 'Le dernier modèle du marché compense des données mal structurées : « garbage in, garbage out » ne concerne plus l’IA générative.', v: false, tag: 'Qualité des données', fb: 'Faux. Une IA n’est jamais meilleure que les données qu’on lui donne : données mal structurées = réponses mal fondées, même avec le meilleur modèle. Votre rôle : nourrir l’outil avec des sources fiables et organisées (séquence 02).' },
+    { t: 'Sur une tâche hors du périmètre de l’IA, un consultant aidé par l’IA peut faire moins bien qu’un collègue qui travaille sans.', v: true, tag: 'Frontière irrégulière', fb: 'Vrai. Étude HBS/BCG (Dell’Acqua et al., 2023, 758 consultants) : plus de 40 % de qualité dans le périmètre de l’IA, mais 19 points de réponses correctes en moins sur une tâche choisie hors périmètre. On ne peut pas deviner la frontière à l’avance : on vérifie (séquence 04).' },
   ],
   2: [
-    { t: 'Remplacer « M. Dupont » par « M. X » suffit à anonymiser un dossier.', v: false, tag: 'Pseudonymisation vs anonymisation', fb: 'Faux. C’est de la pseudonymisation : profession, ville, âge ou montant suffisent à réidentifier la personne. Règle du feutre noir.' },
-    { t: 'Les contraintes sont l’ingrédient du prompt le plus souvent oublié.', v: true, tag: 'Contraintes', fb: 'Vrai. Ton, volume, « n’invente aucun chiffre » : les garde-fous que 9 personnes sur 10 oublient.' },
-    { t: 'Une donnée pseudonymisée reste une donnée personnelle soumise au RGPD.', v: true, tag: 'RGPD', fb: 'Vrai. Tant que la réidentification est possible, le RGPD et le secret bancaire s’appliquent (RGPD, art. 4 et considérant 26).' },
-    { t: 'Un bon prompt demande plusieurs livrables d’un coup pour gagner du temps.', v: false, tag: 'Tâche', fb: 'Faux. La tâche, c’est un verbe précis (rédige, extrais, compare) et un seul livrable.' },
-    { t: 'Le format peut être laissé de côté : on remettra en forme après.', v: false, tag: 'Format', fb: 'Faux. Tableau, puces, plan : préciser le format donne un résultat prêt à l’emploi, sans réécriture.' },
-    { t: 'Un arrêt de travail mentionné dans un dossier touche à une donnée de santé.', v: true, tag: 'Données de santé', fb: 'Vrai. Une pathologie ou un arrêt maladie relève des données de santé (RGPD, art. 9) : à retirer avant tout prompt.' },
+    { t: 'Sophie remplace « M. Laurent » par « M. X » dans le dossier qu’elle colle : la donnée devient anonyme.', v: false, tag: 'Pseudonymisation vs anonymisation', fb: 'Faux. C’est de la pseudonymisation : âge, ville, profession ou montant suffisent à réidentifier la personne, et la donnée reste personnelle (RGPD et secret bancaire). La règle du feutre noir élimine tous les marqueurs d’individualité (séquence 07).' },
+    { t: 'Sur un outil gratuit grand public, ce que Julien colle peut, selon les conditions et les réglages du service, servir à améliorer le modèle.', v: true, tag: 'Outil non homologué', fb: 'Vrai. Un outil gratuit se paie souvent en données. Règle de survie : zéro donnée professionnelle sur un outil personnel non homologué par l’employeur ou le client (séquence 07).' },
+    { t: 'Thomas analyse des avis clients avec un outil d’IA : le RGPD s’applique comme pour tout traitement de données personnelles.', v: true, tag: 'RGPD', fb: 'Vrai. Finalité et base légale, minimisation, transparence, droits des personnes : utiliser une IA ne supprime aucune obligation. Un doute ? Le DPO avant d’agir, pas après (séquence 07).' },
+    { t: 'L’outil est validé par la DSI : Claire peut y déposer l’export nominatif des crédits du client.', v: false, tag: 'Outil validé ≠ donnée autorisée', fb: 'Faux. C’est le niveau de la donnée qui décide : un export nominatif de crédits est en zone rouge (données personnelles et secret bancaire), l’IA reste éteinte. Un outil validé n’ouvre pas les zones rouges (séquence 08).' },
+    { t: 'Pour reformuler un mail de relance, Camille colle aussi le nom, l’adresse et l’IBAN du client : c’est sans conséquence puisque l’outil est interne.', v: false, tag: 'Minimisation', fb: 'Faux. Minimisation (RGPD, art. 5) : seules les données nécessaires à la tâche sont utilisées. Pour reformuler un mail, un repère « [Nom] » suffit (séquences 06 et 07).' },
+    { t: 'Émilie ajoute à son prompt « cite tes sources et signale les incertitudes » : elle renseigne le E de la méthode CADRE, l’ingrédient « contraintes ».', v: true, tag: 'Méthode CADRE', fb: 'Vrai. Les deux grilles se recoupent : Contexte + Données ↔ contexte ; Action ↔ tâche ; Résultat ↔ format ; Exigences de contrôle ↔ contraintes. Le rôle complète CADRE (séquence 06).' },
   ],
   3: [
-    { t: 'Le RAG supprime totalement les hallucinations.', v: false, tag: 'Hallucination', fb: 'Faux. Le RAG réduit fortement les erreurs, sans les supprimer. On vérifie toujours la source citée.' },
-    { t: 'Chaque fiche découpée doit garder son origine : document et page.', v: true, tag: 'Découpage', fb: 'Vrai. C’est ce qui permet de citer la source et de vérifier l’extrait utilisé.' },
-    { t: 'Ajouter un nouveau document dans un RAG prend des semaines de calcul.', v: false, tag: 'Mise à jour', fb: 'Faux. Un nouveau PDF s’intègre en quelques secondes ou minutes. C’est le réentraînement du modèle qui prend des semaines.' },
-    { t: 'La recherche par le sens peut retrouver un texte qui n’emploie pas les mots de la question.', v: true, tag: 'Embeddings', fb: 'Vrai. « La chaudière a explosé » retrouve la fiche « recours dégât des eaux » grâce aux embeddings.' },
-    { t: 'Si plusieurs versions des conditions générales sont indexées, le RAG prend toujours la plus récente.', v: false, tag: 'Millésimes des documents', fb: 'Faux. C’est le grenier poussiéreux : sans statut ni date de validité, il peut piocher le brouillon 2023. Précisez aussi les dates dans la question.' },
-    { t: 'Le filtre des droits d’accès doit s’appliquer avant la génération de la réponse.', v: true, tag: 'Droits d’accès', fb: 'Vrai. Après la génération, il est trop tard : la donnée a déjà été lue et reformulée.' },
+    { t: 'L’assistant documentaire de Claire est branché sur un RAG : ses réponses sont donc toujours exactes.', v: false, tag: 'Limites du RAG', fb: 'Faux. Le RAG réduit l’erreur, il ne la supprime pas : mauvais extrait retrouvé, document périmé ou réponse qui déborde des extraits restent possibles. La boucle de vérification s’applique toujours (séquence 10).' },
+    { t: 'La note de service sur les frais change demain : avec un RAG, il suffit de remplacer le document dans la base, sans réentraîner le modèle.', v: true, tag: 'RAG vs réentraînement', fb: 'Vrai. Réentraîner sert à changer le comportement du modèle ; le RAG lui donne accès à des connaissances qui évoluent. On ajoute, remplace ou retire le document dans la base (séquence 10).' },
+    { t: 'Les droits d’accès de l’utilisateur doivent être appliqués avant que le modèle ne rédige sa réponse.', v: true, tag: 'Droits d’accès', fb: 'Vrai. Une fois un extrait transmis au modèle, il peut figurer dans la réponse : le filtre agit avant la génération. C’est la parade aux « portes mal fermées » (séquences 08 et 10).' },
+    { t: 'La note n° 12 v1 (2022, abrogée) est restée dans la base à côté de la v3 (2026) : elle peut être citée comme une référence valable.', v: true, tag: 'Millésimes des documents', fb: 'Vrai. C’est le grenier poussiéreux : un RAG vaut ce que valent ses documents. Parades : version et statut sur chaque document, un propriétaire nommé, une revue périodique (séquence 10).' },
+    { t: 'L’assistant de Thomas cite « Note de service n° 12, v3, § 4.2 » : la responsabilité de la réponse revient donc à l’outil.', v: false, tag: 'Responsabilité humaine', fb: 'Faux. Une référence citée n’est pas une preuve : on ouvre le document et on lit le passage. L’IA propose, l’humain valide et engage sa responsabilité (séquences 04 et 10).' },
+    { t: 'Pour qu’un document retiré ne soit plus jamais utilisé, il faut réentraîner le modèle.', v: false, tag: 'RAG vs réentraînement', fb: 'Faux. Avec un RAG, on retire simplement le document de la base. C’est justement un modèle réentraîné qu’il est difficile de « faire oublier » (séquence 10).' },
   ],
   4: [
-    { t: 'Le niveau de risque AI Act se juge par outil : un LLM est soit à haut risque, soit non.', v: false, tag: 'AI Act : niveau de risque', fb: 'Faux. Il se juge par cas d’usage : le même LLM peut servir un usage minimal ou à haut risque.' },
-    { t: 'Un chatbot d’accueil client doit indiquer qu’il s’agit d’une IA.', v: true, tag: 'AI Act : transparence', fb: 'Vrai. Obligation de transparence (art. 50), applicable depuis le 2 août 2026.' },
-    { t: 'Le score de crédit d’un particulier est un usage à haut risque.', v: true, tag: 'AI Act : haut risque', fb: 'Vrai. Annexe III, point 5. Obligations applicables au 2 décembre 2027 depuis l’omnibus numérique.' },
-    { t: 'L’obligation de littératie IA (art. 4) ne s’appliquera qu’en 2027.', v: false, tag: 'AI Act : calendrier', fb: 'Faux. Elle s’applique depuis le 2 février 2025 : cette formation en fait partie.' },
-    { t: 'Donner à un agent tous les outils disponibles le rend plus sûr.', v: false, tag: 'Moindre privilège', fb: 'Faux. Un outil disponible finit toujours par être utilisé : uniquement les outils utiles à la mission, en lecture seule si possible.' },
-    { t: 'Sans plafond d’itérations, un agent en échec peut tourner en boucle.', v: true, tag: 'Boucle ReAct', fb: 'Vrai. Pensée, action, observation : sans plafond ni règle d’arrêt, un échec devient une boucle infinie.' },
+    { t: 'Un agent enchaîne seul plusieurs étapes vers un objectif : plus il est autonome, plus sa supervision doit être définie à l’avance.', v: true, tag: 'Assistant vs agent', fb: 'Vrai. L’assistant répond quand on le sollicite, une étape à la fois ; l’agent enchaîne les étapes. Plus d’autonomie exige plus de supervision : contrôle et validation restent indispensables (séquence 09).' },
+    { t: 'Camille annonce au client que les obligations « haut risque » de l’annexe III (scoring de crédit) s’appliquent depuis le 2 août 2026.', v: false, tag: 'AI Act : calendrier', fb: 'Faux. L’omnibus numérique (règlement (UE) 2026/1744, en vigueur le 27 juillet 2026) les a reportées au 2 décembre 2027 ; l’annexe I au 2 août 2028. Dates à confirmer avec la conformité avant chaque session (séquence 07).' },
+    { t: 'Le chatbot d’accueil que Julien déploie pour un assureur doit déjà indiquer aux clients qu’ils parlent à une IA.', v: true, tag: 'AI Act : transparence', fb: 'Vrai. La transparence (art. 50) s’applique depuis le 2 août 2026 : informer qu’on interagit avec une IA et marquer les contenus générés (séquence 07).' },
+    { t: 'Puisque les obligations haut risque sont reportées à 2027, Thomas peut attendre 2027 pour appliquer le RGPD à son agent de scoring.', v: false, tag: 'RGPD et AI Act', fb: 'Faux. Le calendrier ne concerne que l’AI Act : le RGPD et le secret bancaire s’appliquent déjà, sans délai. Les deux cadres sont complémentaires (séquence 07).' },
+    { t: 'Pour qu’il puisse se connecter seul à l’outil du client, Sophie colle la clé d’API dans le prompt système de l’agent.', v: false, tag: 'Zones rouges', fb: 'Faux. Clés d’API, mots de passe et certificats sont une zone rouge absolue : une clé dans un prompt, c’est la clé sous le paillasson. Les accès d’un agent passent par des outils autorisés et cloisonnés (séquence 08).' },
+    { t: 'Un outil de notation sociale des clients selon leur comportement expose à une amende pouvant atteindre 35 M€ ou 7 % du chiffre d’affaires mondial.', v: true, tag: 'AI Act : sanctions', fb: 'Vrai. C’est une pratique interdite (art. 5), sanctionnée au plafond le plus haut (art. 99) ; 15 M€ ou 3 % pour les autres obligations. Interdictions applicables depuis le 2 février 2025 (séquence 07).' },
   ],
 };
 const TF = {};
-const TF_EXTRA = {}, TF_HOOK = {}; // compléments optionnels par niveau (vies du niveau 1)
+const TF_EXTRA = {}, TF_HOOK = {}, TF_OVER = {}, TF_ONSTOP = {}; // compléments optionnels par niveau (vies du niveau 1)
 function tfReset(n) { TF[n] = { order: shuffle(TF_DATA[n].map((_, k) => k)), i: 0, picks: {}, streak: 0, best: 0, done: false, mainPct: null }; }
 const tfGood = n => Object.entries(TF[n].picks).filter(([k, v]) => TF_DATA[n][k].v === v).length;
 const tfPct = n => Math.round(tfGood(n) / TF_DATA[n].length * 100);
@@ -937,7 +953,7 @@ function TFView(n) {
     <div class="tf-card mt-4 ${answered ? (ok ? 'is-ok' : 'is-bad') : ''}"><p>${q.t}</p></div>
     <div class="tf-actions mt-4">${btn(true, 'Vrai', 'V')}${btn(false, 'Faux', 'F')}</div>
     ${answered ? `<div class="fb ${ok ? 'fb-ok' : 'fb-bad'} mt-5" role="status"><div class="fb-head">${ok ? '✓ Bien vu' : (TF_EXTRA[n] ? '✗ Raté · une vie en moins' : '✗ Raté')}${ok && t.streak >= 3 ? ` · série de ${t.streak} !` : ''}</div><p>${q.fb}</p></div>
-      <div class="flex justify-end mt-5"><button class="btn btn-primary" data-action="tf-next">${t.i < D.length - 1 ? 'Affirmation suivante' : 'Voir mon échauffement'}</button></div>` : ''}
+      <div class="flex justify-end mt-5">${TF_OVER[n] && TF_OVER[n]() ? `<button class="btn btn-primary" data-action="tf-stop">Plus de vies : voir mon résultat</button>` : `<button class="btn btn-primary" data-action="tf-next">${t.i < D.length - 1 ? 'Affirmation suivante' : 'Voir mon échauffement'}</button>`}</div>` : ''}
   </section>`;
 }
 function TFHandle(n, a, d) {
@@ -950,14 +966,15 @@ function TFHandle(n, a, d) {
     render(false); return true;
   }
   if (a === 'tf-next') { t.i++; render(false); return true; }
-  if (a === 'tf-go') { t.done = true; render(true); return true; }
+  if (a === 'tf-stop') { t.done = true; if (TF_ONSTOP[n]) TF_ONSTOP[n](); render(true); return true; }
+  if (a === 'tf-go') { t.done = true; if (typeof cdStart === 'function') cdStart(n); render(true); return true; }
   return false;
 }
 // Ajoute l'échauffement vrai/faux devant le défi principal d'un niveau.
 function withTF(n) {
   const M = MODS[n], o = { start: M.start, view: M.view, handle: M.handle, progress: M.progress, details: M.details };
   M.start = function () { tfReset(n); return o.start.apply(M, arguments); };
-  M.view = function () { return TF[n].done ? o.view.apply(M, arguments) : TFView(n); };
+  M.view = function () { if (typeof CD !== 'undefined' && CD.timeUp && CD.n === n) return TimeUpView(n); return TF[n].done ? o.view.apply(M, arguments) : TFView(n); };
   M.handle = function (a, d, b) { return a.startsWith('tf-') ? TFHandle(n, a, d) : o.handle.call(M, a, d, b); };
   M.progress = function () {
     const nb = Object.keys(TF[n].picks).length;
@@ -981,141 +998,187 @@ document.addEventListener('keydown', e => {
 });
 
 /* =====================================================================
+   COMPTE À REBOURS (20 min, après l'échauffement) ET PAUSE
+   ===================================================================== */
+const CD_MINUTES = 20; // durée du défi principal, en minutes
+const CD = { n: null, started: false, startAt: 0, pausedMs: 0, pausedAt: 0, stopped: false, timeUp: false };
+const PAUSE_HOOKS = []; // fonctions(ms) appelées à la reprise, pour décaler les minuteurs internes d'un niveau
+let attemptPausedMs = 0; // temps passé en pause pendant la tentative (exclu de la durée envoyée)
+const isPaused = () => !!CD.pausedAt;
+function cdReset(n) { if (isPaused()) resumeGame(true); Object.assign(CD, { n, started: false, startAt: 0, pausedMs: 0, pausedAt: 0, stopped: false, timeUp: false }); attemptPausedMs = 0; }
+function cdStart(n) { if (CD.n !== n || CD.started) return; CD.started = true; CD.startAt = Date.now(); updateChrono(); }
+function cdStop(n) { if (CD.n === n) CD.stopped = true; if (isPaused()) resumeGame(true); }
+function cdLeftMs() {
+  if (!CD.started) return CD_MINUTES * 60000;
+  const now = CD.pausedAt || Date.now();
+  return Math.max(0, CD_MINUTES * 60000 - (now - CD.startAt - CD.pausedMs));
+}
+// Libellé du bandeau (appelé par updateChrono).
+function cdLabel() {
+  if (!CD.n || CD.n !== chrono.n || CD.stopped) return null;
+  if (CD.timeUp) return { txt: 'Temps écoulé', cls: 'cd-urgent' };
+  if (!CD.started) return { txt: `${fmtDur(CD_MINUTES * 60)} · après l’échauffement`, cls: '' };
+  const s = Math.ceil(cdLeftMs() / 1000);
+  return { txt: `${isPaused() ? 'Pause ' : 'Reste '}${fmtDur(s)}`, cls: s <= 60 ? 'cd-urgent' : s <= 300 ? 'cd-warn' : '' };
+}
+function pauseGame() {
+  if (isPaused() || !chrono.n || chrono.end || CD.timeUp) return;
+  CD.pausedAt = Date.now();
+  document.body.classList.add('game-paused');
+  let v = document.getElementById('pause-veil');
+  if (!v) { v = document.createElement('div'); v.id = 'pause-veil'; document.body.appendChild(v); }
+  v.innerHTML = `<div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pause-t"><p class="eyebrow">Formation IA</p><h2 class="h2 mt-1" id="pause-t">Jeu en pause</h2><p class="mt-2 small muted">Le compte à rebours est arrêté et le jeu est masqué. Reprenez quand vous êtes prêt.</p><button class="btn btn-primary mt-4" data-action="resume" id="resume-btn">Reprendre</button></div>`;
+  v.hidden = false; const b = document.getElementById('resume-btn'); if (b) b.focus();
+  updateChrono(); syncPauseBtn();
+}
+function resumeGame(silent) {
+  if (!isPaused()) return;
+  const ms = Date.now() - CD.pausedAt;
+  if (CD.started) CD.pausedMs += ms;
+  attemptPausedMs += ms;
+  CD.pausedAt = 0;
+  document.body.classList.remove('game-paused');
+  const v = document.getElementById('pause-veil'); if (v) v.hidden = true;
+  PAUSE_HOOKS.forEach(f => { try { f(ms); } catch (e) {} });
+  if (!silent) { updateChrono(); syncPauseBtn(); }
+}
+function syncPauseBtn() {
+  const b = document.getElementById('pause-btn'); if (!b) return;
+  const show = !!chrono.n && !chrono.end && !CD.timeUp && typeof inLevelView === 'function' && inLevelView();
+  b.hidden = !show; b.textContent = isPaused() ? 'Reprendre' : 'Pause';
+  b.setAttribute('aria-pressed', isPaused());
+}
+setInterval(() => {
+  syncPauseBtn();
+  if (CD.n && CD.started && !CD.stopped && !CD.timeUp && !isPaused() && cdLeftMs() <= 0) cdTimeUp(CD.n);
+}, 500);
+// Temps écoulé : la tentative est enregistrée comme abandonnée (motif « temps écoulé »), sans score inventé.
+function cdTimeUp(n) {
+  CD.timeUp = true;
+  try { sendAbandon(n, `temps écoulé (${CD_MINUTES} min)`); } catch (e) {}
+  chrono.n = n; chrono.end = Date.now();
+  if (typeof render === 'function' && inLevelView()) render(true);
+}
+function TimeUpView(n) {
+  return `${LevelHeader(n)}<section class="panel" id="result">
+    <span class="pill pill-bad"><span class="dot"></span>Temps écoulé</span>
+    <h2 class="h2 mt-3">Les ${CD_MINUTES} minutes sont passées</h2>
+    <p class="mt-2">Le niveau n’est pas validé et cette tentative est enregistrée comme interrompue. Vos réponses ne sont pas perdues pour l’apprentissage : rejouez le niveau, l’échauffement et le compte à rebours repartent de zéro.</p>
+    <p class="small muted mt-2">Astuce : le bouton « Pause » du bandeau arrête le compte à rebours si vous devez vous interrompre.</p>
+    <div class="flex flex-wrap gap-3 mt-6"><button class="btn btn-primary" data-action="retry" data-n="${n}">Rejouer le niveau</button></div>
+  </section>`;
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('[data-action="pause"],[data-action="resume"]');
+  if (!b) return;
+  e.stopPropagation();
+  isPaused() ? resumeGame() : pauseGame();
+}, true);
+// Pendant la pause, le clavier ne joue plus (sauf Échap / Entrée pour reprendre).
+window.addEventListener('keydown', e => {
+  if (!isPaused()) return;
+  if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); resumeGame(); }
+  else if (e.key !== 'Tab') { e.preventDefault(); }
+  e.stopImmediatePropagation();
+}, true);
+// Changement d'onglet ou mise en veille : pas de pause automatique (le formateur reste maître), mais le décompte se recale.
+
+/* =====================================================================
    NIVEAU 1 — DÉMYSTIFIER L'IA GÉNÉRATIVE (quiz, 10 situations)
    ===================================================================== */
 const L1Q_ALL = [
-  { mod: 'Module 1', who: 'claire', tag: 'Tokenisation',
-    scenario: 'Claire saisit le mot « surassurance » dans l’assistant IA. Elle se demande ce que le modèle « voit » réellement.',
-    q: 'Comment le modèle traite-t-il ce mot ?',
+  { mod: 'Séquence 01 · Familles de l’IA', who: 'emilie', tag: 'Familles de l’IA',
+    scenario: 'En réunion de cadrage, un client assureur présente trois outils : un moteur de règles qui rejette automatiquement les dossiers incomplets, un modèle de scoring appris sur l’historique des sinistres, et un assistant qui rédige les réponses aux réclamations. Il demande lequel relève de l’IA générative.',
+    q: 'Que répond Émilie ?',
     opts: [
-      { t: 'Comme un mot entier dont il connaît la définition juridique.', fb: 'Non. Le modèle ne manipule pas des définitions mais des morceaux de texte numérotés. Il n’a pas de dictionnaire de sens.' },
-      { t: 'Il le découpe en 3 tokens (« sur », « assur », « ance »), chacun converti en numéro.', ok: true, fb: 'Exact. C’est la tokenisation : le texte devient une suite de blocs, chacun identifié par un numéro (4812, 27305, 1096 dans l’exemple du support). Le modèle ne calcule que sur ces numéros.' },
-      { t: 'Lettre par lettre, soit 12 caractères analysés un à un.', fb: 'Non. Le découpage se fait en sous-mots fréquents, pas en lettres. Un token vaut en moyenne un peu moins d’un mot en français.' },
-      { t: 'Il cherche le mot dans une base de connaissances de la banque.', fb: 'Non. Un LLM seul ne consulte aucune base. Le brancher sur vos documents, c’est le RAG (niveau 3).' } ],
-    concept: 'Un LLM découpe le texte en tokens, leur attribue un numéro, puis boucle : lire le contexte, calculer la probabilité de chaque token, en choisir un, l’ajouter, recommencer.' },
+      { t: 'L’assistant qui rédige les réponses : c’est le seul qui crée un contenu nouveau.', ok: true, fb: 'Exact. L’IA générative crée du texte, des images ou du code à partir d’une instruction. Le scoring apprend des données pour prédire (machine learning) ; le moteur de règles suit des règles écrites à la main, sans apprentissage.' },
+      { t: 'Le modèle de scoring, parce qu’il apprend à partir des données.', fb: 'Non. Apprendre à partir des données, c’est le machine learning. Le scoring prédit ou classe : il ne génère pas de contenu.' },
+      { t: 'Les trois : ce sont toutes des IA.', fb: 'Non. Les familles sont emboîtées, pas équivalentes. Le moteur de règles n’apprend même pas : il applique des règles écrites manuellement.' },
+      { t: 'Aucun : seul un chatbot grand public est une IA générative.', fb: 'Non. L’IA générative se définit par ce qu’elle produit (un contenu nouveau), pas par l’outil grand public qui la porte.' } ],
+    concept: 'IA ⊃ machine learning ⊃ deep learning ⊃ IA générative ⊃ LLM : des cercles emboîtés, pas concurrents. Qualifier correctement un outil oriente les contrôles et les obligations qui s’y appliquent.' },
 
-  { mod: 'Module 1', who: null, tag: 'Prédiction du mot suivant',
-    scenario: 'Le modèle complète la phrase : « Le taux d’usure applicable ce trimestre est fixé par la Banque de … » et écrit « France ».',
-    q: 'Pourquoi écrit-il « France » ?',
+  { mod: 'Séquence 03 · Prédiction du mot suivant', who: null, tag: 'Prédiction du mot suivant',
+    scenario: 'Dans une note de portefeuille rédigée sans document joint, l’IA complète la phrase « Le taux de défaut de ce portefeuille est… » par « faible ».',
+    q: 'Pourquoi écrit-elle « faible » ?',
     opts: [
-      { t: 'Il a vérifié l’information sur le site de la Banque de France.', fb: 'Non. Il n’a rien vérifié : il n’a pas accès au web par défaut. Il a seulement calculé une suite probable.' },
-      { t: 'Parce qu’il comprend le droit bancaire français.', fb: 'Non. Il ne comprend pas : il reproduit des régularités statistiques apprises sur d’énormes volumes de textes.' },
-      { t: 'C’est le token le plus probable dans ce contexte (environ 94 %, contre 3 % pour « détail »).', ok: true, fb: 'Exact. Le modèle attribue une probabilité à chaque suite possible : « France » domine, « réserve » ou « bananes » sont quasi nuls. Il choisit, ajoute, puis recalcule pour le mot suivant.' },
-      { t: 'C’est la seule réponse possible, le modèle est déterministe.', fb: 'Non. D’autres tokens avaient une probabilité non nulle. Selon la température, le choix peut varier.' } ],
-    concept: 'Le clavier de votre téléphone qui propose le mot suivant fait la même chose, en beaucoup plus simple. Un LLM est un jeu statistique géant.' },
+      { t: 'Elle a consulté les données du portefeuille.', fb: 'Non. Sans document fourni, le modèle ne consulte rien : il calcule une suite probable.' },
+      { t: 'C’est le token le plus probable compte tenu du contexte, pas une information vérifiée.', ok: true, fb: 'Exact. À chaque étape, le modèle attribue une probabilité à chaque token possible, en choisit un, l’ajoute et recommence. Il optimise la plausibilité du texte, pas sa vérité : « faible » sonne juste, rien ne dit qu’il l’est.' },
+      { t: 'C’est la seule réponse possible : le modèle est déterministe.', fb: 'Non. « Stable », « supérieur » ou « élevé » avaient aussi une probabilité ; le choix comporte une part de tirage.' },
+      { t: 'Elle a retrouvé la réponse dans une base de réponses apprise à l’entraînement.', fb: 'Non. Le modèle retient des régularités du langage, il ne consulte pas une base de réponses.' } ],
+    concept: 'Contexte + probabilités = mot suivant, répété des centaines de fois. D’où la fluidité du texte, et des erreurs formulées avec la même assurance qu’une réponse exacte.' },
 
-  { mod: 'Module 1', who: 'thomas', tag: 'Illusion de compréhension',
-    scenario: 'Thomas lit la réponse d’apaisement générée pour un sociétaire furieux. Il est bluffé : « L’IA a vraiment compris sa détresse. »',
-    q: 'Que lui répondez-vous ?',
+  { mod: 'Séquence 03 · Température', who: 'sophie', tag: 'Température',
+    scenario: 'Sophie paramètre dans Copilot Studio un prompt qui rédige des courriers contractuels de résiliation. La formulation doit être identique d’un dossier à l’autre.',
+    q: 'Quel réglage choisir, et qu’en attendre ?',
     opts: [
-      { t: 'Oui, les modèles récents ont une forme d’empathie.', fb: 'Non. Le ton empathique est la suite statistiquement la plus probable après un message de colère. Il n’y a ni ressenti ni compréhension.' },
-      { t: 'Le modèle a prédit la suite la plus probable. Aucune empathie, aucune compréhension : il faut juger le fond, pas le ton.', ok: true, fb: 'Exact. Un LLM a une seule fonction : prédire le prochain token, en boucle. Un texte bien tourné n’est pas une garantie de justesse.' },
-      { t: 'Seulement si la température est réglée haut.', fb: 'Non. La température règle la part de hasard, pas une capacité à comprendre.' },
-      { t: 'Cela dépend de la langue utilisée par le sociétaire.', fb: 'Non. Quelle que soit la langue, le mécanisme reste la prédiction du token suivant.' } ],
-    concept: 'L’illusion de compréhension est le premier piège : plus le texte est fluide, plus on lui prête une intelligence qu’il n’a pas.' },
+      { t: 'Une température basse (0 à 0,2) : des réponses stables, qui restent à relire car stable ne veut pas dire exact.', ok: true, fb: 'Exact. En température basse, le favori écrase les autres candidats : les réponses sont quasi identiques d’un essai à l’autre. Mais si le modèle se trompe, il répétera la même erreur avec constance.' },
+      { t: 'Une température basse : elle garantit un courrier exact, sans relecture.', fb: 'Non. Basse = constance, pas vérité. Un courrier contractuel engage l’établissement : il se relit toujours.' },
+      { t: 'Une température haute, pour un style plus riche.', fb: 'Non. Plus de variété, c’est aussi plus de dérive, voire d’invention : à proscrire pour un écrit contractuel.' },
+      { t: 'Le réglage n’a aucune influence sur le texte.', fb: 'Si. La température règle la part de hasard dans le choix de chaque token.' } ],
+    concept: 'Repères : 0 à 0,2 pour l’extraction et le courrier contractuel, 0,3 à 0,6 pour une synthèse, 0,7 à 1 pour le brainstorming. Basse = constance, haute = variété, aucune = vérité.' },
 
-  { mod: 'Module 1', who: 'sophie', tag: 'Température',
-    scenario: 'Sophie prépare un courrier contractuel de résiliation. Elle veut une formulation sobre, identique d’un dossier à l’autre.',
-    q: 'Quel réglage choisir ?',
-    opts: [
-      { t: 'Une température basse.', ok: true, fb: 'Exact. Température basse = choix des tokens les plus probables = réponses sobres et reproductibles. C’est le réglage des écrits contractuels.' },
-      { t: 'Une température haute pour un style plus riche.', fb: 'Non. Plus de variété, c’est aussi plus d’invention. À proscrire pour un courrier qui engage l’établissement.' },
-      { t: 'Le réglage n’a aucune influence sur le texte.', fb: 'Si. La température règle directement le degré de hasard dans le choix de chaque token.' },
-      { t: 'La température maximale, puis une relecture attentive.', fb: 'Non. On règle selon l’enjeu dès le départ ; la relecture reste indispensable dans tous les cas.' } ],
-    concept: 'Régler selon l’enjeu : basse pour la rigueur (courrier contractuel), haute pour la créativité (idées de campagne).' },
-
-  { mod: 'Module 1', who: 'emilie', tag: 'Température',
-    scenario: 'Émilie, responsable innovation, veut vingt idées d’accroches pour une campagne sur l’épargne des jeunes actifs.',
-    q: 'Quel réglage est le plus adapté ?',
-    opts: [
-      { t: 'Température 0, pour des idées fiables.', fb: 'Non. À température nulle, le modèle reprend toujours les suites les plus probables : des idées convenues et répétitives.' },
-      { t: 'Peu importe, les idées seront relues.', fb: 'La relecture est nécessaire, mais le réglage conditionne la diversité des propositions reçues.' },
-      { t: 'Une température plus haute : plus de variété, en sachant qu’elle augmente aussi l’invention.', ok: true, fb: 'Exact. Pour de l’idéation, on accepte plus de hasard. Chaque accroche retenue sera ensuite vérifiée (promesses, conformité).' },
-      { t: 'Température haute, et publication directe des meilleures idées.', fb: 'Non. L’IA propose, vous décidez : aucune accroche ne part sans validation humaine et conformité.' } ],
-    concept: 'La température est un curseur entre sobriété et variété. Il n’y a pas de bon réglage universel, seulement un réglage adapté à l’usage.' },
-
-  { mod: 'Module 1', who: 'julien', tag: 'Hallucination',
-    scenario: 'Pour motiver un refus, l’IA de Julien cite avec aplomb un article du Code des assurances et un arrêt de la Cour de cassation, numéros et dates compris.',
+  { mod: 'Séquence 03 · Entraînement et inférence', who: 'camille', tag: 'Obsolescence',
+    scenario: 'Camille demande à l’IA le seuil réglementaire applicable depuis une publication du mois dernier. La réponse donne, avec assurance, l’ancien seuil.',
     q: 'Quel est le bon réflexe ?',
     opts: [
-      { t: 'Faire confiance : une référence aussi précise est forcément exacte.', fb: 'Non. La précision de la forme ne prouve rien : le modèle peut citer un article ou un arrêt qui n’existe pas, avec aplomb.' },
-      { t: 'Demander à l’IA si elle est bien sûre d’elle.', fb: 'Insuffisant. Le modèle peut confirmer sa propre invention avec la même assurance.' },
-      { t: 'Vérifier chaque référence dans la source officielle avant tout usage.', ok: true, fb: 'Exact. Plausible n’est pas exact. Tout fait sensible (article, arrêt, chiffre, date) se vérifie à la source.' },
-      { t: 'Augmenter la température pour obtenir d’autres références.', fb: 'Contre-productif : plus de hasard, donc plus d’invention.' } ],
-    concept: 'Une hallucination est un texte plausible mais faux. Les références précises sont les plus exposées : leur forme est facile à imiter, leur contenu impossible à deviner.' },
+      { t: 'Faire confiance : une réponse aussi assurée est forcément à jour.', fb: 'Non. L’assurance du ton ne dit rien de la date de l’information.' },
+      { t: 'Reposer la question jusqu’à obtenir un autre chiffre.', fb: 'Non. Obtenir un autre chiffre par tirage n’apporte aucune vérité.' },
+      { t: 'Fournir le texte publié dans le contexte (ou passer par une recherche documentaire), puis vérifier à la source.', ok: true, fb: 'Exact. Les connaissances apprises s’arrêtent à la date de coupure de l’entraînement. Pour du récent, on apporte le document dans le contexte, et on vérifie le chiffre à la source.' },
+      { t: 'Demander à l’IA de se mettre à jour.', fb: 'Non. Le modèle ne se réentraîne pas à la demande : l’entraînement se fait en amont, chez l’éditeur.' } ],
+    concept: 'Des connaissances datées : ce qui a été appris s’arrête à la date de coupure. Sujet récent, chiffré ou pointu = vigilance accrue.' },
 
-  { mod: 'Module 1 · Fil rouge', who: 'jb', tag: 'Fond vs forme',
-    scenario: 'M. Laurent conteste un refus d’indemnisation. L’IA rédige en 3 secondes une réponse impeccable, au ton parfait.',
-    q: 'Quel est le vrai risque ?',
+  { mod: 'Séquence 04 · Frontière irrégulière', who: 'claire', tag: 'Frontière irrégulière',
+    scenario: 'Pour un rapport destiné au client, Claire demande à l’IA le total d’un tableau de 200 lignes et le nombre de jours de retard entre deux dates de règlement.',
+    q: 'Quelle est la bonne approche ?',
     opts: [
-      { t: 'Le texte est trop long pour un sociétaire mécontent.', fb: 'La longueur se règle. Le risque majeur est ailleurs.' },
-      { t: 'Le sociétaire devinera que la réponse vient d’une IA.', fb: 'La transparence compte (module 6), mais le risque principal ici est l’exactitude du fond.' },
-      { t: 'Aucun : le modèle connaît les contrats de l’établissement.', fb: 'Non. Un LLM brut ne connaît pas vos contrats : il n’a jamais lu la clause en cause.' },
-      { t: 'La clause d’exclusion du contrat n’a jamais été lue par l’outil : le ton est juste, le fond peut être faux.', ok: true, fb: 'Exact. C’est le fil rouge du support. Qui a vérifié le contrat, protégé les données et signé la réponse ? Pas l’IA.' } ],
-    concept: 'Comme l’IA devine plutôt qu’elle ne sait, on lui donne un cadre (prompt), on contrôle ce qu’on lui confie (données) et on lui fournit les bons documents (RAG).' },
+      { t: 'Faire confiance : l’IA tourne sur un ordinateur, elle calcule mieux qu’un humain.', fb: 'Non. Un LLM prédit des tokens ; il ne calcule pas comme un tableur.' },
+      { t: 'Ces calculs sont hors du périmètre de l’IA : utiliser un outil de calcul (tableur, script), puis contrôler.', ok: true, fb: 'Exact. Le calcul précis sans outil dédié est hors périmètre. Hors périmètre, les consultants aidés par l’IA ont été 19 points moins souvent corrects dans l’étude HBS/BCG, alors qu’ils gagnaient plus de 40 % de qualité dans le périmètre.' },
+      { t: 'Demander deux fois et garder le résultat qui revient.', fb: 'Non. Un résultat qui se répète peut être faux avec constance.' },
+      { t: 'Baisser la température pour fiabiliser le calcul.', fb: 'Non. Une température basse rend la réponse stable, pas exacte.' } ],
+    concept: 'La frontière est irrégulière : des tâches proches en difficulté se trouvent de part et d’autre. Impossible de le deviner à l’avance, d’où la vérification systématique.' },
 
-  { mod: 'Module 3', who: 'julien', tag: 'Outil non homologué',
-    scenario: 'Vendredi, 17 h 30. Julien veut coller un rapport de sinistre de douze pages dans un outil d’IA grand public gratuit pour gagner du temps.',
-    q: 'Que doit-il faire ?',
+  { mod: 'Séquence 04 · Étude de cas Nokia', who: 'julien', tag: 'Signaux d’alerte',
+    scenario: 'Pour une proposition commerciale, Julien obtient deux présentations de Nokia générées par l’IA. Elles sont identiques mot pour mot, sauf la date de fondation : 1865 dans l’une, 1892 dans l’autre.',
+    q: 'Comment savoir laquelle est juste ?',
     opts: [
-      { t: 'Le coller, en retirant simplement le nom du sociétaire.', fb: 'Non. Retirer le nom ne suffit pas (voir la règle du feutre noir), et l’outil n’est de toute façon pas homologué.' },
-      { t: 'Renoncer : zéro donnée professionnelle sur un outil non homologué. Ce qui est collé peut quitter le périmètre et servir à réentraîner le modèle.', ok: true, fb: 'Exact. Coller un dossier dans un outil public, c’est afficher le dossier du sociétaire dans la vitrine de l’agence. On passe par l’environnement fermé validé par la DSI.' },
-      { t: 'Le coller en navigation privée : rien n’est conservé.', fb: 'Non. La navigation privée n’efface que l’historique local. Les données partent bien chez l’éditeur du service.' },
-      { t: 'Le coller : un outil gratuit ne conserve jamais les données.', fb: 'Non. Un outil gratuit se paie souvent en données ; tout dépend du service et de ses réglages.' } ],
-    concept: 'Outil public : les données quittent le périmètre et peuvent alimenter l’apprentissage du modèle. Environnement d’entreprise fermé : contrat de confidentialité, données ni conservées ni réutilisées.' },
-
-  { mod: 'Module 3', who: null, tag: 'Pseudonymisation vs anonymisation',
-    scenario: 'Un collègue prépare ce contexte : « M. X, 52 ans, chirurgien-dentiste à Saint-Brieuc, en arrêt longue durée, encours de 450 000 €. »',
-    q: 'Ce texte est-il anonymisé ?',
-    opts: [
-      { t: 'Oui, le nom a été remplacé.', fb: 'Non. Remplacer le nom par une initiale, c’est de la pseudonymisation : la personne reste réidentifiable par recoupement.' },
-      { t: 'Oui, si l’outil utilisé est sécurisé.', fb: 'Non. La sécurité de l’outil ne change pas la nature de la donnée : elle reste personnelle.' },
-      { t: 'Non : un seul individu correspond. C’est une donnée personnelle (RGPD, secret bancaire), et l’arrêt de travail touche à la santé.', ok: true, fb: 'Exact. Règle du feutre noir : noms, localisation fine, dates de naissance, numéros de contrat, IBAN, montants uniques. Et une pathologie est une donnée de santé (RGPD, art. 9).' },
-      { t: 'Non, mais il suffit de retirer l’âge.', fb: 'Insuffisant. Profession, ville, situation et montant suffisent encore à identifier la personne.' } ],
-    concept: 'Pseudonymisation : réidentification possible, le RGPD s’applique. Anonymisation : tous les marqueurs d’individualité sont supprimés, la personne n’est plus identifiable.' },
-
-  { mod: 'Module 4', who: 'camille', tag: 'Zones rouges',
-    scenario: 'Camille veut faire résumer par l’IA interne sécurisée son analyse de mouvements atypiques, préalable à une déclaration de soupçon.',
-    q: 'Peut-elle le faire ?',
-    opts: [
-      { t: 'Oui, l’outil interne est sécurisé et hébergé en Europe.', fb: 'Non. « C’est sécurisé, nous sommes en famille » est le piège psychologique : un outil validé n’autorise pas tout.' },
-      { t: 'Oui, à condition d’anonymiser le client.', fb: 'Non. Tracfin est une zone rouge absolue : même anonymisée, l’analyse ne passe pas par l’IA.' },
-      { t: 'Oui, si elle efface l’historique juste après.', fb: 'Non. Le risque de fuite (tipping-off) existe dès la saisie, surtout avec des historiques partagés.' },
-      { t: 'Non : zone rouge Tracfin. Même sur l’outil interne, ces données se traitent à la main, par les canaux sécurisés.', ok: true, fb: 'Exact. Il est interdit de laisser fuiter qu’un client est examiné (CMF, L.561-18 et suivants). Même règle pour le secret médical et l’information privilégiée.' } ],
-    concept: 'Trois zones rouges absolues, même sur l’outil interne : secret médical et santé, secret Tracfin, marchés et clés techniques (information privilégiée, mots de passe, clés d’API).' },
+      { t: 'Garder la mieux rédigée.', fb: 'Non. Les deux textes sont identiques au mot près : le style ne protège pas.' },
+      { t: 'Demander à l’IA laquelle est exacte.', fb: 'Insuffisant. L’IA peut confirmer l’une ou l’autre avec la même assurance.' },
+      { t: 'Régénérer plusieurs fois et garder la date qui revient le plus souvent.', fb: 'Non. La fréquence d’une réponse ne prouve pas son exactitude.' },
+      { t: 'Vérifier la date dans une source fiable : site de l’entreprise, rapport annuel, encyclopédie.', ok: true, fb: 'Exact. Nokia a été fondée en 1865 ; 1892 est une date inventée. Un détail précis et faux dans un texte bien écrit est le cas le plus difficile à voir : précis et sans source = à vérifier.' } ],
+    concept: '4 signaux qui déclenchent une vérification : une précision sans source, un fait présenté comme universel, l’absence de lien vers la source, un mélange possible entre deux choses proches.' },
 ];
 
-// Situations conservées : les autres notions sont travaillées par le vrai/faux, le tri express et le détecteur.
-const L1Q = L1Q_ALL.filter(q => ['Prédiction du mot suivant', 'Illusion de compréhension', 'Température', 'Fond vs forme', 'Pseudonymisation vs anonymisation'].includes(q.tag));
+// Situations jouées : une par grande notion des séquences 01 à 04 du support Lendys.
+const L1Q = L1Q_ALL.filter(q => ['Familles de l’IA', 'Prédiction du mot suivant', 'Température', 'Obsolescence', 'Frontière irrégulière', 'Signaux d’alerte'].includes(q.tag));
 
 /* ---------- Épreuve « Tri express » ---------- */
 const TRI_BINS = [
-  { id: 'vert', key: '1', name: 'Feu vert', sub: 'Outil interne validé, tel quel' },
-  { id: 'feutre', key: '2', name: 'Feutre noir d’abord', sub: 'Anonymiser avant de coller' },
-  { id: 'rouge', key: '3', name: 'Zone rouge', sub: 'L’IA reste éteinte' },
+  { id: 'vert', key: '1', name: 'Contrôle faible', sub: 'Relecture rapide' },
+  { id: 'feutre', key: '2', name: 'Contrôle moyen', sub: 'Comparer à la source, point par point' },
+  { id: 'rouge', key: '3', name: 'Contrôle élevé', sub: 'Source primaire, tiers, validation' },
 ];
 const TRI_CARDS = [
-  { t: 'Résumer une note de veille réglementaire publique', bin: 'vert', tag: 'Usage autorisé', fb: 'Ni donnée personnelle ni secret : usage libre sur l’outil validé par l’établissement.' },
-  { t: 'Analyse de mouvements atypiques avant une déclaration de soupçon', bin: 'rouge', tag: 'Zones rouges', fb: 'Secret Tracfin : interdit de laisser fuiter qu’un client est examiné (CMF, L.561-18 et suivants).' },
-  { t: 'Rapport d’expertise médicale d’un sinistre corporel', bin: 'rouge', tag: 'Zones rouges', fb: 'Secret médical : réservé au médecin-conseil et aux gestionnaires habilités (Code pénal, art. 226-13).' },
-  { t: 'Courrier de relance à Mme Martin, avec son IBAN et son numéro de contrat', bin: 'feutre', tag: 'Feutre noir', fb: 'Données personnelles mais pas de zone rouge : on retire nom, IBAN et numéro de contrat avant de coller.' },
-  { t: 'Résultats trimestriels de l’établissement avant leur publication', bin: 'rouge', tag: 'Zones rouges', fb: 'Information privilégiée : risque de délit d’initié (CMF, L.465-1). Ni anonymisable, ni collable.' },
-  { t: 'Reformuler les conditions générales publiques du contrat habitation', bin: 'vert', tag: 'Usage autorisé', fb: 'Document public, aucune donnée client : feu vert sur l’outil interne.' },
-  { t: 'La clé d’API du système de paiement, pour déboguer un script', bin: 'rouge', tag: 'Zones rouges', fb: 'Clé technique : une clé dans un prompt, c’est la clé sous le paillasson.' },
-  { t: 'Dossier de crédit de la SAS Martin : 1,2 M€ de chiffre d’affaires, dirigeant nommé', bin: 'feutre', tag: 'Feutre noir', fb: '« SAS Martin, 1,2 M€ » devient « entreprise de logistique, ratio d’endettement de 3,8 » : neutraliser les identifiants.' },
-  { t: 'Vingt idées d’accroches pour une campagne sur l’épargne des jeunes actifs', bin: 'vert', tag: 'Usage autorisé', fb: 'Aucune donnée sensible : feu vert, avec une validation conformité avant diffusion.' },
+  { t: 'Reformuler pour vous-même vos notes brutes de la réunion de ce matin', bin: 'vert', tag: 'Niveau de contrôle', fb: 'Brouillon personnel, sans usage externe : une relecture rapide suffit. Le contrôle se proportionne à l’enjeu.' },
+  { t: 'Corriger l’orthographe d’un mail interne à votre équipe', bin: 'vert', tag: 'Niveau de contrôle', fb: 'Transformation d’un texte fourni, à enjeu interne : le modèle n’a rien à inventer. Une relecture rapide du sens suffit.' },
+  { t: 'Proposer dix pistes de noms pour l’atelier interne de jeudi', bin: 'vert', tag: 'Niveau de contrôle', fb: 'Exploration à usage interne : l’humain retient ou rejette les pistes. Relecture rapide.' },
+  { t: 'Résumer en cinq points le compte rendu du comité de crédit, pour diffusion à l’équipe', bin: 'feutre', tag: 'Niveau de contrôle', fb: 'Synthèse d’un document fourni : on compare point par point avec la source (chiffres, dates, décisions) avant diffusion.' },
+  { t: 'Reprendre dans une note interne les taux de défaut publiés dans le rapport annuel', bin: 'feutre', tag: 'Niveau de contrôle', fb: 'Chiffres repris d’une source : vérification point par point avec le rapport, en particulier les années (le mélange entre deux années proches est un signal d’alerte).' },
+  { t: 'Synthétiser une circulaire réglementaire fournie, pour la veille interne', bin: 'feutre', tag: 'Niveau de contrôle', fb: 'Document fourni, usage interne : comparaison avec le texte, notamment les dates d’application et les seuils.' },
+  { t: 'Calcul de provisions intégré au rapport remis au client', bin: 'rouge', tag: 'Niveau de contrôle', fb: 'Calcul et livrable client : source primaire, relecture par un tiers, validation par un responsable identifié. Et le calcul se fait avec un outil dédié, hors du périmètre de l’IA.' },
+  { t: 'Recommandation de tarification présentée au comité de direction du client', bin: 'rouge', tag: 'Niveau de contrôle', fb: 'Une recommandation qui influence une décision appelle le contrôle le plus poussé : un humain identifié assume le résultat.' },
+  { t: 'Mail au client confirmant le montant d’une pénalité contractuelle', bin: 'rouge', tag: 'Niveau de contrôle', fb: 'Un chiffre envoyé au client engage le cabinet : vérification dans la source primaire (le contrat) et validation avant envoi.' },
 ];
 
 /* ---------- Épreuve « Détecteur d'hallucination » ---------- */
 const DET_TIME = 90; // secondes
-const DET_FACTS = 'Franchise : 300 €. Exclusion : inoccupation du logement supérieure à 15 jours (article 12 des conditions générales). Déclaration du sinistre : sous 5 jours ouvrés.';
+const DET_FACTS = 'Franchise : 300 € (conditions particulières 2024, qui remplacent celles de 2019 où elle était de 150 €). Exclusion : inoccupation du logement supérieure à 15 jours, sauf si le chauffage a été maintenu (article 12 des conditions générales). Aucune jurisprudence n’est citée au dossier.';
 const DET_SEGS = [
   { t: 'Monsieur Laurent, nous avons bien reçu votre réclamation et comprenons votre mécontentement.' },
   { t: 'Le gel de vos canalisations est survenu alors que votre logement était inoccupé depuis 30 jours.' },
   { t: 'Or l’article 12 de vos conditions générales exclut les dommages survenus après plus de 15 jours d’inoccupation.' },
-  { t: 'Cette exclusion a d’ailleurs été validée par un arrêt de la Cour de cassation du 14 mars 2019.', err: 'Référence non sourcée', why: 'Aucun extrait fourni ne mentionne cet arrêt : le modèle a pu l’inventer, avec date à l’appui. Plausible n’est pas exact : on vérifie ou on retire.' },
-  { t: 'Nous vous rappelons que votre franchise contractuelle s’élève à 150 €.', err: 'Chiffre faux', why: 'Le contrat prévoit une franchise de 300 €. L’IA a produit un montant plausible mais faux.' },
-  { t: 'Votre déclaration a bien été effectuée dans le délai de 10 jours ouvrés prévu au contrat.', err: 'Délai faux', why: 'Le contrat prévoit 5 jours ouvrés. Un délai erroné dans un courrier engage l’établissement.' },
+  { t: 'Cette exclusion s’applique toujours, quelles que soient les circonstances du sinistre.', err: 'Fait présenté comme universel', why: 'L’article 12 prévoit une exception (chauffage maintenu). Un « toujours » sans nuance ni condition est l’un des 4 signaux d’alerte : on revient au texte du contrat.' },
+  { t: 'Elle a d’ailleurs été validée par un arrêt de la Cour de cassation du 14 mars 2019.', err: 'Précision sans source', why: 'Aucune jurisprudence ne figure au dossier : le modèle a pu inventer cet arrêt, date à l’appui. Une date ou une référence exacte sans source se vérifie avant tout usage.' },
+  { t: 'Nous vous rappelons que votre franchise contractuelle s’élève à 150 €.', err: 'Mélange entre deux versions', why: '150 € est la franchise des conditions de 2019, remplacées en 2024 (300 €). Le mélange entre deux versions d’un même texte est un signal d’alerte classique.' },
   { t: 'Nous ne pouvons malheureusement pas donner une suite favorable à votre demande d’indemnisation.' },
   { t: 'Vous pouvez contester cette décision auprès de notre service réclamations.' },
 ];
@@ -1138,9 +1201,13 @@ function L1Errors() {
 const livesLeft = () => Math.max(0, LIVES - L1Errors());
 const heartsHtml = () => `<span class="pill lives" aria-label="${livesLeft()} vie${livesLeft() > 1 ? 's' : ''} sur ${LIVES}">${[...Array(LIVES)].map((_, i) => `<span class="${i < livesLeft() ? 'on' : ''}">♥</span>`).join('')}</span>`;
 // Vérifie la fin de partie après chaque erreur.
-function L1CheckOver() { if (L1Errors() >= LIVES) { S1.over = true; TF[1].done = true; S1.stage = 'result'; } }
+// La partie s'arrête, mais l'apprenant voit d'abord la correction de sa dernière réponse.
+function L1CheckOver() { if (L1Errors() >= LIVES) S1.over = true; }
 TF_EXTRA[1] = heartsHtml;
 TF_HOOK[1] = L1CheckOver;
+TF_OVER[1] = () => !!(S1 && S1.over);
+TF_ONSTOP[1] = () => { S1.stage = 'result'; };
+const overBtn = () => `<button class="btn btn-primary" data-action="l1-to-result">Plus de vies : voir mon résultat</button>`;
 function L1Good() {
   const tfOk = tfGood(1);
   const qOk = S1.picks.filter((p, k) => p !== undefined && L1Q[k].opts[p].ok).length;
@@ -1178,7 +1245,7 @@ MODS[1] = {
   },
   view() {
     const s = S1;
-    if (s.over || s.stage === 'result') return L1Result();
+    if (s.stage === 'result') return L1Result();
     if (s.stage === 'tri') return L1TriView();
     if (s.stage === 'det') return L1DetView();
     if (s.i >= L1Q.length) return L1StageEnd('Situations terminées', `${L1Good().qOk} bonne${L1Good().qOk > 1 ? 's' : ''} réponse${L1Good().qOk > 1 ? 's' : ''} sur ${L1Q.length}. Place au tri express : classez chaque demande dans le bon bac, le plus vite possible.`, 'l1-to-tri', 'Lancer le tri express');
@@ -1197,7 +1264,7 @@ MODS[1] = {
         ${chosen.ok ? '' : `<p class="mt-2"><b>Bonne réponse :</b> ${good.t}</p><p class="mt-1 small">${good.fb}</p>`}
       </div>
       <div class="callout mt-4"><span class="eyebrow">À retenir · ${q.mod}</span><p>${q.concept}</p></div>
-      <div class="flex justify-end mt-6"><button class="btn btn-primary" data-action="l1-next">${s.i < L1Q.length - 1 ? 'Situation suivante' : 'Terminer les situations'}</button></div>` : '';
+      <div class="flex justify-end mt-6">${s.over ? overBtn() : `<button class="btn btn-primary" data-action="l1-next">${s.i < L1Q.length - 1 ? 'Situation suivante' : 'Terminer les situations'}</button>`}</div>` : '';
     return `${LevelHeader(1)}
     <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] items-start">
       <section class="panel min-w-0">
@@ -1248,7 +1315,7 @@ function L1TriView() {
   const t = S1.tri;
   if (t.i >= TRI_CARDS.length) {
     const errs = triErrs(), secs = Math.round(((t.end || Date.now()) - t.start) / 1000);
-    return L1StageEnd('Tri express terminé', `${TRI_CARDS.length - errs} carte${TRI_CARDS.length - errs > 1 ? 's' : ''} bien classée${TRI_CARDS.length - errs > 1 ? 's' : ''} sur ${TRI_CARDS.length}, en ${secs} secondes. Dernière épreuve : une réponse d’IA contient 3 erreurs. Vous avez ${DET_TIME} secondes pour les signaler.`, 'l1-to-det', 'Lancer le détecteur');
+    return L1StageEnd('Tri express terminé', `${TRI_CARDS.length - errs} carte${TRI_CARDS.length - errs > 1 ? 's' : ''} bien classée${TRI_CARDS.length - errs > 1 ? 's' : ''} sur ${TRI_CARDS.length}, en ${secs} secondes. Dernière épreuve : une réponse d’IA contient 3 erreurs. Signalez-les puis validez. Le chronomètre de ${DET_TIME} secondes est un défi : le dépasser ne fait rien perdre, mais le badge Œil de lynx se gagne dans le temps.`, 'l1-to-det', 'Lancer le détecteur');
   }
   const c = TRI_CARDS[t.order[t.i]], fb = t.fb;
   const bins = TRI_BINS.map(b => `<button class="tri-bin tri-${b.id} ${fb ? (b.id === c.bin ? 'ok' : (b.id === fb.pick ? 'bad' : 'fade')) : ''}" data-action="l1-bin" data-bin="${b.id}" ${fb ? 'disabled' : ''}><b>${b.name}</b><small>${b.sub}</small><span class="key">${b.key}</span></button>`).join('');
@@ -1259,10 +1326,12 @@ function L1TriView() {
     <div class="tri-zone mt-4"><div class="tri-card ${fb ? (fb.ok ? 'is-ok' : 'is-bad') : ''}" id="tri-card" ${fb ? '' : 'tabindex="0"'}><span class="eyebrow grey">Demande</span><p>${c.t}</p></div></div>
     <div class="tri-bins mt-4">${bins}</div>
     ${fb ? `<div class="fb ${fb.ok ? 'fb-ok' : 'fb-bad'} mt-4" role="status"><div class="fb-head">${fb.ok ? '✓ Bien classé' : '✗ Mauvais bac · une vie en moins'}</div><p>${c.fb}</p></div>
-      ${fb.ok ? '' : `<div class="flex justify-end mt-4"><button class="btn btn-primary" data-action="l1-tri-next">Carte suivante</button></div>`}` : ''}
+      ${fb.ok ? '' : `<div class="flex justify-end mt-4">${S1.over ? overBtn() : '<button class="btn btn-primary" data-action="l1-tri-next">Carte suivante</button>'}</div>`}` : ''}
   </section>`;
 }
 let triTimer = null, triToken = 0;
+// À la reprise après une pause, les minuteurs du tri et du détecteur sont décalés d'autant.
+PAUSE_HOOKS.push(ms => { if (!S1) return; if (S1.tri.start && !S1.tri.end) S1.tri.start += ms; if (S1.det.deadline && !S1.det.done) S1.det.deadline += ms; });
 function L1TriPick(bin) {
   const t = S1.tri; if (t.fb || t.i >= TRI_CARDS.length) return;
   const c = TRI_CARDS[t.order[t.i]], ok = bin === c.bin;
@@ -1278,8 +1347,9 @@ setInterval(() => {
   const dt = document.getElementById('det-timer');
   if (dt && S1 && !S1.det.done) {
     const left = Math.max(0, Math.ceil((S1.det.deadline - Date.now()) / 1000));
-    dt.textContent = `${left} s`; dt.classList.toggle('urgent', left <= 15);
-    if (left <= 0) L1DetValidate();
+    // Le décompte est indicatif : à zéro, rien n'est validé à la place de l'apprenant.
+    dt.textContent = left > 0 ? `${left} s` : 'Temps écoulé';
+    dt.classList.toggle('urgent', left <= 15);
   }
 }, 250);
 document.addEventListener('keydown', e => {
@@ -1331,7 +1401,7 @@ function L1DetView() {
       <div class="card"><p class="eyebrow grey">Réponse rédigée par l’IA · cliquez sur les phrases fausses</p><div class="det-text mt-2">${segs}</div></div>
     </div>
     ${done ? `<div class="fb ${r.errors ? 'fb-bad' : 'fb-ok'} mt-5" role="status"><div class="fb-head">${r.found} erreur${r.found > 1 ? 's' : ''} trouvée${r.found > 1 ? 's' : ''} sur ${DET_ERRS.length}${r.falses ? `, ${r.falses} fausse${r.falses > 1 ? 's' : ''} alerte${r.falses > 1 ? 's' : ''}` : ''}</div><p>Le ton est parfait, le fond contient des erreurs : c’est le fil rouge du support. Plausible n’est pas exact.</p></div><div class="mt-3">${review}</div>
-      <div class="flex justify-end mt-6"><button class="btn btn-primary" data-action="l1-to-result">Voir mon résultat</button></div>`
+      <div class="flex justify-end mt-6"><button class="btn btn-primary" data-action="l1-to-result">${S1.over ? 'Plus de vies : voir mon résultat' : 'Voir mon résultat'}</button></div>`
     : `<div class="flex items-center justify-between gap-3 flex-wrap mt-5"><p class="small muted">${dt.flags.size} phrase${dt.flags.size > 1 ? 's' : ''} signalée${dt.flags.size > 1 ? 's' : ''}. Chaque fausse alerte ou erreur manquée coûte une vie.</p><button class="btn btn-primary" data-action="l1-det-ok">Valider mes signalements</button></div>`}
   </section>`;
 }
@@ -1339,8 +1409,20 @@ function L1DetTimer() { /* le décompte est géré par l'intervalle commun ci-de
 function L1DetValidate() {
   if (!S1 || S1.det.done) return;
   S1.det.done = true;
+  S1.det.inTime = Date.now() <= S1.det.deadline;
   L1CheckOver();
   render(false);
+}
+function L1LostWhere() {
+  const tf = Object.entries(TF[1].picks).filter(([k, v]) => TF_DATA[1][k].v !== v).length;
+  const q = S1.picks.filter((p, k) => p !== undefined && !L1Q[k].opts[p].ok).length;
+  const d = S1.det.done ? detResult() : null;
+  const parts = [];
+  if (tf) parts.push(`vrai ou faux : ${tf}`);
+  if (q) parts.push(`situations : ${q}`);
+  if (triErrs()) parts.push(`tri express : ${triErrs()}`);
+  if (d && d.errors) parts.push(`détecteur : ${d.missed ? d.missed + ' erreur(s) non signalée(s)' : ''}${d.missed && d.falses ? ', ' : ''}${d.falses ? d.falses + ' fausse(s) alerte(s)' : ''}`);
+  return parts.join(' ; ');
 }
 function L1Result() {
   const s = S1, g = L1Good(), tot = L1_TOTAL();
@@ -1353,7 +1435,7 @@ function L1Result() {
     s.tri.order.forEach((i, k) => { const p = s.tri.picks[k]; if (p !== undefined && p !== TRI_CARDS[i].bin) errs.push(TRI_CARDS[i].tag); });
     if (s.det.done && detResult().errors) errs.push('Hallucination');
     const dr = s.det.done ? detResult() : null;
-    FEATS[1] = { intact: L1Errors() === 0, lynx: !!dr && dr.found === DET_ERRS.length && dr.falses === 0,
+    FEATS[1] = { intact: L1Errors() === 0, lynx: !!dr && dr.found === DET_ERRS.length && dr.falses === 0 && S1.det.inTime,
       tri: s.tri.end && triErrs() === 0 && (s.tri.end - s.tri.start) < 45000 };
     finishAttempt(1, pct, passed, errs);
   }
@@ -1362,26 +1444,26 @@ function L1Result() {
     <p class="small muted mt-3">Score : ${good} points sur ${tot}. Vies restantes : ${livesLeft()} sur ${LIVES}.</p>`;
   return `${LevelHeader(1)}${ResultCard({ n: 1, pct, passed,
     headline: s.over ? 'Plus de vies : la partie s’arrête ici' : passed ? `${good} points sur ${tot} : vous savez ce que fait vraiment un LLM` : `${good} points sur ${tot} : pas encore ${SEUIL}`,
-    text: s.over ? 'Trois erreurs, trois vies perdues. Relisez les explications, puis rejouez : chaque partie mélange l’ordre des questions et des cartes.'
+    text: s.over ? `Trois erreurs, trois vies perdues (${L1LostWhere()}). Relisez les explications, puis rejouez : chaque partie mélange l’ordre des questions et des cartes.`
       : passed ? 'Tokens, probabilités, température, hallucinations, zones rouges : vous avez les bases pour conseiller un métier sans surpromettre.'
       : 'Relisez les notions signalées, puis rejouez le niveau. Ces fondations conditionnent tous les niveaux suivants.',
     extra })}`;
 }
 
 COURSE[1] = {
-  title: 'Démystifier l’IA générative : l’essentiel',
-  banner: '<b>Un LLM a une seule fonction : prédire le prochain token, en boucle.</b> Aucune empathie, aucune compréhension : un jeu statistique géant. À nous d’encadrer chaque étape.',
+  title: 'Le socle IA : l’essentiel',
+  banner: '<b>Un LLM ne « sait » pas : il prédit le mot suivant, token après token.</b> D’où sa fluidité, et ses erreurs sûres d’elles. Comprendre avant d’utiliser, pour savoir quand faire confiance et quand vérifier.',
   cards: [
-    { h: 'Le mot devient des tokens', t: '« surassurance » devient « sur », « assur », « ance » : trois blocs, trois numéros. Le modèle ne calcule que sur ces numéros.', src: 'Module 1' },
-    { h: 'Lire, calculer, choisir, ajouter', t: '« …fixé par la Banque de » : France 94 %, détail 3 %, bananes quasi nul. Le modèle choisit, ajoute, recalcule.', src: 'Module 1' },
-    { h: 'Température', t: 'Basse : réponses sobres et reproductibles (courrier contractuel). Haute : plus de variété, et plus d’invention (idées de campagne).', src: 'Module 1' },
-    { h: 'Hallucination', t: 'Plausible n’est pas exact. Le modèle peut citer un article ou un arrêt qui n’existe pas, avec aplomb. Vérifier chaque fait sensible.', src: 'Module 1' },
-    { h: 'Où partent vos mots ?', t: 'Zéro donnée professionnelle sur un outil personnel non homologué. L’environnement d’entreprise fermé ne conserve ni ne réutilise les données.', src: 'Module 3' },
-    { h: 'Zones rouges absolues', t: 'Secret médical et santé, secret Tracfin, marchés et clés techniques : même sur l’outil interne, l’IA reste éteinte.', src: 'Module 4' },
+    { h: 'Des familles emboîtées', t: 'IA ⊃ machine learning ⊃ deep learning ⊃ IA générative ⊃ LLM. Et aucune ne vaut mieux que ses données : « garbage in, garbage out ».', src: 'Séquences 01 et 02' },
+    { h: 'Tokens et contexte', t: 'Le texte est découpé en tokens ; à chaque étape, le modèle calcule une probabilité pour chaque token possible, en choisit un, puis recommence. La taille du contexte se mesure en tokens.', src: 'Séquence 03' },
+    { h: 'Température', t: 'Basse = constance (extraction, courrier contractuel), haute = variété (brainstorming), aucune = vérité. Dans un chat, le levier est le prompt ; écrire « mets ta température à 0 » ne change rien.', src: 'Séquence 03' },
+    { h: 'Entraînement et inférence', t: 'Le modèle apprend en amont, chez l’éditeur, jusqu’à une date de coupure. Un document joint est du contexte pour l’échange en cours : il n’est pas « appris ».', src: 'Séquence 03' },
+    { h: 'La frontière irrégulière', t: 'Étude HBS/BCG (758 consultants) : plus de 40 % de qualité dans le périmètre de l’IA, 19 points de réponses correctes en moins hors périmètre. Calculs précis, citations exactes et faits récents sont hors périmètre.', src: 'Séquence 04' },
+    { h: 'Hallucinations et signaux d’alerte', t: 'Plausible ne veut pas dire vrai : Nokia « fondée en 1892 » au lieu de 1865. Précision sans source, fait universel, absence de lien, mélange entre deux choses proches : on vérifie.', src: 'Séquence 04' },
   ],
   callouts: [
-    { e: 'Trois règles d’or', t: 'Vérifier chaque fait sensible. Régler selon l’enjeu. Décider soi-même : l’IA propose.' },
-    { e: 'Règle du feutre noir', t: '« M. X » n’anonymise rien. Retirer noms, localisation fine, dates de naissance, numéros de contrat et de sinistre, IBAN, montants uniques.' },
+    { e: 'Boucle de vérification', t: 'Cadrer, produire, contrôler, corriger, valider. Plus l’enjeu est élevé (livrable client, calcul, recommandation), plus le contrôle est poussé : source primaire, relecture par un tiers, validation par un responsable.' },
+    { e: 'Trois questions avant d’utiliser une réponse', t: 'Le sujet est-il pointu, récent ou chiffré ? Puis-je vérifier auprès d’une source fiable ? La réponse servira-t-elle un livrable client ou une décision ?' },
   ],
 };
 withTF(1);
@@ -1391,33 +1473,33 @@ withTF(1);
    ===================================================================== */
 const L2_DIAG = [
   { id: 'role', t: 'Aucun rôle n’est attribué au modèle.', fault: true,
-    fb: 'Sans « tablier du chef », le modèle répond comme un assistant généraliste : vocabulaire, angle et niveau d’exigence ne sont pas ceux d’un gestionnaire sinistres.' },
+    fb: 'Sans « tablier du chef », le modèle répond comme un assistant généraliste : vocabulaire, angle et niveau d’exigence ne sont pas ceux d’un gestionnaire sinistres. Le rôle est l’ingrédient qui complète la méthode CADRE.' },
   { id: 'long', t: 'Le prompt est trop court : un bon prompt fait au moins 1 000 mots.', fault: false,
-    fb: 'La longueur n’est pas un critère. Cinq ingrédients précis valent mieux qu’un long texte vague, qui dilue les consignes.' },
+    fb: 'La longueur n’est pas un critère. Un bon prompt réduit l’ambiguïté : cinq ingrédients précis valent mieux qu’un long texte vague, qui dilue les consignes.' },
   { id: 'ctx', t: 'Aucun contexte métier : ni la garantie, ni la clause en cause, ni les dates.', fault: true,
-    fb: 'Sans matières premières, le modèle improvise : il ne sait pas qu’une clause d’exclusion pour inoccupation s’applique.' },
+    fb: 'Sans matières premières (C et D de CADRE : contexte et données utiles), le modèle doit deviner : il ne sait pas qu’une clause d’exclusion pour inoccupation s’applique.' },
   { id: 'cons', t: 'Aucune contrainte : ton, longueur, interdiction d’inventer ou de promettre.', fault: true,
-    fb: 'Les contraintes sont l’ingrédient le plus oublié. Sans elles, le modèle peut inventer un fait ou laisser entendre un geste commercial.' },
+    fb: 'Les contraintes sont l’ingrédient le plus oublié (E de CADRE : exigences de contrôle). Sans elles, le modèle peut inventer un fait ou laisser entendre un geste commercial.' },
   { id: 'polite', t: 'Il manque « s’il te plaît » et « merci ».', fault: false,
-    fb: 'La politesse n’est pas un levier de qualité significatif. Ce qui compte, ce sont les cinq ingrédients.' },
+    fb: 'La politesse n’est pas un levier de qualité significatif. Ce qui compte : qui, quoi, pour qui, sous quelle forme, avec quelles limites.' },
   { id: 'fmt', t: 'Aucun format de sortie n’est demandé.', fault: true,
-    fb: 'Sans « dressage », la structure change à chaque génération et le courrier n’est pas prêt à l’emploi.' },
+    fb: 'Sans « dressage » (R de CADRE : résultat attendu), la longueur et la structure dépendent du tirage : le courrier n’est pas prêt à l’emploi.' },
   { id: 'pii', t: 'Des données identifiantes sont collées telles quelles (nom, adresse, numéro de contrat, IBAN).', fault: true,
-    fb: 'Le contexte vient de vos données réelles : il faut passer le feutre noir avant de coller quoi que ce soit.' },
+    fb: 'Minimisation (RGPD, art. 5) : seules les données nécessaires à la tâche. Il faut passer le feutre noir avant de coller quoi que ce soit ; un repère « [Assuré] » suffit.' },
   { id: 'eng', t: 'Le prompt devrait être rédigé en anglais pour de meilleurs résultats.', fault: false,
     fb: 'Les modèles actuels traitent très bien le français. La langue du livrable attendu est la bonne langue du prompt.' },
 ];
 
 const L2_TEXT = [
-  { r: 1, t: 'M. Alexandre Laurent', tag: '[ASSURÉ]', why: 'Nom et prénom : identifiant direct.' },
+  { r: 1, t: 'M. Alexandre Laurent', tag: '[ASSURÉ]', why: 'Nom et prénom : identifiant direct. Le remplacer par « M. X » ne suffirait pas si les autres marqueurs restent.' },
   { x: ', ' },
-  { r: 1, t: 'né le 14/06/1973', tag: '[DATE DE NAISSANCE]', why: 'Date de naissance exacte : marqueur d’individualité.' },
+  { r: 1, t: 'né le 14/06/1973', tag: '[DATE DE NAISSANCE]', why: 'Date de naissance exacte : marqueur d’individualité de la règle du feutre noir.' },
   { x: ', domicilié ' },
-  { r: 1, t: '12 rue des Lilas à Quimper', tag: '[ADRESSE]', why: 'Localisation fine : elle suffit presque à identifier la personne.' },
+  { r: 1, t: '12 rue des Lilas à Quimper', tag: '[ADRESSE]', why: 'Localisation fine : croisée avec l’âge, elle suffit presque à identifier la personne.' },
   { x: ', titulaire du ' },
-  { r: 1, t: 'contrat MRH n° 48-2291-A', tag: '[N° CONTRAT]', why: 'Numéro de contrat : il permet de retrouver le sociétaire.' },
+  { r: 1, t: 'contrat MRH n° 48-2291-A', tag: '[N° CONTRAT]', why: 'Numéro de contrat : il permet de retrouver le sociétaire. À retirer, comme les numéros de sinistre.' },
   { x: ' souscrit le ' },
-  { r: 0, t: '12/03/2019', why: 'Date de souscription : utile pour retrouver le bon millésime des conditions générales, et non identifiante à elle seule.' },
+  { r: 0, t: '12/03/2019', why: 'Date de souscription : utile pour retrouver la version des conditions générales applicable, et non identifiante à elle seule. Minimiser, ce n’est pas tout retirer : on garde ce qui sert la tâche.' },
   { x: '. Sinistre ' },
   { r: 1, t: 'n° S-25-00871', tag: '[N° SINISTRE]', why: 'Numéro de sinistre : identifiant.' },
   { x: ' survenu le ' },
@@ -1427,9 +1509,9 @@ const L2_TEXT = [
   { x: ', logement ' },
   { r: 0, t: 'inoccupé depuis 30 jours', why: 'Durée d’inoccupation : fait décisif au regard de la clause d’exclusion.' },
   { x: '. Remboursement demandé sur l’' },
-  { r: 1, t: 'IBAN FR76 3000 4000 0312 3456 7890 143', tag: '[IBAN]', why: 'IBAN : donnée bancaire identifiante, jamais dans un prompt.' },
+  { r: 1, t: 'IBAN FR76 3000 4000 0312 3456 7890 143', tag: '[IBAN]', why: 'IBAN : donnée bancaire identifiante, inutile pour rédiger la réponse. Jamais dans un prompt.' },
   { x: ' pour un montant de ' },
-  { r: 1, t: '8 437,52 €', tag: '[MONTANT]', why: 'Montant unique au centime : il suffit à retrouver le dossier.' },
+  { r: 1, t: '8 437,52 €', tag: '[MONTANT]', why: 'Montant unique au centime : il suffit à retrouver le dossier. Un ordre de grandeur suffit si le montant est utile.' },
   { x: '.' },
 ];
 const L2_SEGS = L2_TEXT.map((s, i) => ({ ...s, i })).filter(s => s.t);
@@ -1439,24 +1521,24 @@ const L2_QL = { s: 'Robuste', w: 'Faible', b: 'Défaillant' };
 const L2_BRICKS = [
   { id: 'role', name: 'Rôle', chef: 'Le tablier du chef', hint: 'Qui le modèle doit-il incarner ?', opts: [
     { q: 'w', t: 'Tu es un expert.', fb: '« Expert » sans métier ni situation n’oriente presque rien : expert de quoi, pour qui ?' },
-    { q: 's', t: 'Tu es gestionnaire sinistres senior en assurance habitation, habitué aux réclamations de sociétaires mécontents.', fb: 'Rôle précis : métier, séniorité, type de situation. Le modèle adopte le vocabulaire et les réflexes du gestionnaire.' },
+    { q: 's', t: 'Tu es gestionnaire sinistres senior en assurance habitation, habitué aux réclamations de sociétaires mécontents.', fb: 'Rôle précis : métier, séniorité, type de situation. Le modèle adopte le vocabulaire et les réflexes du gestionnaire. C’est l’ingrédient qui complète CADRE.' },
     { q: 'b', t: 'Tu es un ami qui veut faire plaisir au client.', fb: 'Ce rôle pousse à céder sur le fond pour plaire : l’inverse de ce qu’exige une réponse de refus motivée.' } ] },
   { id: 'ctx', name: 'Contexte', chef: 'Les matières premières', hint: 'Quelle situation, quelles données ?', opts: [
-    { q: 'b', t: 'Voici tout le dossier : [copie intégrale avec nom, adresse, IBAN].', fb: 'Défaillant : riche en informations, mais le feutre noir n’est pas passé. C’est une fuite de données personnelles.' },
-    { q: 'w', t: 'Un client n’est pas content de notre décision.', fb: 'Trop pauvre : ni la garantie, ni la clause, ni les dates. Le modèle improvisera.' },
-    { q: 's', t: 'Refus d’indemnisation d’un dégât des eaux par gel de canalisations. Contrat souscrit le 12/03/2019, sinistre du 03/02/2025, logement inoccupé 30 jours. CG applicables, p. 42 : exclusion si inoccupation supérieure à 15 jours. Le sociétaire conteste vivement.', fb: 'Contexte complet et anonymisé : faits, dates utiles, clause en cause. Le modèle raisonne sur vos données, pas sur des généralités.' } ] },
+    { q: 'b', t: 'Voici tout le dossier : [copie intégrale avec nom, adresse, IBAN].', fb: 'Défaillant : riche en informations, mais le feutre noir n’est pas passé et la minimisation n’est pas respectée. C’est une fuite de données personnelles.' },
+    { q: 'w', t: 'Un client n’est pas content de notre décision.', fb: 'Trop pauvre : ni la garantie, ni la clause, ni les dates. Le modèle complètera avec ce qui est le plus plausible.' },
+    { q: 's', t: 'Refus d’indemnisation d’un dégât des eaux par gel de canalisations. Contrat souscrit le 12/03/2019, sinistre du 03/02/2025, logement inoccupé 30 jours. CG applicables, p. 42 : exclusion si inoccupation supérieure à 15 jours. Le sociétaire conteste vivement.', fb: 'Contexte complet et anonymisé (C et D de CADRE) : situation, faits, dates utiles, clause en cause. Le modèle raisonne sur vos données, pas sur des généralités.' } ] },
   { id: 'task', name: 'Tâche', chef: 'L’action de cuisson', hint: 'Quel verbe, quel livrable unique ?', opts: [
-    { q: 's', t: 'Rédige une réponse écrite qui explique la décision de refus et indique les voies de recours.', fb: 'Un verbe précis (rédige), un seul livrable, un contenu attendu clair.' },
+    { q: 's', t: 'Rédige une réponse écrite qui explique la décision de refus et indique les voies de recours.', fb: 'Un verbe précis (rédige), un seul livrable, un contenu attendu clair : c’est le A de CADRE, l’action attendue.' },
     { q: 'b', t: 'Trouve un moyen de l’indemniser quand même.', fb: 'Défaillant : la tâche contredit la décision et pousse le modèle à inventer une garantie.' },
     { q: 'w', t: 'Réponds au client.', fb: 'Verbe vague : répondre comment, pour dire quoi ? Le livrable n’est pas défini.' } ] },
   { id: 'cons', name: 'Contraintes', chef: 'Les garde-fous', hint: 'Quelles règles rendent la sortie sûre ?', opts: [
     { q: 'b', t: 'Rassure-le au maximum, quitte à laisser entendre un geste commercial.', fb: 'Dangereux : une promesse non autorisée engage l’établissement.' },
-    { q: 's', t: 'Ton empathique et factuel, 200 mots maximum. Cite la clause exacte (CG, p. 42). N’invente aucun fait ni aucune promesse. Signale toute information manquante.', fb: 'Garde-fous vérifiables : ton, volume, source citée, interdiction d’inventer, droit de dire « il manque une information ».' },
-    { q: 'w', t: 'Sois gentil et professionnel.', fb: 'Invérifiable : aucune limite de volume, aucune interdiction d’inventer.' } ] },
+    { q: 's', t: 'Ton empathique et factuel, 200 mots maximum. Cite la clause exacte (CG, p. 42). N’invente aucun fait ni aucune promesse. Signale toute information manquante ou incertaine.', fb: 'Garde-fous vérifiables (E de CADRE, exigences de contrôle) : ton, volume, source citée, interdiction d’inventer, droit de signaler ce qui manque.' },
+    { q: 'w', t: 'Sois gentil et professionnel.', fb: 'Invérifiable : aucune limite de volume, aucune interdiction d’inventer, aucune exigence de source.' } ] },
   { id: 'fmt', name: 'Format', chef: 'Le dressage', hint: 'À quoi doit ressembler le résultat ?', opts: [
     { q: 'w', t: 'Fais un joli texte.', fb: '« Joli » est subjectif : la structure changera à chaque génération.' },
     { q: 'b', t: 'Format libre.', fb: 'Aucune structure garantie : le courrier devra être réécrit.' },
-    { q: 's', t: 'Courrier en 3 paragraphes : rappel des faits, clause appliquée, voies de recours (médiateur de l’assurance). Objet en première ligne.', fb: 'Un résultat prêt à l’emploi, relu en une minute, identique d’un dossier à l’autre.' } ] },
+    { q: 's', t: 'Courrier en 3 paragraphes : rappel des faits, clause appliquée, voies de recours (médiateur de l’assurance). Objet en première ligne.', fb: 'Le R de CADRE, résultat attendu : un courrier prêt à l’emploi, relu en une minute, identique d’un dossier à l’autre.' } ] },
 ];
 
 let S2 = null;
@@ -1621,19 +1703,19 @@ function L2Result() {
 }
 
 COURSE[2] = {
-  title: 'La recette du bon prompt : l’essentiel',
-  banner: '<b>« Prépare-moi à manger » donne un plat passe-partout.</b> Un LLM n’est pas un devin : il prédit selon l’univers dans lequel on le plonge.',
+  title: 'Le bon prompt et les données : l’essentiel',
+  banner: '<b>« Prépare-moi à manger » donne un plat passe-partout.</b> Un bon prompt réduit l’ambiguïté ; il ne crée pas d’information absente et ne remplace pas la vérification.',
   cards: [
-    { h: 'Rôle · le tablier du chef', t: '« Tu es un analyste risques spécialisé PME industrielles. » Le rôle oriente le vocabulaire et les réflexes du métier.', src: 'Module 2' },
-    { h: 'Contexte · les matières premières', t: 'Situation du client, historique, clause en cause, dates utiles. Le contexte remplace l’incertitude par vos données.', src: 'Module 2' },
-    { h: 'Tâche · l’action de cuisson', t: 'Un verbe précis (rédige, extrais, compare) et un seul livrable.', src: 'Module 2' },
-    { h: 'Contraintes · les garde-fous', t: 'Ton, volume, « n’invente aucun chiffre ». L’ingrédient le plus oublié, celui qui évite l’invention.', src: 'Module 2' },
-    { h: 'Format · le dressage', t: 'Tableau, puces, plan, courrier structuré : un résultat prêt à l’emploi.', src: 'Module 2' },
-    { h: 'Anonymiser avant de coller', t: 'Le contexte vient de vos données réelles. Feutre noir : noms, adresses, numéros, IBAN, montants uniques retirés.', src: 'Module 3' },
+    { h: 'Méthode CADRE', t: 'Contexte, Action attendue, Données utiles, Résultat attendu, Exigences de contrôle : cinq étapes pour structurer un prompt.', src: 'Séquence 06' },
+    { h: 'Les cinq ingrédients', t: 'Rôle, contexte, tâche, format, contraintes. Les grilles se recoupent : C + D ↔ contexte, A ↔ tâche, R ↔ format, E ↔ contraintes ; le rôle complète CADRE.', src: 'Séquence 06' },
+    { h: 'Où partent vos mots ?', t: 'Un outil gratuit se paie souvent en données. Zéro donnée professionnelle sur un outil personnel non homologué par votre employeur ou votre client.', src: 'Séquence 07' },
+    { h: 'RGPD, quatre principes', t: 'Finalité et base légale, minimisation, transparence, droits des personnes. Utiliser une IA ne supprime aucune obligation ; un doute, le DPO avant d’agir.', src: 'Séquence 07' },
+    { h: 'La règle du feutre noir', t: '« M. X » n’anonymise rien. Retirer noms, localisation fine, dates de naissance, numéros de contrat et de sinistre, IBAN, montants uniques.', src: 'Séquence 07' },
+    { h: 'Outil validé ≠ donnée autorisée', t: 'Public, interne, confidentiel, zone rouge : c’est le niveau de la donnée qui décide, pas seulement l’outil.', src: 'Séquence 08' },
   ],
   callouts: [
-    { e: 'Sans recette / avec recette', t: '« Analyse ce client » produit une réponse tiède à réécrire. Avec les cinq ingrédients : un tableau de points de vigilance exploitable tel quel.' },
-    { e: 'Kit de survie', t: 'Avant d’appuyer sur Entrée : canal validé ? zone rouge ? feutre noir passé ? cinq ingrédients présents ?' },
+    { e: 'Cinq questions avant de lancer l’IA', t: 'Qui répond, quoi, pour qui, sous quelle forme, avec quelles limites ? Puis on relit : le prompt ne remplace pas la vérification.' },
+    { e: 'Kit de survie', t: 'Canal validé ? Zone rouge ? Feutre noir passé ? Cinq ingrédients ? Sources à jour ? Je relis et je signe ?' },
   ],
 };
 withTF(2);
@@ -1642,34 +1724,34 @@ withTF(2);
    NIVEAU 3 — RAG ET GESTION DU CONTEXTE (assemblage du pipeline)
    ===================================================================== */
 const STEPS3 = [
-  { id: 'select', name: 'Sélection des sources', desc: 'Retenir les documents officiels, chacun avec son statut et sa période de validité.', req: null },
-  { id: 'chunk', name: 'Découpage en fiches', desc: 'Couper chaque document en fiches thématiques qui gardent leur origine (document, page).', req: 'select', why: 'aucun document validé n’a encore été retenu : on découperait le grenier entier, brouillons compris.' },
-  { id: 'embed', name: 'Calcul des embeddings', desc: 'Traduire chaque fiche en vecteur qui encode son sens.', req: 'chunk', why: 'on ne vectorise pas des documents de 80 pages d’un bloc : il faut d’abord des fiches.' },
-  { id: 'index', name: 'Indexation avec droits', desc: 'Ranger les vecteurs avec leurs métadonnées : document, page, validité, habilitation requise.', req: 'embed', why: 'il n’existe encore aucun vecteur à indexer.' },
-  { id: 'search', name: 'Recherche par le sens, filtrée', desc: 'Lire l’habilitation de l’utilisateur, puis retrouver les fiches les plus proches de sa question.', req: 'index', why: 'l’index est vide : la recherche ne renvoie rien.' },
-  { id: 'inject', name: 'Injection dans le prompt système', desc: 'Placer les extraits retenus, avec leurs références, sous les yeux du modèle.', req: 'search', why: 'aucune fiche n’a été retrouvée : il n’y a rien à injecter.' },
-  { id: 'gen', name: 'Rédaction sous surveillance', desc: 'Répondre uniquement avec les extraits, citer la source, sinon dire « je ne sais pas ».', req: 'inject', why: 'le modèle rédige sans aucun extrait : c’est le collaborateur génie qui improvise.' },
+  { id: 'select', name: 'Sélection des sources', desc: 'Retenir les documents officiels, chacun avec sa version, son statut (en vigueur ou abrogé) et un propriétaire nommé. Les zones rouges ne sont jamais indexées.', req: null },
+  { id: 'chunk', name: 'Découpage en extraits', desc: 'Découper chaque document en extraits (chunking) qui gardent leur origine : document, version, page.', req: 'select', why: 'aucun document validé n’a encore été retenu : on découperait le grenier entier, versions abrogées comprises.' },
+  { id: 'embed', name: 'Calcul des embeddings', desc: 'Traduire chaque extrait en vecteur qui encode son sens, pour comparer « par le sens, pas seulement par les mots ».', req: 'chunk', why: 'on ne vectorise pas des documents de 80 pages d’un bloc : il faut d’abord des extraits.' },
+  { id: 'index', name: 'Indexation avec droits', desc: 'Ranger les vecteurs avec leurs métadonnées : document, version, page, validité, habilitation requise.', req: 'embed', why: 'il n’existe encore aucun vecteur à indexer.' },
+  { id: 'search', name: 'Recherche par le sens, filtrée', desc: 'Lire l’habilitation de l’utilisateur, puis retrouver les extraits les plus proches de sa question.', req: 'index', why: 'l’index est vide : la recherche ne renvoie rien.' },
+  { id: 'inject', name: 'Transmission au modèle', desc: 'Transmettre la question et les extraits retenus, avec leurs références, et la consigne de citer.', req: 'search', why: 'aucun extrait n’a été retrouvé : il n’y a rien à transmettre.' },
+  { id: 'gen', name: 'Rédaction sous contrainte', desc: 'Répondre uniquement à partir des extraits, citer document et paragraphe, sinon dire « je ne sais pas ».', req: 'inject', why: 'le modèle rédige sans aucun extrait : il répond « à livre fermé », de mémoire.' },
 ];
 const L3_CH = [
   { id: 'versions', label: 'Le grenier poussiéreux', q: 'Le corpus contient les CG habitation 2017, 2021, un brouillon 2023 et la version officielle 2025. Que faites-vous ?', good: 2, critical: true, tag: 'Millésimes des documents', opts: [
-    { t: 'Tout indexer sans distinction : plus il y a de documents, mieux c’est.', fb: 'Garbage in, garbage out. Le brouillon 2023 peut remonter en premier et produire une réponse fausse.' },
-    { t: 'Ne garder que la version officielle 2025.', fb: 'Trop radical : un contrat souscrit en 2019 relève des CG en vigueur à cette date. La réponse citerait un texte non applicable.' },
-    { t: 'Indexer les versions officielles avec statut et période de validité, exclure le brouillon, filtrer selon la date du contrat.', fb: 'Correct. Chaque fiche porte son millésime ; la question précise les dates (« contrat souscrit le 12/03/2019 ») pour attraper le bon texte.' } ] },
-  { id: 'chunk', label: 'Taille des fiches', q: 'Comment découper les conditions générales ?', good: 1, tag: 'Taille des fiches', opts: [
-    { t: 'Une phrase par fiche, environ 60 tokens.', fb: 'Trop fin : une phrase isolée perd son contexte (« dans ce cas, la garantie ne s’applique pas » : quel cas ?).' },
-    { t: 'Des fiches thématiques de 500 à 800 tokens, avec un léger chevauchement, qui gardent document et page.', fb: 'Bon calibrage : une idée complète par fiche, sans couper une clause en deux, avec son origine pour la citer.' },
-    { t: 'Un document entier par fiche.', fb: 'Trop gros : un seul vecteur pour 80 pages mélange tous les sujets, et chaque extrait injecté coûte des milliers de tokens.' } ] },
-  { id: 'rights', label: 'Les droits d’accès', q: 'La base contient aussi des rapports d’expertise et des notes RH à accès restreint. Comment les protéger ?', good: 0, critical: true, tag: 'Droits d’accès', opts: [
-    { t: 'Le système lit l’habilitation de la personne qui pose la question et filtre les fiches avant la génération.', fb: 'Correct. Ce que je ne peux pas voir sur le dossier papier, l’IA ne doit pas me le faire deviner. Après la génération, il est trop tard.' },
-    { t: 'Ajouter au prompt système : « Ne révèle jamais les documents confidentiels. »', fb: 'Fuite à terme : une fois l’extrait dans le contexte, une question détournée suffit à le faire ressortir. Une consigne n’est pas un contrôle d’accès.' },
-    { t: 'Aucun filtre : c’est un outil interne sécurisé, nous sommes en famille.', fb: 'C’est le piège du cloître : les fiches de paie déposées par les RH ressurgissent chez un conseiller à 200 km.' } ] },
-  { id: 'ctx', label: 'Taille du contexte injecté', q: 'Combien d’extraits placer sous les yeux du modèle ?', good: 2, tag: 'Taille du contexte', opts: [
-    { t: 'Un seul extrait, le plus proche.', fb: 'Trop peu : si la clause d’exclusion est dans une autre fiche que la garantie, le modèle ne voit qu’une moitié du raisonnement.' },
-    { t: 'Trois cents extraits, pour remplir toute la fenêtre de contexte.', fb: 'Trop : l’information utile se noie au milieu, le coût et le temps de réponse explosent.' },
+    { t: 'Tout indexer sans distinction : plus il y a de documents, mieux c’est.', fb: 'Un RAG vaut ce que valent les documents qu’on lui confie : le brouillon 2023 peut remonter et être cité sans hésiter. C’est le grenier poussiéreux.' },
+    { t: 'Ne garder que la version officielle 2025.', fb: 'Trop radical : un contrat souscrit en 2019 relève des CG en vigueur à cette date. La réponse serait fidèle… à un texte qui ne s’applique pas.' },
+    { t: 'Indexer les versions officielles avec version, statut et période de validité, exclure le brouillon, filtrer selon la date du contrat.', fb: 'Correct. Version et statut sur chaque document, un propriétaire nommé, une revue périodique ; et la question précise la date (« contrat souscrit le 12/03/2019 »).' } ] },
+  { id: 'chunk', label: 'Taille des extraits', q: 'Comment découper les conditions générales ?', good: 1, tag: 'Taille des extraits', opts: [
+    { t: 'Une phrase par extrait, environ 60 tokens.', fb: 'Trop fin : une phrase isolée perd son contexte (« dans ce cas, la garantie ne s’applique pas » : quel cas ?). La recherche ramène alors un passage voisin, pas le bon.' },
+    { t: 'Des extraits thématiques de 500 à 800 tokens, avec un léger chevauchement, qui gardent document, version et page.', fb: 'Bon calibrage : une idée complète par extrait, sans couper une clause en deux, avec son origine pour la citer.' },
+    { t: 'Un document entier par extrait.', fb: 'Trop gros : un seul vecteur pour 80 pages mélange tous les sujets, et chaque extrait transmis consomme des milliers de tokens de contexte.' } ] },
+  { id: 'rights', label: 'Les portes mal fermées', q: 'La base contient aussi des rapports d’expertise et des notes RH à accès restreint. Comment les protéger ?', good: 0, critical: true, tag: 'Droits d’accès', opts: [
+    { t: 'Le système lit l’habilitation de la personne qui pose la question et filtre les extraits avant la génération ; les zones rouges ne sont pas indexées.', fb: 'Correct. Moindre privilège : ce que je ne peux pas voir sur le dossier papier, l’IA ne doit pas me le faire deviner. Après la génération, il est trop tard.' },
+    { t: 'Ajouter au prompt système : « Ne révèle jamais les documents confidentiels. »', fb: 'Fuite à terme : une fois l’extrait transmis au modèle, il peut figurer dans la réponse. Une consigne n’est pas un contrôle d’accès.' },
+    { t: 'Aucun filtre : c’est un outil interne sécurisé, nous sommes en famille.', fb: 'C’est le piège du cloître : les fiches de paie déposées par les RH ressurgissent chez un conseiller à 200 km. Outil validé ≠ donnée autorisée.' } ] },
+  { id: 'ctx', label: 'Nombre d’extraits transmis', q: 'Combien d’extraits transmettre au modèle avec la question ?', good: 2, tag: 'Taille du contexte', opts: [
+    { t: 'Un seul extrait, le plus proche.', fb: 'Trop peu : si la clause d’exclusion est dans un autre extrait que la garantie, le modèle ne voit qu’une moitié du raisonnement.' },
+    { t: 'Trois cents extraits, pour remplir toute la fenêtre de contexte.', fb: 'Trop : l’information utile se noie, le coût et le temps de réponse explosent.' },
     { t: 'Les 5 à 8 extraits les plus pertinents, avec leurs références.', fb: 'Bon dosage : assez de matière pour la garantie et ses exclusions, sans diluer l’attention du modèle.' } ] },
-  { id: 'ground', label: 'Consigne de rédaction', q: 'Quelle consigne donner au modèle dans le prompt système ?', good: 1, critical: true, tag: 'Rédaction sous surveillance', opts: [
-    { t: 'Réponds de la façon la plus complète possible, en t’appuyant sur les extraits et sur tes connaissances.', fb: 'Risque d’hallucination : vous mélangez vos documents et la mémoire statistique du modèle.' },
-    { t: 'Réponds uniquement avec ces extraits, sinon dis que tu ne sais pas. Cite le document et la page.', fb: 'Correct. C’est la consigne du support : rédiger sous surveillance, source citée, droit de ne pas savoir.' },
+  { id: 'ground', label: 'Consigne de rédaction', q: 'Quelle consigne donner au modèle avec les extraits ?', good: 1, critical: true, tag: 'Rédaction sous contrainte', opts: [
+    { t: 'Réponds de la façon la plus complète possible, en t’appuyant sur les extraits et sur tes connaissances.', fb: 'Risque de débordement : vous mélangez vos documents et la mémoire du modèle. Seul le contrôle de la source révélerait l’ajout.' },
+    { t: 'Réponds uniquement à partir de ces extraits ; cite le document, le paragraphe et la version ; si l’information est absente ou incertaine, dis-le plutôt que d’estimer.', fb: 'Correct. C’est la consigne à ajouter à vos prompts (ingrédient « contraintes ») : examen à livre ouvert, source citée, droit de ne pas savoir.' },
     { t: 'Pas de consigne : les extraits suffisent.', fb: 'Risque d’hallucination : quand les extraits ne suffisent pas, le modèle comble le vide avec du plausible.' } ] },
 ];
 const stepById = id => STEPS3.find(x => x.id === id);
@@ -1916,19 +1998,19 @@ function L3Result() {
 }
 
 COURSE[3] = {
-  title: 'Le RAG, la mémoire des dossiers : l’essentiel',
-  banner: '<b>Retrieval-Augmented Generation : le modèle rédige à partir de ce qu’on lui met sous les yeux.</b> Il réduit fortement les erreurs, sans les supprimer.',
+  title: 'Le RAG, la mémoire de vos dossiers : l’essentiel',
+  banner: '<b>Sans RAG, l’IA répond de mémoire ; avec RAG, elle consulte d’abord vos documents.</b> Un examen à livre ouvert : elle a le droit de feuilleter, mais elle doit citer la page.',
   cards: [
-    { h: '1. Découper', t: 'Les documents deviennent des fiches thématiques. Chaque fiche garde son origine : document, version, page.', src: 'Module 5' },
-    { h: '2. Retrouver', t: 'Recherche par le sens grâce aux embeddings : « chaudière explosée » retrouve « recours dégât des eaux ».', src: 'Module 5' },
-    { h: '3. Rédiger sous surveillance', t: '« Réponds uniquement avec ces extraits, sinon dis que tu ne sais pas. » Source citée.', src: 'Module 5' },
-    { h: 'Pourquoi pas réentraîner ?', t: 'Réentraîner : des semaines et des dizaines de milliers d’euros, un savoir figé. RAG : un nouveau PDF en quelques minutes, chaque réponse renvoie à son extrait.', src: 'Module 5' },
-    { h: 'Piège 1 : le grenier poussiéreux', t: 'CG 2017, 2021, brouillon 2023, officielle 2025 : laquelle est piochée ? Remède : statut et date de validité de chaque document.', src: 'Module 5' },
-    { h: 'Piège 2 : les droits d’accès', t: 'Le système lit l’habilitation de qui pose la question et filtre avant la génération : après, il est trop tard.', src: 'Modules 4 et 5' },
+    { h: 'Découper, retrouver, rédiger', t: 'Les documents sont découpés en extraits (chunking), retrouvés par le sens (embeddings), puis le modèle rédige uniquement à partir d’eux, en citant ses sources.', src: 'Séquence 10' },
+    { h: 'Plutôt qu’un réentraînement', t: 'On ajoute, remplace ou retire un document dans la base ; chaque réponse renvoie à un extrait ; un filtre peut limiter les extraits selon les droits de chacun.', src: 'Séquence 10' },
+    { h: 'Piège 1 : le grenier poussiéreux', t: 'Documents périmés ou contradictoires cités sans hésiter. Parades : version et statut, propriétaire nommé, revue périodique.', src: 'Séquence 10' },
+    { h: 'Piège 2 : les portes mal fermées', t: 'Le filtre des droits agit avant que le modèle ne rédige. Moindre privilège, zones rouges jamais indexées.', src: 'Séquences 08 et 10' },
+    { h: 'Une réponse sourcée peut être fausse', t: 'Mauvais extrait retrouvé, document périmé, réponse qui déborde des extraits : le RAG réduit l’erreur, il ne la supprime pas.', src: 'Séquence 10' },
+    { h: 'Trois gestes', t: 'Vérifier la source citée, préciser le contexte temporel (version en vigueur au jj/mm/aaaa), signaler les anomalies au responsable de la base.', src: 'Séquence 10' },
   ],
   callouts: [
-    { e: 'Trois réflexes de l’utilisateur averti', t: 'Ouvrir la source citée. Préciser le contexte temporel (« contrat souscrit le 12/03/2019, sinistre du 03/02/2025 »). Signaler les documents périmés à vos référents.' },
-    { e: 'Image à retenir', t: 'Une note de service de deux pages plutôt que cinq ans d’études de droit bancaire.' },
+    { e: 'À ajouter à vos prompts', t: '« Réponds uniquement à partir des documents fournis. Cite le document et le paragraphe pour chaque affirmation. Indique la date ou la version. Si l’information est absente ou incertaine, dis-le plutôt que d’estimer. »' },
+    { e: 'À retenir', t: 'La qualité d’un RAG se joue avant l’IA : dans le rangement des documents et dans les droits d’accès. La boucle de vérification s’applique toujours.' },
   ],
 };
 withTF(3);
@@ -1938,39 +2020,39 @@ withTF(3);
    ===================================================================== */
 const TOOLS4 = [
   { id: 'dossier', code: 'dossier.lire', name: 'Lecture du dossier sinistre', desc: 'Faits, dates et pièces du dossier, en lecture seule, selon l’habilitation.', need: true,
-    fb: 'Indispensable : sans les faits réels du dossier, l’agent improvise.' },
+    fb: 'Indispensable : sans les faits réels du dossier, l’agent répond de mémoire et improvise. Lecture seule, selon les droits de la personne mandante.' },
   { id: 'web', code: 'web.rechercher', name: 'Recherche web publique', desc: 'Interroger un moteur de recherche grand public.', need: false,
-    fb: 'À exclure : inutile pour la mission, et les éléments du dossier partiraient hors du périmètre de l’établissement. Où partent vos mots ?' },
+    fb: 'À exclure : inutile pour la mission, et les éléments du dossier partiraient hors du périmètre du cabinet et du client. Où partent vos mots ?' },
   { id: 'cg', code: 'cg.rechercher', name: 'Assistant documentaire (RAG)', desc: 'Retrouver la clause applicable dans les CG, avec version et page.', need: true,
-    fb: 'Indispensable : c’est l’assistant du niveau 3, qui fait répondre l’agent à livre ouvert.' },
+    fb: 'Indispensable : c’est l’assistant du niveau 3, qui fait répondre l’agent à livre ouvert, sources citées.' },
   { id: 'expert', code: 'expertise_medicale.lire', name: 'Rapports d’expertise médicale', desc: 'Accès aux rapports médicaux des sociétaires.', need: false,
-    fb: 'Zone rouge : le secret médical est réservé au médecin-conseil et aux gestionnaires habilités. Un agent n’y accède pas.' },
+    fb: 'Zone rouge absolue : secret médical, réservé au médecin-conseil et aux gestionnaires habilités (Code pénal, art. 226-13). Un agent n’y accède pas, même sur l’outil interne.' },
   { id: 'calc', code: 'calculatrice', name: 'Calculatrice', desc: 'Calculs exacts : durées, montants, franchises.', need: true,
-    fb: 'Indispensable : un LLM prédit des chiffres au lieu de les calculer. La durée d’inoccupation doit être exacte.' },
+    fb: 'Indispensable : le calcul précis est hors du périmètre d’un LLM, qui prédit des chiffres au lieu de les calculer. La durée d’inoccupation doit être exacte.' },
   { id: 'write', code: 'dossier.modifier', name: 'Écriture dans le dossier', desc: 'Modifier le statut, clôturer, déclencher un paiement.', need: false,
-    fb: 'Hors mandat : l’agent prépare, il ne décide pas. Moindre privilège : lecture seule.' },
+    fb: 'Hors mandat : une décision qui affecte une personne relève du niveau de contrôle « critique ». L’agent prépare, il ne décide pas. Moindre privilège : lecture seule.' },
   { id: 'human', code: 'validation_humaine.soumettre', name: 'Validation humaine', desc: 'Soumettre le projet au gestionnaire habilité, qui relit et signe.', need: true,
-    fb: 'Indispensable : l’outil propose, l’humain certifie (AI Act, art. 14 : contrôle humain).' },
+    fb: 'Indispensable : l’outil propose, l’humain certifie (RGPD, art. 22 ; AI Act, art. 14). Plus l’agent est autonome, plus ce point de contrôle doit être prévu à l’avance.' },
   { id: 'mail', code: 'email.envoyer', name: 'Envoi d’e-mail direct', desc: 'Écrire au sociétaire au nom de l’établissement.', need: false,
-    fb: 'À éviter : la réponse partirait au nom de l’établissement. Si vous le gardez, il doit passer après la signature humaine.' },
+    fb: 'À éviter : la réponse partirait au nom de l’établissement. Jamais d’envoi automatique sans relecture ; si vous le gardez, il doit passer après la signature humaine.' },
 ];
 const GUARDS4 = [
-  { id: 'maxit', kind: 'need', t: 'Maximum 10 itérations. Si une information manque après 2 tentatives, t’arrêter et la signaler au gestionnaire.', fb: 'Indispensable : borne la boucle ReAct et dit quoi faire en cas d’impasse.' },
-  { id: 'auto', kind: 'bad', t: 'Sois autonome : tranche toi-même la réclamation et clôture le dossier.', fb: 'Dangereux : « c’est l’ordinateur qui a dit non » n’est plus une réponse. La décision reste humaine.' },
-  { id: 'scope', kind: 'need', t: 'Périmètre : lecture seule, dossiers habitation. Zones rouges exclues : santé, Tracfin, information privilégiée.', fb: 'Indispensable : les zones rouges s’appliquent aussi aux agents, même sur l’outil interne.' },
-  { id: 'minim', kind: 'need', t: 'Feutre noir : ne transmettre aux outils que les données nécessaires ; jamais d’IBAN, de date de naissance ni de donnée de santé.', fb: 'Indispensable : minimisation des données dans chaque appel d’outil et dans le brouillon.' },
+  { id: 'maxit', kind: 'need', t: 'Maximum 10 itérations. Si une information manque après 2 tentatives, t’arrêter et la signaler au gestionnaire.', fb: 'Indispensable : borne la boucle de l’agent et dit quoi faire en cas d’impasse. Un agent enchaîne seul les étapes : sa règle d’arrêt se définit à l’avance.' },
+  { id: 'auto', kind: 'bad', t: 'Sois autonome : tranche toi-même la réclamation et clôture le dossier.', fb: 'Dangereux : « c’est l’ordinateur qui a dit non » n’est plus une réponse (AI Act, art. 86). Une décision qui affecte une personne ne repose pas sur la seule réponse d’une IA (RGPD, art. 22).' },
+  { id: 'scope', kind: 'need', t: 'Périmètre : lecture seule, dossiers habitation. Zones rouges exclues : santé, Tracfin, information privilégiée et clés techniques.', fb: 'Indispensable : les zones rouges s’appliquent aussi aux agents, même sur l’outil interne. En cas de doute, on classe la donnée au niveau supérieur.' },
+  { id: 'minim', kind: 'need', t: 'Feutre noir : ne transmettre aux outils que les données nécessaires ; jamais d’IBAN, de date de naissance ni de donnée de santé.', fb: 'Indispensable : minimisation (RGPD, art. 5) dans chaque appel d’outil et dans le brouillon.' },
   { id: 'retry', kind: 'bad', t: 'Réessaie jusqu’à trouver une garantie applicable.', fb: 'Dangereux : sans condition d’arrêt, l’agent boucle à la recherche d’une réponse qui n’existe pas.' },
-  { id: 'hitl', kind: 'need', t: 'Aucune réponse ne part sans relecture et signature d’un gestionnaire habilité.', fb: 'Indispensable dès qu’un canal de diffusion existe.' },
-  { id: 'geste', kind: 'bad', t: 'Pour apaiser le sociétaire, propose-lui un geste commercial.', fb: 'Dangereux : une promesse non autorisée engage l’établissement.' },
-  { id: 'source', kind: 'need', t: 'Chaque affirmation cite sa source : document, version, page.', fb: 'Nécessaire : explicabilité et traçabilité de la réponse (AI Act, art. 86).' },
+  { id: 'hitl', kind: 'need', t: 'Aucune réponse ne part sans relecture et signature d’un gestionnaire habilité.', fb: 'Indispensable dès qu’un canal de diffusion existe : l’IA propose, l’humain certifie et engage sa responsabilité.' },
+  { id: 'geste', kind: 'bad', t: 'Pour apaiser le sociétaire, propose-lui un geste commercial.', fb: 'Dangereux : une promesse non autorisée engage l’établissement. L’agent n’a aucun mandat commercial.' },
+  { id: 'source', kind: 'need', t: 'Chaque affirmation cite sa source : document, version, page.', fb: 'Nécessaire : explicabilité et traçabilité de la réponse (AI Act, art. 86), et vérification possible par le gestionnaire.' },
 ];
 const RISK_LEVELS = ['Interdit', 'Haut risque', 'Risque limité', 'Risque minimal'];
 const AIACT = [
-  { t: 'Score de solvabilité d’un particulier pour un prêt immobilier', good: 1, why: 'Haut risque : annexe III, point 5 (score de crédit d’une personne physique).' },
-  { t: 'Chatbot d’accueil sur le site de l’assureur', good: 2, why: 'Risque limité : obligation de transparence, dire au client qu’il parle à une IA (art. 50).' },
-  { t: 'Note sociale des clients selon leur comportement', good: 0, why: 'Interdit : pratique de notation sociale (art. 5).' },
-  { t: 'Tarification d’un contrat vie ou santé par un algorithme', good: 1, why: 'Haut risque : annexe III, point 5 (évaluation du risque et tarification vie et santé).' },
-  { t: 'Résumé d’une note de veille interne', good: 3, why: 'Risque minimal : usage libre, mais RGPD et zones rouges s’appliquent toujours.' },
+  { t: 'Score de solvabilité des particuliers pour un prêt immobilier (banque cliente)', good: 1, why: 'Haut risque : annexe III, point 5 (score de crédit d’une personne physique). Exigences applicables au 2 décembre 2027 depuis l’omnibus numérique (UE) 2026/1744 ; le RGPD s’applique, lui, dès aujourd’hui.' },
+  { t: 'Chatbot d’accueil sur le site d’un assureur client', good: 2, why: 'Risque limité : obligation de transparence, dire au client qu’il parle à une IA (art. 50), applicable depuis le 2 août 2026.' },
+  { t: 'Notation des clients selon leur comportement social', good: 0, why: 'Interdit : pratique de notation sociale (art. 5), interdite depuis le 2 février 2025 ; sanction jusqu’à 35 M€ ou 7 % du chiffre d’affaires mondial (art. 99).' },
+  { t: 'Tarification d’un contrat vie ou santé par un algorithme', good: 1, why: 'Haut risque : annexe III, point 5 (évaluation du risque et tarification vie et santé). Le niveau se juge par cas d’usage, pas par outil.' },
+  { t: 'Résumé d’une note de veille réglementaire interne', good: 3, why: 'Risque minimal : usage libre, mais le RGPD et les zones rouges s’appliquent toujours.' },
 ];
 
 let S4 = null;
@@ -2242,19 +2324,19 @@ function sendSatisfaction() {
 }
 
 COURSE[4] = {
-  title: 'Concevoir un agent IA sous contrôle : l’essentiel',
-  banner: '<b>Un agent, c’est un LLM qui raisonne, agit avec des outils et observe le résultat, en boucle.</b> Le modèle décide de l’étape suivante ; vos choix de conception décident de ce qu’il a le droit de faire.',
+  title: 'Agents, AI Act et zones rouges : l’essentiel',
+  banner: '<b>Un assistant répond quand on le sollicite ; un agent enchaîne seul plusieurs étapes vers un objectif.</b> Plus d’autonomie exige plus de supervision : contrôle et validation restent indispensables.',
   cards: [
-    { h: 'La boucle ReAct', t: 'Pensée → Action → Observation, jusqu’à la réponse finale. Sans plafond ni règle d’arrêt, un échec devient une boucle infinie.', src: 'Niveau 4' },
-    { h: 'Moindre privilège', t: 'Des casiers individuels fermés : lecture seule, uniquement les outils utiles à la mission. Un outil disponible finit toujours par être utilisé.', src: 'Module 4' },
-    { h: 'Zones rouges et feutre noir', t: 'Santé, Tracfin, information privilégiée : interdits aux agents aussi. Chaque appel d’outil ne transporte que les données nécessaires.', src: 'Modules 3 et 4' },
-    { h: 'L’outil propose, l’humain certifie', t: 'Contrôle humain (art. 14) et explicabilité (art. 86) : l’IA n’a pas le dernier mot sur un dossier sensible.', src: 'Module 6' },
-    { h: 'Niveau de risque par usage', t: 'Interdit, haut risque, risque limité, risque minimal : le même LLM peut servir un usage minimal ou à haut risque.', src: 'Module 6' },
-    { h: 'Calendrier et sanctions', t: 'Littératie IA (art. 4) depuis le 2 février 2025 ; transparence (art. 50) depuis le 2 août 2026 ; haut risque annexe III au 2 décembre 2027. Jusqu’à 35 M€ ou 7 % du CA mondial.', src: 'Module 6' },
+    { h: 'Moindre privilège', t: 'Des casiers individuels fermés : l’agent ne reçoit que les outils utiles à sa mission, en lecture seule. Un outil disponible finit toujours par être utilisé.', src: 'Séquences 08 et 09' },
+    { h: 'Trois zones rouges absolues', t: 'Secret médical et santé, secret Tracfin (tipping-off), marchés et clés techniques. Même sur l’outil interne : l’IA reste éteinte.', src: 'Séquence 08' },
+    { h: 'Validation selon l’enjeu', t: 'Faible, moyen, élevé, critique : une décision qui affecte une personne relève d’un processus formel (RGPD, art. 22 ; AI Act, art. 14).', src: 'Séquence 08' },
+    { h: 'Niveau de risque par usage', t: 'Interdit (notation sociale), haut risque (score de crédit, tarification vie et santé), risque limité (chatbot), risque minimal (note de veille). Le même LLM peut servir tous ces usages.', src: 'Séquence 07' },
+    { h: 'Calendrier après l’omnibus', t: 'Interdictions et littératie depuis le 2 février 2025 ; transparence depuis le 2 août 2026 ; haut risque annexe III au 2 décembre 2027 ; annexe I au 2 août 2028. Le RGPD s’applique déjà.', src: 'Séquence 07' },
+    { h: 'Sanctions et rôles', t: 'Jusqu’à 35 M€ ou 7 % du CA mondial pour les pratiques interdites, 15 M€ ou 3 % pour les autres obligations. L’utilisateur d’un outil est en général « déployeur » ; le fournisseur a aussi ses obligations.', src: 'Séquence 07' },
   ],
   callouts: [
     { e: 'Kit de survie', t: 'Canal validé ? Zone rouge ? Feutre noir passé ? Cinq ingrédients ? Sources à jour ? Je relis et je signe ? Une seule réponse « non » : on ne lance pas.' },
-    { e: 'En conclusion', t: 'La conformité n’est pas l’ennemie de l’innovation : c’est notre plus grand bouclier. Articles cités à titre indicatif, à confirmer avec votre conformité.' },
+    { e: 'En conclusion', t: 'La conformité n’est pas l’ennemie de l’innovation : c’est notre plus grand bouclier. Dates et articles à confirmer avec la conformité avant chaque session.' },
   ],
 };
 withTF(4);
