@@ -347,13 +347,14 @@ body.game-paused #app{filter:grayscale(1) blur(2px);opacity:.35;pointer-events:n
 #pause-veil{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:rgba(40,40,40,.25);padding:16px}
 #pause-veil[hidden]{display:none!important}
 .pause-card{background:var(--white);border-radius:12px;padding:28px 28px 24px;max-width:420px;width:100%;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.2)}
+.lives .half{background:linear-gradient(90deg,#C62828 50%,#D0D0D0 50%);-webkit-background-clip:text;background-clip:text;color:transparent}
 
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="wrap topbar-in">
-    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Niveau 1 sur 4 · Démystifier l’IA générative · v2026-10-07.2</small></span></div>
+    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Niveau 1 sur 4 · Démystifier l’IA générative · v2026-10-07.3</small></span></div>
     <div class="gp" id="gp" role="progressbar" aria-label="Progression" aria-valuemin="0" aria-valuemax="100">
       <div class="gp-top"><span id="gp-label"></span><strong class="num" id="gp-pct"></strong></div>
       <div class="gp-bar" id="gp-bar"></div>
@@ -413,7 +414,7 @@ const CODE_FORMATEUR = "Lendys_FormateurAI2026";
 // Numéro du niveau contenu dans ce fichier (ne pas modifier).
 const LEVEL = 1;
 const STORAGE_KEY = "formation-ia-parcours-B";
-const VERSION_LABEL = "B - fichier niveau 1 · v2026-10-07.2";
+const VERSION_LABEL = "B - fichier niveau 1 · v2026-10-07.3";
 
 /* =====================================================================
    NOYAU COMMUN : outils, état, suivi webhook, personnages, composants
@@ -426,7 +427,7 @@ const reduceMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-r
 /* ---------- Métadonnées des niveaux ---------- */
 const LEVEL_META = {
   1: { title: 'Démystifier l’IA générative', short: 'Fondations', format: '4 épreuves : vrai ou faux, situations, tri express, détecteur d’hallucination', rule: '3 vies, score ≥ 90/100', src: 'Bloc 1, séquences 01 à 04 du support Lendys',
-       intro: 'Un LLM ne « sait » pas : il prédit le mot suivant. Quatre épreuves pour distinguer les familles de l’IA, comprendre tokens, température et entraînement, situer la frontière irrégulière et savoir quand vérifier. Trois vies : chaque erreur en coûte une.',
+       intro: 'Un LLM ne « sait » pas : il prédit le mot suivant. Quatre épreuves pour distinguer les familles de l’IA, comprendre tokens, température et entraînement, situer la frontière irrégulière et savoir quand vérifier. Après l’échauffement, trois vies : chaque erreur en coûte une demie.',
        tags: ['Familles de l’IA', 'Tokens', 'Température', 'Entraînement et inférence', 'Frontière irrégulière', 'Vérification'] },
   2: { title: 'Prompt engineering avancé', short: 'L’artisan', format: 'Vrai ou faux + atelier « Répare le prompt »', rule: 'robustesse ≥ 90/100', src: 'Bloc 1, séquences 06 à 08 du support Lendys',
        intro: 'Le fil rouge : la réponse au sociétaire furieux après un refus d’indemnisation. Diagnostiquez le prompt, passez le feutre noir, puis reconstruisez-le avec les cinq ingrédients.',
@@ -839,7 +840,7 @@ const starRow = (k, big) => `<span class="stars ${big ? 'big' : ''}" aria-label=
 const BADGES = [
   { id: 'premier', g: '1', name: 'Du premier coup', how: 'Valider un niveau à la première tentative.' },
   { id: 'serie6', g: '6', name: 'Série parfaite', how: 'Répondre juste aux 6 affirmations d’un vrai ou faux.' },
-  { id: 'intact', g: '♥', name: 'Sans égratignure', how: 'Valider le niveau 1 sans perdre une seule vie.' },
+  { id: 'intact', g: '♥', name: 'Sans égratignure', how: 'Valider le niveau 1 sans perdre la moindre vie pendant le challenge.' },
   { id: 'lynx', g: '◉', name: 'Œil de lynx', how: 'Trouver les 3 erreurs du détecteur d’hallucination, sans fausse alerte, en moins de 90 secondes.' },
   { id: 'tri', g: '⚡', name: 'Tri éclair', how: 'Réussir le tri express sans faute en moins de 45 secondes.' },
   { id: 'feutre', g: '▮', name: 'Feutre noir infaillible', how: 'Masquer parfaitement le courrier au niveau 2.' },
@@ -1193,7 +1194,8 @@ const DET_SEGS = [
 ];
 const DET_ERRS = DET_SEGS.map((s, i) => s.err ? i : -1).filter(i => i >= 0);
 const L1_TOTAL = () => TF_DATA[1].length + L1Q.length + TRI_CARDS.length + DET_ERRS.length;
-const LIVES = 3;
+const LIVES = 3;          // vies du challenge (l’échauffement n’en coûte pas)
+const LIFE_PER_ERROR = 0.5; // chaque erreur coûte une demi-vie : la partie s’arrête à la 6e erreur
 
 let S1 = null;
 const triErrs = () => S1.tri.picks.filter((b, k) => b !== undefined && b !== S1.tri.order.map(i => TRI_CARDS[i])[k].bin).length;
@@ -1202,20 +1204,19 @@ function detResult() {
   const found = DET_ERRS.filter(i => f.has(i)).length, falses = [...f].filter(i => !DET_SEGS[i].err).length;
   return { found, falses, missed: DET_ERRS.length - found, errors: falses + DET_ERRS.length - found, good: Math.max(0, found - falses) };
 }
+// Erreurs du challenge uniquement (situations, tri express, détecteur) : ce sont elles qui coûtent des vies.
 function L1Errors() {
-  const tfWrong = Object.entries(TF[1].picks).filter(([k, v]) => TF_DATA[1][k].v !== v).length;
   const qWrong = S1.picks.filter((p, k) => p !== undefined && !L1Q[k].opts[p].ok).length;
-  return tfWrong + qWrong + triErrs() + (S1.det.done ? detResult().errors : 0);
+  return qWrong + triErrs() + (S1.det.done ? detResult().errors : 0);
 }
-const livesLeft = () => Math.max(0, LIVES - L1Errors());
-const heartsHtml = () => `<span class="pill lives" aria-label="${livesLeft()} vie${livesLeft() > 1 ? 's' : ''} sur ${LIVES}">${[...Array(LIVES)].map((_, i) => `<span class="${i < livesLeft() ? 'on' : ''}">♥</span>`).join('')}</span>`;
+const livesLeft = () => Math.max(0, LIVES - L1Errors() * LIFE_PER_ERROR);
+const fmtLives = v => String(v).replace('.', ',');
+const heartsHtml = () => { const l = livesLeft();
+  return `<span class="pill lives" aria-label="${fmtLives(l)} vie${l > 1 ? 's' : ''} sur ${LIVES}">${[...Array(LIVES)].map((_, i) => `<span class="${l >= i + 1 ? 'on' : (l > i ? 'half' : '')}">♥</span>`).join('')}</span>`; };
 // Vérifie la fin de partie après chaque erreur.
 // La partie s'arrête, mais l'apprenant voit d'abord la correction de sa dernière réponse.
-function L1CheckOver() { if (L1Errors() >= LIVES) S1.over = true; }
-TF_EXTRA[1] = heartsHtml;
-TF_HOOK[1] = L1CheckOver;
-TF_OVER[1] = () => !!(S1 && S1.over);
-TF_ONSTOP[1] = () => { S1.stage = 'result'; };
+function L1CheckOver() { if (livesLeft() <= 0) S1.over = true; }
+// L’échauffement ne coûte aucune vie : pas de cœurs ni de fin de partie pendant le vrai ou faux.
 const overBtn = () => `<button class="btn btn-primary" data-action="l1-to-result">Plus de vies : voir mon résultat</button>`;
 function L1Good() {
   const tfOk = tfGood(1);
@@ -1229,7 +1230,7 @@ MODS[1] = {
   progress() {
     const g = L1Good(), q = S1.picks.filter(p => p !== undefined).length, t = S1.tri.picks.filter(p => p !== undefined).length;
     const answered = q + t + (S1.det.done ? 1 : 0);
-    return { answered, txt: `situations ${q}/${L1Q.length} (${g.qOk} justes), tri express ${t}/${TRI_CARDS.length}, détecteur ${S1.det.done ? 'validé' : 'non validé'}, ${livesLeft()} vie(s) restante(s)` };
+    return { answered, txt: `situations ${q}/${L1Q.length} (${g.qOk} justes), tri express ${t}/${TRI_CARDS.length}, détecteur ${S1.det.done ? 'validé' : 'non validé'}, ${fmtLives(livesLeft())} vie(s) restante(s)` };
   },
   details() {
     const sit = { title: 'Les situations', items: L1Q.map((q, k) => {
@@ -1268,7 +1269,7 @@ MODS[1] = {
     const chosen = answered ? q.opts[p] : null, good = q.opts.find(o => o.ok);
     const fb = answered ? `
       <div class="fb ${chosen.ok ? 'fb-ok' : 'fb-bad'} mt-5" role="status">
-        <div class="fb-head">${chosen.ok ? '✓ Bonne réponse' : '✗ Ce n’est pas la bonne réponse · une vie en moins'}</div>
+        <div class="fb-head">${chosen.ok ? '✓ Bonne réponse' : '✗ Ce n’est pas la bonne réponse · une demi-vie en moins'}</div>
         <p>${chosen.fb}</p>
         ${chosen.ok ? '' : `<p class="mt-2"><b>Bonne réponse :</b> ${good.t}</p><p class="mt-1 small">${good.fb}</p>`}
       </div>
@@ -1304,7 +1305,7 @@ function L1Aside() {
   const g = L1Good();
   return `<aside class="card sticky-col min-w-0">
     <p class="eyebrow">Règle du niveau</p>
-    <p class="mt-1 small">Quatre épreuves, ${L1_TOTAL()} points. Vous avez <b>${LIVES} vies</b> : chaque erreur en coûte une. Il faut finir avec au moins une vie et <b>${SEUIL}/100</b>.</p>
+    <p class="mt-1 small">Quatre épreuves, ${L1_TOTAL()} points. L’échauffement ne coûte pas de vie. Ensuite, vous avez <b>${LIVES} vies</b> et chaque erreur en coûte une demie. Pour valider, il faut <b>${SEUIL}/100</b>, soit 2 erreurs au plus sur tout le niveau.</p>
     <hr class="divider my-4">
     <p class="eyebrow grey">Vies</p><p class="mt-1">${heartsHtml()}</p>
     <hr class="divider my-4">
@@ -1334,7 +1335,7 @@ function L1TriView() {
     <p class="small muted mt-2">Glissez la carte dans le bon bac, cliquez sur le bac ou tapez 1, 2 ou 3.</p>
     <div class="tri-zone mt-4"><div class="tri-card ${fb ? (fb.ok ? 'is-ok' : 'is-bad') : ''}" id="tri-card" ${fb ? '' : 'tabindex="0"'}><span class="eyebrow grey">Demande</span><p>${c.t}</p></div></div>
     <div class="tri-bins mt-4">${bins}</div>
-    ${fb ? `<div class="fb ${fb.ok ? 'fb-ok' : 'fb-bad'} mt-4" role="status"><div class="fb-head">${fb.ok ? '✓ Bien classé' : '✗ Mauvais bac · une vie en moins'}</div><p>${c.fb}</p></div>
+    ${fb ? `<div class="fb ${fb.ok ? 'fb-ok' : 'fb-bad'} mt-4" role="status"><div class="fb-head">${fb.ok ? '✓ Bien classé' : '✗ Mauvais bac · une demi-vie en moins'}</div><p>${c.fb}</p></div>
       ${fb.ok ? '' : `<div class="flex justify-end mt-4">${S1.over ? overBtn() : '<button class="btn btn-primary" data-action="l1-tri-next">Carte suivante</button>'}</div>`}` : ''}
   </section>`;
 }
@@ -1411,7 +1412,7 @@ function L1DetView() {
     </div>
     ${done ? `<div class="fb ${r.errors ? 'fb-bad' : 'fb-ok'} mt-5" role="status"><div class="fb-head">${r.found} erreur${r.found > 1 ? 's' : ''} trouvée${r.found > 1 ? 's' : ''} sur ${DET_ERRS.length}${r.falses ? `, ${r.falses} fausse${r.falses > 1 ? 's' : ''} alerte${r.falses > 1 ? 's' : ''}` : ''}</div><p>Le ton est parfait, le fond contient des erreurs : c’est le fil rouge du support. Plausible n’est pas exact.</p></div><div class="mt-3">${review}</div>
       <div class="flex justify-end mt-6"><button class="btn btn-primary" data-action="l1-to-result">${S1.over ? 'Plus de vies : voir mon résultat' : 'Voir mon résultat'}</button></div>`
-    : `<div class="flex items-center justify-between gap-3 flex-wrap mt-5"><p class="small muted">${dt.flags.size} phrase${dt.flags.size > 1 ? 's' : ''} signalée${dt.flags.size > 1 ? 's' : ''}. Chaque fausse alerte ou erreur manquée coûte une vie.</p><button class="btn btn-primary" data-action="l1-det-ok">Valider mes signalements</button></div>`}
+    : `<div class="flex items-center justify-between gap-3 flex-wrap mt-5"><p class="small muted">${dt.flags.size} phrase${dt.flags.size > 1 ? 's' : ''} signalée${dt.flags.size > 1 ? 's' : ''}. Chaque fausse alerte ou erreur manquée coûte une demi-vie.</p><button class="btn btn-primary" data-action="l1-det-ok">Valider mes signalements</button></div>`}
   </section>`;
 }
 function L1DetTimer() { /* le décompte est géré par l'intervalle commun ci-dessus */ }
@@ -1423,11 +1424,9 @@ function L1DetValidate() {
   render(false);
 }
 function L1LostWhere() {
-  const tf = Object.entries(TF[1].picks).filter(([k, v]) => TF_DATA[1][k].v !== v).length;
   const q = S1.picks.filter((p, k) => p !== undefined && !L1Q[k].opts[p].ok).length;
   const d = S1.det.done ? detResult() : null;
   const parts = [];
-  if (tf) parts.push(`vrai ou faux : ${tf}`);
   if (q) parts.push(`situations : ${q}`);
   if (triErrs()) parts.push(`tri express : ${triErrs()}`);
   if (d && d.errors) parts.push(`détecteur : ${d.missed ? d.missed + ' erreur(s) non signalée(s)' : ''}${d.missed && d.falses ? ', ' : ''}${d.falses ? d.falses + ' fausse(s) alerte(s)' : ''}`);
@@ -1450,12 +1449,12 @@ function L1Result() {
   }
   const line = (label, ok, max) => `<div class="card"><p class="eyebrow grey">${label}</p><p class="h3 num mt-1">${ok} / ${max}</p></div>`;
   const extra = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px">${line('Vrai ou faux', g.tfOk, TF_DATA[1].length)}${line('Situations', g.qOk, L1Q.length)}${line('Tri express', g.triOk, TRI_CARDS.length)}${line('Détecteur', g.detOk, DET_ERRS.length)}</div>
-    <p class="small muted mt-3">Score : ${good} points sur ${tot}. Vies restantes : ${livesLeft()} sur ${LIVES}.</p>`;
+    <p class="small muted mt-3">Score : ${good} points sur ${tot}. Vies restantes : ${fmtLives(livesLeft())} sur ${LIVES}.</p>`;
   return `${LevelHeader(1)}${ResultCard({ n: 1, pct, passed,
     headline: s.over ? 'Plus de vies : la partie s’arrête ici' : passed ? `${good} points sur ${tot} : vous savez ce que fait vraiment un LLM` : `${good} points sur ${tot} : pas encore ${SEUIL}`,
-    text: s.over ? `Trois erreurs, trois vies perdues (${L1LostWhere()}). Relisez les explications, puis rejouez : chaque partie mélange l’ordre des questions et des cartes.`
+    text: s.over ? `Six erreurs, trois vies perdues (${L1LostWhere()}). Relisez les explications, puis rejouez : chaque partie mélange l’ordre des questions et des cartes.`
       : passed ? 'Tokens, probabilités, température, hallucinations, zones rouges : vous avez les bases pour conseiller un métier sans surpromettre.'
-      : 'Relisez les notions signalées, puis rejouez le niveau. Ces fondations conditionnent tous les niveaux suivants.',
+      : `Il vous reste ${fmtLives(livesLeft())} vie${livesLeft() > 1 ? 's' : ''}, mais la validation demande ${SEUIL}/100, soit 2 erreurs au plus sur tout le niveau. Relisez les notions signalées, puis rejouez.`,
     extra })}`;
 }
 
