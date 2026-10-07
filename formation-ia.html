@@ -409,7 +409,7 @@ details.more>p{margin-top:6px}
 <body>
 <header class="topbar">
   <div class="wrap topbar-in">
-    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Socle IA · 4 niveaux · v2026-10-07.u1</small></span></div>
+    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Socle IA · 4 niveaux · v2026-10-07.u2</small></span></div>
     <div class="gp" id="gp" role="progressbar" aria-label="Progression" aria-valuemin="0" aria-valuemax="100">
       <div class="gp-top"><span id="gp-label"></span><strong class="num" id="gp-pct"></strong></div>
       <div class="gp-bar" id="gp-bar"></div>
@@ -466,7 +466,7 @@ const CODE_SECRET = "Lendys_AI2026";
 const CODE_FORMATEUR = "Lendys_FormateurAI2026";
 
 const STORAGE_KEY = "formation-ia-parcours-unique";
-const VERSION_LABEL = "Parcours unique · v2026-10-07.u1";
+const VERSION_LABEL = "Parcours unique · v2026-10-07.u2";
 
 /* =====================================================================
    NOYAU COMMUN : outils, état, suivi webhook, personnages, composants
@@ -491,7 +491,7 @@ const LEVEL_META = {
        intro: 'Construisez l’assistant documentaire qui répond « à livre ouvert », sans tomber dans le grenier poussiéreux ni laisser les portes mal fermées.',
        tags: ['Livre ouvert', 'Découpage', 'Recherche par le sens', 'Grenier poussiéreux', 'Droits d’accès'] },
   4: { title: 'Agents et cadre réglementaire', short: 'Le concepteur', mins: 10, src: 'Bloc 1, séquences 07 à 09',
-       format: 'Vrai ou faux, frise de l’AI Act, atelier agent (outils, garde-fous, AI Act, simulation), boss final',
+       format: 'Vrai ou faux, l’agent sous contrôle, atelier agent (outils, garde-fous, AI Act, simulation), boss final',
        intro: 'Équipez un agent de traitement des réclamations au moindre privilège, bornez sa boucle, classez des usages selon l’AI Act, puis affrontez le boss final : le kit de survie.',
        tags: ['Assistant ou agent', 'Moindre privilège', 'Zones rouges', 'AI Act', 'Kit de survie'] },
 };
@@ -1085,6 +1085,7 @@ function fbx(txt) {
   if (rest.length < 50) return `<p>${s}</p>`;
   return `<p>${head}</p><details class="more"><summary>En savoir plus</summary><p>${rest}</p></details>`;
 }
+const cleanFb = t => { const r = String(t || '').replace(/^(Exact|Correct)\s*[.:]\s*/, ''); return r.charAt(0).toUpperCase() + r.slice(1); };
 const fmtLives = v => String(v).replace('.', ',');
 
 /* ---------- Registre des parties en cours ---------- */
@@ -1386,7 +1387,7 @@ function qcmStage(o) {
   const items = o.items;
   return {
     id: o.id, name: o.name, quick: true,
-    init: () => ({ i: 0, picks: [], perm: items.map(q => o.fixed ? q.opts.map((_, k) => k) : shuffle(q.opts.map((_, k) => k))), start: 0, end: 0 }),
+    init: () => ({ i: 0, picks: [], perm: items.map(q => (o.fixed || q.fixed) ? q.opts.map((_, k) => k) : shuffle(q.opts.map((_, k) => k))), start: 0, end: 0 }),
     enter(st) { st.start = Date.now(); },
     good: st => st.picks.filter((p, k) => p !== undefined && items[k].opts[p].ok).length,
     errors: st => st.picks.filter((p, k) => p !== undefined && !items[k].opts[p].ok).length,
@@ -1430,7 +1431,7 @@ function qcmStage(o) {
         <div class="grid gap-2 mt-3">${opts}</div>
         ${answered ? `<div class="fb ${chosen.ok ? 'fb-ok' : 'fb-bad'} mt-5" role="status">
             <div class="fb-head">${chosen.ok ? '✓ Bonne réponse' : '✗ Raté · une demi-vie en moins'}</div>
-            ${chosen.ok ? fbx(chosen.fb) : `<p><b>Bonne réponse :</b> ${good.t}</p>${fbx(good.fb)}`}
+            ${chosen.ok ? fbx(chosen.fb) : `<p><b>Bonne réponse :</b> ${good.t}</p>${fbx(cleanFb(good.fb))}`}
           </div>
           ${q.concept ? `<div class="callout mt-4"><span class="eyebrow">À retenir${q.mod ? ' · ' + q.mod : ''}</span><p>${q.concept}</p></div>` : ''}
           <div class="flex justify-end mt-5">${innerCtl(n, 'qcm-next', st.i < items.length - 1 ? 'Question suivante' : 'Terminer l’épreuve')}</div>` : ''}
@@ -1585,7 +1586,7 @@ const TF_DATA = {
   ],
   4: [
     { t: 'Un agent enchaîne seul plusieurs étapes vers un objectif : plus il est autonome, plus sa supervision doit être définie à l’avance.', v: true, tag: 'Assistant vs agent', fb: 'Vrai. L’assistant répond quand on le sollicite, une étape à la fois ; l’agent enchaîne les étapes. Plus d’autonomie exige plus de supervision : contrôle et validation restent indispensables (séquence 09).' },
-    { t: 'Camille annonce au client que les obligations « haut risque » de l’annexe III (scoring de crédit) s’appliquent depuis le 2 août 2026.', v: false, tag: 'AI Act : calendrier', fb: 'Faux. L’omnibus numérique (règlement (UE) 2026/1744, en vigueur le 27 juillet 2026) les a reportées au 2 décembre 2027 ; l’annexe I au 2 août 2028. Dates à confirmer avec la conformité avant chaque session (séquence 07).' },
+    { t: 'L’assistant de Camille est validé par la DSI : elle peut y coller une déclaration de soupçon Tracfin pour la faire résumer.', v: false, tag: 'Zones rouges', fb: 'Faux. Le secret Tracfin est une zone rouge absolue : l’IA reste éteinte, même dans l’outil validé. Le niveau de la donnée se combine avec le niveau de l’outil (séquence 08).' },
     { t: 'Le chatbot d’accueil que Julien déploie pour un assureur doit déjà indiquer aux clients qu’ils parlent à une IA.', v: true, tag: 'AI Act : transparence', fb: 'Vrai. La transparence (art. 50) s’applique depuis le 2 août 2026 : informer qu’on interagit avec une IA et marquer les contenus générés (séquence 07).' },
     { t: 'Puisque les obligations haut risque sont reportées à 2027, Thomas peut attendre 2027 pour appliquer le RGPD à son agent de scoring.', v: false, tag: 'RGPD et AI Act', fb: 'Faux. Le calendrier ne concerne que l’AI Act : le RGPD et le secret bancaire s’appliquent déjà, sans délai. Les deux cadres sont complémentaires (séquence 07).' },
     { t: 'Pour qu’il puisse se connecter seul à l’outil du client, Sophie colle la clé d’API dans le prompt système de l’agent.', v: false, tag: 'Zones rouges', fb: 'Faux. Clés d’API, mots de passe et certificats sont une zone rouge absolue : une clé dans un prompt, c’est la clé sous le paillasson. Les accès d’un agent passent par des outils autorisés et cloisonnés (séquence 08).' },
@@ -2314,23 +2315,61 @@ COURSE[3] = {
 
 /* =====================================================================
    NIVEAU 4 — AGENTS ET CADRE RÉGLEMENTAIRE (≈ 10 min)
-   Échauffement 4 V/F · Frise de l'omnibus ×4 · Atelier agent : outils ×6,
+   Échauffement 4 V/F · L'agent sous contrôle ×6 (3 manches) · Atelier agent : outils ×6,
    garde-fous ×6, AI Act ×6, simulation · Boss final : kit de survie ×6.
-   Score : vrai ou faux 10 %, frise 10 %, atelier 60 %, boss 20 %.
+   Score : vrai ou faux 10 %, agent sous contrôle 10 %, atelier 60 %, boss 20 %.
    ===================================================================== */
-const OMNI_DATES = ['2 février 2025', '2 août 2026', '2 décembre 2027', '2 août 2028'];
-const mkDate = (q, good, fb, tag) => ({ q, tag, opts: OMNI_DATES.map(d => ({ t: d, ok: d === good, fb })) });
-const L4_FRISE = [
-  mkDate('Pratiques interdites (notation sociale…) et obligation de littératie IA (art. 4)', '2 février 2025', 'Déjà applicables depuis le 2 février 2025 : l’obligation de littératie IA est d’ailleurs l’une des raisons de cette formation.', 'AI Act : interdictions'),
-  mkDate('Transparence (art. 50) : dire au client qu’il parle à une IA, marquer les contenus générés', '2 août 2026', 'Applicable depuis le 2 août 2026 : un chatbot d’accueil doit déjà annoncer qu’il est une IA.', 'AI Act : transparence'),
-  mkDate('Haut risque, annexe III : scoring de crédit, tarification vie et santé', '2 décembre 2027', 'Reporté au 2 décembre 2027 par l’omnibus numérique (règlement (UE) 2026/1744, en vigueur le 27 juillet 2026). Le RGPD, lui, s’applique déjà.', 'AI Act : haut risque annexe III'),
-  mkDate('Haut risque, annexe I : produits réglementés', '2 août 2028', 'Reporté au 2 août 2028 par l’omnibus numérique. Dates à confirmer avec la conformité avant chaque session.', 'AI Act : haut risque annexe I'),
+/* ---------- L'agent sous contrôle : 3 manches de 2 questions (séquences 07 à 09, sans date à retenir) ---------- */
+const OPT_ASSIST = 'Un assistant : il répond quand on le sollicite, une étape à la fois.';
+const OPT_AGENT = 'Un agent : il enchaîne seul plusieurs étapes vers un objectif.';
+const VALID = [
+  ['Faible', 'relecture simple'], ['Moyen', 'vérification des sources et du périmètre'],
+  ['Élevé', 'expert identifié, preuve et traçabilité'], ['Critique', 'processus formel, contrôle renforcé ou interdiction'],
+].map(([n, c]) => `${n} : ${c}`);
+const L4_CTRL = [
+  { manche: 1, fixed: true, mod: 'Séquence 09 · Assistant ou agent', who: 'julien', tag: 'Assistant ou agent',
+    scenario: 'Dans Outlook, Julien demande à Copilot de reformuler un mail plus poliment, puis relit le résultat avant de l’envoyer.',
+    q: 'Est-ce un assistant ou un agent ?',
+    opts: [{ t: OPT_ASSIST, ok: true, fb: 'Exact : une demande, une réponse, et Julien reste aux commandes à chaque étape.' }, { t: OPT_AGENT, fb: 'Non : l’outil ne fait qu’une étape, à la demande de Julien.' }],
+    concept: 'L’assistant répond quand on le sollicite (c’est le niveau d’usage du Bloc 2 : Outlook, Word, Excel). L’agent enchaîne seul les étapes.' },
+  { manche: 1, fixed: true, mod: 'Séquence 09 · Assistant ou agent', who: 'claire', tag: 'Assistant ou agent',
+    scenario: 'Chaque matin, un outil lit les réclamations reçues, retrouve la clause applicable, rédige un projet de réponse et le dépose dans la file du gestionnaire.',
+    q: 'Est-ce un assistant ou un agent ?',
+    opts: [{ t: OPT_ASSIST, fb: 'Non : personne ne le sollicite à chaque étape ; il enchaîne lecture, recherche et rédaction.' }, { t: OPT_AGENT, ok: true, fb: 'Exact : il enchaîne lecture, recherche et rédaction sans qu’on le sollicite à chaque étape.' }],
+    concept: 'Plus d’autonomie exige plus de supervision : périmètre, règle d’arrêt et validation humaine se définissent à l’avance.' },
+  { manche: 2, fixed: true, mod: 'Séquence 08 · Validation selon le risque', who: 'camille', tag: 'Niveau de validation',
+    scenario: 'L’agent prépare, pour l’équipe, la synthèse d’une note interne autorisée.',
+    q: 'Quel niveau de validation humaine ?',
+    opts: VALID.map((t, k) => ({ t, ok: k === 1, fb: 'Moyen : synthèse d’un document interne autorisé. On vérifie les sources et le périmètre avant diffusion.' })),
+    concept: 'Plus la conséquence potentielle est forte, plus la preuve, la traçabilité et la responsabilité doivent être explicites.' },
+  { manche: 2, fixed: true, mod: 'Séquence 08 · Validation selon le risque', who: 'jb', tag: 'Niveau de validation',
+    scenario: 'L’agent propose de refuser l’indemnisation de M. Laurent.',
+    q: 'Quel niveau de validation humaine ?',
+    opts: VALID.map((t, k) => ({ t, ok: k === 3, fb: 'Critique : une décision qui affecte une personne passe par un processus formel. L’agent prépare, l’humain décide (RGPD, art. 22 ; AI Act, art. 14).' })),
+    concept: 'Le niveau « critique » prolonge les trois niveaux de la séquence 04 pour les décisions qui touchent une personne.' },
+  { manche: 3, mod: 'Séquence 07 · AI Act et RGPD', who: 'julien', tag: 'AI Act : ce qui s’applique',
+    scenario: 'Julien déploie un chatbot d’accueil sur le site d’un assureur client.',
+    q: 'Que faut-il faire, dès aujourd’hui ?',
+    opts: [
+      { t: 'Annoncer au client qu’il échange avec une IA, et appliquer le RGPD.', ok: true, fb: 'Exact : la transparence (art. 50) s’applique déjà, et le RGPD dans tous les cas.' },
+      { t: 'Rien : un chatbot n’est pas un usage à haut risque.', fb: 'Non : risque limité ne veut pas dire aucune obligation. La transparence s’applique déjà, et le RGPD aussi.' },
+      { t: 'Faire relire chaque réponse par un humain avant envoi.', fb: 'Non : ce n’est pas l’obligation attendue pour un chatbot d’accueil. L’AI Act demande ici la transparence, le RGPD s’applique.' },
+      { t: 'Rien : seul l’éditeur du chatbot est concerné.', fb: 'Non : l’organisation qui utilise l’outil est « déployeur » et a ses propres obligations.' } ],
+    concept: 'Méthode : qualifier l’usage, pas l’outil. Le RGPD s’applique toujours ; l’AI Act s’y ajoute selon le niveau de risque.' },
+  { manche: 3, mod: 'Séquence 07 · AI Act et RGPD', who: 'emilie', tag: 'AI Act : déployeur et fournisseur',
+    scenario: 'Le cabinet utilise un agent de traitement des réclamations conçu par un éditeur spécialisé.',
+    q: 'Qui a des obligations au titre de l’AI Act ?',
+    opts: [
+      { t: 'Le cabinet, déployeur, et l’éditeur, fournisseur : les deux sont tenus.', ok: true, fb: 'Exact : une organisation qui utilise un outil d’IA est en général « déployeur », et le fournisseur a aussi ses obligations.' },
+      { t: 'Seulement l’éditeur, qui a conçu l’outil.', fb: 'Non : le cabinet, qui l’utilise, est déployeur et reste tenu.' },
+      { t: 'Seulement le cabinet, qui l’utilise.', fb: 'Non : le fournisseur a aussi ses obligations. Les deux sont tenus.' },
+      { t: 'Personne, tant que l’usage n’est pas à haut risque.', fb: 'Non : littératie IA et transparence s’appliquent déjà, et le RGPD dans tous les cas.' } ],
+    concept: 'Littératie IA et transparence s’appliquent déjà ; le haut risque exigera absence de biais, explicabilité et contrôle humain.' },
 ];
-function friseTop(st) {
-  return `<div class="frise mt-4" aria-label="Frise de l’AI Act">${OMNI_DATES.map(d => {
-    const placed = L4_FRISE.map((q, k) => ({ q, k })).filter(({ q, k }) => st.picks[k] !== undefined && q.opts[st.picks[k]].t === d);
-    return `<div class="frise-col"><span class="frise-date">${d}</span>${placed.map(({ q, k }) => `<span class="frise-item ${q.opts[st.picks[k]].ok ? 'ok' : 'bad'}">${q.q.split(' :')[0].split(' (')[0]}</span>`).join('')}</div>`;
-  }).join('')}</div>`;
+const MANCHES = { 1: 'Assistant ou agent ?', 2: 'Qui valide ?', 3: 'Quel cadre s’applique ?' };
+function ctrlTop(st) {
+  const q = L4_CTRL[Math.min(st.i, L4_CTRL.length - 1)];
+  return `<div class="rail mt-3" aria-label="Manches">${[1, 2, 3].map(m => `<span class="${m < q.manche ? 'done' : m === q.manche ? 'cur' : ''}" style="font-size:12.5px;padding:3px 10px;border-radius:99px;background:${m === q.manche ? 'var(--orange)' : m < q.manche ? 'var(--ok-soft)' : 'var(--card)'};color:${m === q.manche ? '#fff' : m < q.manche ? 'var(--ok)' : 'var(--muted)'};font-weight:${m === q.manche ? 700 : 400}">Manche ${m} · ${MANCHES[m]}</span>`).join('')}</div>`;
 }
 
 const TOOLS4 = [
@@ -2590,10 +2629,10 @@ makeLevel(4, {
   weights: [10, 10, 60, 20],
   stages: [
     tfStage(4, TF_DATA[4]),
-    qcmStage({ id: 'frise', name: 'Frise de l’AI Act', items: L4_FRISE, fixed: true, label: q => `Date d’application : ${q.q}`,
-      intro: 'L’omnibus numérique (règlement (UE) 2026/1744) a décalé le calendrier. Placez chaque obligation sur la frise.',
-      top: st => friseTop(st),
-      endText: () => 'Ce calendrier ne concerne que l’AI Act : le RGPD et le secret bancaire s’appliquent déjà, sans délai. Place à l’atelier : concevez l’agent. Pas de vie en jeu, il est corrigé par la simulation.' }),
+    qcmStage({ id: 'ctrl', name: 'L’agent sous contrôle', items: L4_CTRL, label: q => `${q.scenario} ${q.q}`,
+      intro: 'Trois manches de deux questions : assistant ou agent, qui valide, quel cadre s’applique.',
+      top: st => ctrlTop(st),
+      endText: () => 'Plus l’outil est autonome, plus sa supervision se définit à l’avance. Place à l’atelier : concevez l’agent. Pas de vie en jeu, il est corrigé par la simulation.' }),
     L4_ATELIER,
     qcmStage({ id: 'boss', name: 'Boss final : le kit de survie', items: L4_BOSS, timer: BOSS_SECS, label: q => `${q.scenario} Quel réflexe l’arrête ?`,
       intro: `Six situations, six réflexes. ${BOSS_SECS / 60} minutes conseillées pour le badge Réflexes de survie ; le chrono ne fait rien perdre.`,
@@ -2601,7 +2640,7 @@ makeLevel(4, {
       endText: (st, g) => g === L4_BOSS.length ? 'Boss vaincu sans une égratignure. Six réflexes, une habitude : les cocher avant chaque usage professionnel de l’IA.' : 'Six réflexes, une habitude : les cocher avant chaque usage professionnel de l’IA. Une seule réponse « non » : on ne lance pas.' }),
   ],
   incident: r => { const s = r.st[2]; return s.result && s.result.fail ? { label: L4_INC[s.result.fail], why: (s.log.filter(e => e.k === 'err').pop() || {}).t || '' } : null; },
-  resultText: () => ({ ok: 'Un agent utile, borné et supervisé', okText: 'Moindre privilège, règle d’arrêt, zones rouges respectées, décision laissée à l’humain, calendrier de l’AI Act maîtrisé : une conception défendable devant la conformité.' }),
+  resultText: () => ({ ok: 'Un agent utile, borné et supervisé', okText: 'Moindre privilège, règle d’arrêt, zones rouges respectées, décision laissée à l’humain, usages qualifiés selon l’AI Act : une conception défendable devant la conformité.' }),
   resultExtra: (r, res) => res.passed ? SatisfactionCard() : '',
 });
 
