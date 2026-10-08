@@ -409,7 +409,7 @@ details.more>p{margin-top:6px}
 <body>
 <header class="topbar">
   <div class="wrap topbar-in">
-    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Socle IA · 4 niveaux · v2026-10-07.u2</small></span></div>
+    <div class="brand"><span class="logo" aria-hidden="true">IA</span><span><b>Formation IA</b><small>Socle IA · 4 niveaux · v2026-10-08.u3</small></span></div>
     <div class="gp" id="gp" role="progressbar" aria-label="Progression" aria-valuemin="0" aria-valuemax="100">
       <div class="gp-top"><span id="gp-label"></span><strong class="num" id="gp-pct"></strong></div>
       <div class="gp-bar" id="gp-bar"></div>
@@ -466,7 +466,7 @@ const CODE_SECRET = "Lendys_AI2026";
 const CODE_FORMATEUR = "Lendys_FormateurAI2026";
 
 const STORAGE_KEY = "formation-ia-parcours-unique";
-const VERSION_LABEL = "Parcours unique · v2026-10-07.u2";
+const VERSION_LABEL = "Parcours unique · v2026-10-08.u3";
 
 /* =====================================================================
    NOYAU COMMUN : outils, état, suivi webhook, personnages, composants
@@ -603,8 +603,15 @@ function basePayload(n, evenement) {
     joueur: playerName(),
     niveau: String(n),
     titre_niveau: n === 'tous' ? 'Parcours complet' : LEVEL_META[n].title,
+    // Tous les champs sont présents dans chaque envoi (vides si sans objet) :
+    // Make voit ainsi la liste complète quelle que soit la ligne d'exemple.
+    niveau_valide: '', score: '', seuil: String(SEUIL), tentative: '',
+    erreurs_tentative: '', erreurs_frequentes: '', email: normEmail(state.player.email),
+    duree_secondes: '', avancement: '',
+    note_satisfaction: '', commentaire_satisfaction: '',
     score_global: String(totalPts()),
     rattrapage: 'non',
+    envoyer_fiche: 'non', fiche_sujet: '', fiche_html: '', fiche_taille: '0',
   };
 }
 const levelStart = {};
